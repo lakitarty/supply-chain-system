@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Activity Log | SupplyChain Management System</title>
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+</head>
+<body>
+    <div id="shell"></div>
+
+    <main class="page">
+        <h1 class="page-title">Activity Log</h1>
+        <p class="page-subtitle" id="pageSubtitle"></p>
+
+        <section class="page-section">
+            <h2>Filters</h2>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="filterUser">User</label>
+                    <select id="filterUser"></select>
+                </div>
+
+                <div class="form-group">
+                    <label for="filterAction">Action</label>
+                    <select id="filterAction"></select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="filterFrom">From date</label>
+                    <input type="date" id="filterFrom">
+                </div>
+
+                <div class="form-group">
+                    <label for="filterTo">To date</label>
+                    <input type="date" id="filterTo">
+                </div>
+            </div>
+        </section>
+
+        <section class="page-section">
+            <h2>Entries</h2>
+
+            <div id="logMessage" class="form-message" role="alert" aria-live="polite"></div>
+
+            <div class="form-group">
+                <label for="entrySelect">Select an entry</label>
+                <select id="entrySelect"></select>
+                <p class="field-hint" id="logNote"></p>
+            </div>
+
+            <dl class="detail-list" id="entryDetail"></dl>
+        </section>
+    </main>
+
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/form-helpers.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="activity-log.js"></script>
+</body>
+</html>

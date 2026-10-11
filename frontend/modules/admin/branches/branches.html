@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Branches | SupplyChain Management System</title>
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+</head>
+<body>
+    <div id="shell"></div>
+
+    <main class="page">
+        <h1 class="page-title">Branches</h1>
+        <p class="page-subtitle" id="pageSubtitle"></p>
+
+        <section class="page-section">
+            <h2>Manage branches</h2>
+
+            <div class="form-group">
+                <label for="recordSelect">Select a branch</label>
+                <select id="recordSelect"></select>
+            </div>
+
+            <form id="recordForm" novalidate>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="branchName">Branch name</label>
+                        <input type="text" id="branchName" maxlength="150">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="location">Location</label>
+                        <input type="text" id="location" maxlength="255">
+                    </div>
+                </div>
+
+                <div class="form-group" id="statusGroup">
+                    <label for="status">Status</label>
+                    <select id="status">
+                        <option value="ACTIVE">Active</option>
+                        <option value="INACTIVE">Inactive</option>
+                    </select>
+                </div>
+
+                <div id="formMessage" class="form-message" role="alert" aria-live="polite"></div>
+
+                <button type="submit" class="primary-button" id="saveButton"></button>
+            </form>
+        </section>
+    </main>
+
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/form-helpers.js"></script>
+    <script src="../../../shared/js/record-editor.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="branches.js"></script>
+</body>
+</html>

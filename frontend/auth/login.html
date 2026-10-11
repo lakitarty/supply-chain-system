@@ -1,62 +1,48 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign In</title>
+    <title>Sign In | SupplyChain Management System</title>
+    <link rel="stylesheet" href="../shared/css/base.css">
     <link rel="stylesheet" href="auth.css">
 </head>
 <body>
-    <main class="login-page">
-        <header class="top-header">
-            <div class="system-name">SUPPLYCHAIN MANAGEMENT SYSTEM</div>
-            <a href="register.html" class="register-link">
-                Create account
-            </a>
-        </header>
-        <section class="login-container">
-            <h1>Sign In</h1>
-            <p class="login-intro">
-                Sign in to access your organization account.
-            </p>
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        required
-                    >
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        required
-                    >
-                </div>
-                <div id="formMessage" class="form-message"></div>
-                <button type="submit" class="primary-button" id="loginButton">
-                    Sign In
-                </button>
+    <header class="top-header">
+        <div class="system-name">SUPPLYCHAIN MANAGEMENT SYSTEM</div>
+        <a href="register.html" class="header-link">Create account</a>
+    </header>
 
-            </form>
+    <main class="auth-panel">
+        <h1>Sign In</h1>
+        <p class="auth-intro">Sign in to access your organization account.</p>
+
+        <form id="loginForm" class="auth-form" novalidate>
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" autocomplete="username" autofocus required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="input-wrap">
+                    <input type="password" id="password" name="password" autocomplete="current-password" required>
+                    <button type="button" class="toggle-password" data-target="password" aria-pressed="false">Show</button>
+                </div>
+            </div>
+
+            <div id="formMessage" class="form-message" role="alert" aria-live="polite"></div>
+
+            <button type="submit" class="primary-button" id="loginButton">Sign In</button>
 
             <p class="bottom-text">
                 Don't have an organization account?
                 <a href="register.html">Register</a>
             </p>
-
-        </section>
-
+        </form>
     </main>
 
-    <script src="auth-common.js"></script>
+    <script src="../shared/js/api.js"></script>
+    <script src="../shared/js/form-helpers.js"></script>
     <script src="login.js"></script>
-
 </body>
 </html>

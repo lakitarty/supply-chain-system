@@ -1,157 +1,149 @@
-const organizationTypes = [
-    {
-        value: "MANUFACTURER",
-        label: "Manufacturer"
-    },
-    {
-        value: "SUPPLIER",
-        label: "Supplier"
-    },
-    {
-        value: "MANUFACTURER_SUPPLIER",
-        label: "Manufacturer + Supplier"
-    },
-    {
-        value: "RETAILER",
-        label: "Retailer"
-    }
-];
-
-const organizationTypeSelect = document.getElementById("organizationType");
-
-organizationTypes.forEach(type => {
-    const option = document.createElement("option");
-    option.value = type.value;
-    option.textContent = type.label;
-    organizationTypeSelect.appendChild(option);
-});
-
 const registerForm = document.getElementById("registerForm");
 const formMessage = document.getElementById("formMessage");
 const registerButton = document.getElementById("registerButton");
+const passwordInput = document.getElementById("password");
+const passwordHint = document.getElementById("passwordHint");
 
-function showMessage(message, type) {
-    formMessage.textContent = message;
-    formMessage.className = `form-message ${type}`;
-}
-function getSelectedOrganizationType() {
-    return document.getElementById("organizationType").value; 
+const KRA_PATTERN = /^[A-Z][0-9]{9}[A-Z]$/;
+const PHONE_PATTERN = /^\+?[0-9][0-9\s\-()]{6,19}$/;
+
+const REQUIRED_FIELDS = [
+    ["organizationName", "Enter the organization name."],
+    ["organizationType", "Choose an organization type."],
+    ["branchName", "Enter the branch name."],
+    ["branchLocation", "Enter the branch location."],
+    ["firstName", "Enter the first name."],
+    ["lastName", "Enter the last name."],
+    ["adminEmail", "Enter the administrator email."],
+    ["password", "Create a password."],
+    ["confirmPassword", "Confirm the password."]
+];
+
+const PAYLOAD_FIELDS = [
+    "organizationName",
+    "organizationType",
+    "kraPin",
+    "organizationEmail",
+    "organizationPhone",
+    "organizationAddress",
+    "branchName",
+    "branchLocation",
+    "firstName",
+    "lastName",
+    "adminEmail"
+];
+
+function field(id) {
+    return document.getElementById(id);
 }
 
-registerForm.addEventListener("submit", async function (event) {
+function fieldValue(id) {
+    const input = field(id);
+    return input.type === "password" ? input.value : input.value.trim();
+}
+
+function isStrongPassword(value) {
+    return value.length >= 8 && /[A-Za-z]/.test(value) && /[0-9]/.test(value);
+}
+
+function validateRegistration() {
+    const errors = [];
+    const add = (id, message) => errors.push({ id, message });
+    const hasError = id => errors.some(error => error.id === id);
+
+    REQUIRED_FIELDS.forEach(([id, message]) => {
+        if (!fieldValue(id)) {
+            add(id, message);
+        }
+    });
+
+    if (!hasError("adminEmail") && !field("adminEmail").checkValidity()) {
+        add("adminEmail", "Enter a valid email address.");
+    }
+
+    if (fieldValue("organizationEmail") && !field("organizationEmail").checkValidity()) {
+        add("organizationEmail", "Enter a valid email address.");
+    }
+
+    if (fieldValue("kraPin") && !KRA_PATTERN.test(fieldValue("kraPin"))) {
+        add("kraPin", "KRA PIN must look like A123456789Z.");
+    }
+
+    if (fieldValue("organizationPhone") && !PHONE_PATTERN.test(fieldValue("organizationPhone"))) {
+        add("organizationPhone", "Enter a valid phone number.");
+    }
+
+    if (!hasError("password") && !isStrongPassword(passwordInput.value)) {
+        add("password", "Use at least 8 characters, with a letter and a number.");
+    }
+
+    if (!hasError("confirmPassword") && passwordInput.value !== fieldValue("confirmPassword")) {
+        add("confirmPassword", "Passwords do not match.");
+    }
+
+    return errors;
+}
+
+function collectPayload() {
+    const payload = Object.fromEntries(PAYLOAD_FIELDS.map(id => [id, fieldValue(id)]));
+    payload.password = passwordInput.value;
+    return payload;
+}
+
+function showFieldErrors(errors) {
+    errors.forEach(error => setFieldError(field(error.id), error.message));
+    field(errors[0].id).focus();
+}
+
+async function submitRegistration(event) {
     event.preventDefault();
 
-    const organizationType = getSelectedOrganizationType();
-    const password = document.getElementById("password").value;
-    const confirmPassword = document.getElementById("confirmPassword").value;
+    showMessage(formMessage, "", "");
+    clearFieldErrors(registerForm);
 
-    formMessage.className = "form-message";
-    formMessage.textContent = "";
+    const errors = validateRegistration();
 
-    if (!organizationType) {
-        showMessage(
-            "Please select an organization type.",
-            "error"
-        );
+    if (errors.length > 0) {
+        showFieldErrors(errors);
+        showMessage(formMessage, "Please fix the highlighted fields.", "error");
         return;
     }
 
-    if (password !== confirmPassword) {
-        showMessage(
-            "Passwords do not match.",
-            "error"
-        );
-        return;
-    }
-
-    if (password.length < 8) {
-        showMessage(
-            "Password must be at least 8 characters.",
-            "error"
-        );
-        return;
-    }
-
-    const payload = {
-        organizationName:
-            document.getElementById("organizationName").value.trim(),
-
-        organizationType,
-
-        kraPin:
-            document.getElementById("kraPin").value.trim(),
-
-        organizationEmail:
-            document.getElementById("organizationEmail").value.trim(),
-
-        organizationPhone:
-            document.getElementById("organizationPhone").value.trim(),
-
-        organizationAddress:
-            document.getElementById("organizationAddress").value.trim(),
-
-        branchName:
-            document.getElementById("branchName").value.trim(),
-
-        branchLocation:
-            document.getElementById("branchLocation").value.trim(),
-
-        firstName:
-            document.getElementById("firstName").value.trim(),
-
-        lastName:
-            document.getElementById("lastName").value.trim(),
-
-        adminEmail:
-            document.getElementById("adminEmail").value.trim(),
-
-        password
-    };
-
-    registerButton.disabled = true;
-    registerButton.textContent = "Creating organization...";
+    setLoading(registerButton, true, "Creating organization...");
 
     try {
-        const response = await fetch(
-            "../../Backend/organizations/register.php",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                credentials: "include",
-                body: JSON.stringify(payload)
+        const { ok, data } = await postJson("organizations/register.php", collectPayload());
+
+        if (!ok) {
+            if (data.field && field(data.field)) {
+                showFieldErrors([{ id: data.field, message: data.error }]);
             }
-        );
 
-        const result = await response.json();
-
-        if (!response.ok) {
-            showMessage(
-                result.error ||
-                result.message ||
-                "Registration failed.",
-                "error"
-            );
+            showMessage(formMessage, data.error || "Registration failed.", "error");
+            setLoading(registerButton, false);
             return;
         }
 
-        showMessage(
-            "Organization created successfully. Redirecting to sign in...",
-            "success"
-        );
-
-        setTimeout(() => {
-            window.location.replace("login.html");
-        }, 1000);
+        showMessage(formMessage, "Organization created. Opening your portal...", "success");
+        setTimeout(() => goTo(HOME_PATH), 800);
 
     } catch (error) {
         showMessage(
-            "Unable to connect to the server.",
+            formMessage,
+            "Unable to reach the server. Check that Apache and MySQL are running.",
             "error"
         );
-    } finally {
-        registerButton.disabled = false;
-        registerButton.textContent = "Create Organization";
+        setLoading(registerButton, false);
     }
+}
+
+passwordInput.addEventListener("input", () => {
+    passwordHint.classList.toggle("met", isStrongPassword(passwordInput.value));
 });
+
+field("kraPin").addEventListener("input", event => {
+    event.target.value = event.target.value.toUpperCase();
+});
+
+clearErrorOnInput(registerForm);
+registerForm.addEventListener("submit", submitRegistration);

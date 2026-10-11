@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Users | SupplyChain Management System</title>
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+</head>
+<body>
+    <div id="shell"></div>
+
+    <main class="page">
+        <h1 class="page-title">Users</h1>
+        <p class="page-subtitle" id="pageSubtitle"></p>
+
+        <section class="page-section">
+            <h2>Manage users</h2>
+
+            <div class="form-group">
+                <label for="recordSelect">Select a user</label>
+                <select id="recordSelect"></select>
+            </div>
+
+            <form id="recordForm" novalidate>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstName">First name</label>
+                        <input type="text" id="firstName" maxlength="100">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="lastName">Last name</label>
+                        <input type="text" id="lastName" maxlength="100">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" maxlength="150" autocomplete="off">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="role">Role</label>
+                        <select id="role">
+                            <option value="STAFF">Staff</option>
+                            <option value="ADMIN">Admin</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="branchId">Branch</label>
+                        <select id="branchId"></select>
+                    </div>
+                </div>
+
+                <div class="form-group" id="statusGroup">
+                    <label for="status">Status</label>
+                    <select id="status">
+                        <option value="ACTIVE">Active</option>
+                        <option value="INACTIVE">Inactive</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="password" id="passwordLabel"></label>
+                    <input type="password" id="password" autocomplete="new-password">
+                </div>
+
+                <div id="formMessage" class="form-message" role="alert" aria-live="polite"></div>
+
+                <button type="submit" class="primary-button" id="saveButton"></button>
+            </form>
+        </section>
+    </main>
+
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/form-helpers.js"></script>
+        <script src="../../../shared/js/record-editor.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="users.js"></script>
+</body>
+</html>

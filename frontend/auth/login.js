@@ -4,34 +4,19 @@ const passwordInput = document.getElementById("password");
 const formMessage = document.getElementById("formMessage");
 const loginButton = document.getElementById("loginButton");
 
-clearErrorOnInput(loginForm);
-
-/* If the person is already signed in, skip the login page. */
-(async function redirectIfSignedIn() {
+async function redirectIfSignedIn() {
     try {
-        const response = await fetch(`${API_BASE}/auth/session.php`, {
-            credentials: "include",
-            cache: "no-store"
-        });
-        const result = await response.json();
+        const { data } = await getJson("auth/session.php");
 
-        if (result.authenticated === true) {
-            window.location.replace(GATEWAY_URL);
+        if (data.authenticated === true) {
+            goTo(HOME_PATH);
         }
     } catch (error) {
-        // Not signed in, or server not reachable: stay on this page.
+        return;
     }
-})();
+}
 
-loginForm.addEventListener("submit", async function (event) {
-    event.preventDefault();
-
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
-
-    showMessage(formMessage, "", "");
-    clearFieldErrors(loginForm);
-
+function validateLogin(email, password) {
     let valid = true;
 
     if (!email) {
@@ -47,12 +32,24 @@ loginForm.addEventListener("submit", async function (event) {
         valid = false;
     }
 
-    if (!valid) {
+    return valid;
+}
+
+async function submitLogin(event) {
+    event.preventDefault();
+
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+
+    showMessage(formMessage, "", "");
+    clearFieldErrors(loginForm);
+
+    if (!validateLogin(email, password)) {
         loginForm.querySelector(".has-error input").focus();
         return;
     }
 
-    setLoading(loginButton, true, "Signing in...", "Sign In");
+    setLoading(loginButton, true, "Signing in...");
 
     try {
         const { ok, data } = await postJson("auth/login.php", { email, password });
@@ -61,14 +58,12 @@ loginForm.addEventListener("submit", async function (event) {
             showMessage(formMessage, data.error || "Unable to sign in.", "error");
             passwordInput.value = "";
             passwordInput.focus();
-            setLoading(loginButton, false, "Signing in...", "Sign In");
+            setLoading(loginButton, false);
             return;
         }
 
         showMessage(formMessage, "Signed in. Opening your portal...", "success");
-
-        // The gateway reads the session and sends the person to the right portal.
-        window.location.replace(GATEWAY_URL);
+        goTo(HOME_PATH);
 
     } catch (error) {
         showMessage(
@@ -76,6 +71,10 @@ loginForm.addEventListener("submit", async function (event) {
             "Unable to reach the server. Check that Apache and MySQL are running.",
             "error"
         );
-        setLoading(loginButton, false, "Signing in...", "Sign In");
+        setLoading(loginButton, false);
     }
-});
+}
+
+clearErrorOnInput(loginForm);
+loginForm.addEventListener("submit", submitLogin);
+redirectIfSignedIn();

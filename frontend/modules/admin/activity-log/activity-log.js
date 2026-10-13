@@ -12,17 +12,13 @@ const logNote = field("logNote");
 
 let entries = [];
 
-function readableAction(code) {
-    const text = code.toLowerCase().replaceAll("_", " ");
-    return text.charAt(0).toUpperCase() + text.slice(1);
-}
 
 function personName(entry) {
     return entry.first_name ? `${entry.first_name} ${entry.last_name}` : "Unknown user";
 }
 
 function describeEntry(entry) {
-    return `${entry.created_at}  |  ${personName(entry)}  |  ${readableAction(entry.action_type)}`;
+    return `${entry.created_at}  |  ${personName(entry)}  |  ${readable(entry.action_type)}`;
 }
 
 function renderDetail(entry) {
@@ -30,7 +26,7 @@ function renderDetail(entry) {
         ? [
             ["When", entry.created_at],
             ["Who", entry.email ? `${personName(entry)}  (${entry.email})` : personName(entry)],
-            ["Action", readableAction(entry.action_type)],
+            ["Action", readable(entry.action_type)],
             ["Record", `${entry.entity_type.toLowerCase()} ${entry.entity_id ?? ""}`.trim()],
             ["Details", entry.description || "None"]
         ]
@@ -91,7 +87,7 @@ function fillFilters(users, actions) {
 
     field("filterAction").replaceChildren(
         option("", "All actions"),
-        ...actions.map(action => option(action, readableAction(action)))
+        ...actions.map(action => option(action, readable(action)))
     );
 }
 

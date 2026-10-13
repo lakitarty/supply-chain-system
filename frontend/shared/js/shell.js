@@ -1,4 +1,9 @@
-const SYSTEM_NAME = "SupplyChain Management System";
+const SYSTEM_NAME = "Supply Chain Management System";
+
+function readable(code) {
+    const text = code.toLowerCase().replaceAll("_", " ");
+    return text.charAt(0).toUpperCase() + text.slice(1);
+}
 
 function element(tag, className, text) {
     const node = document.createElement(tag);
@@ -49,11 +54,12 @@ async function signOut() {
 
 function buildUserArea(account) {
     const { user, organization } = account;
+    const branch = user.branch_name ? `  |  ${user.branch_name}` : "";
 
     const text = element("div", "shell-user-text");
     text.append(
         element("span", "shell-user-name", `${user.first_name} ${user.last_name}`),
-        element("span", "shell-user-meta", `${organization.organization_name}  |  ${user.branch_name ?? "All branches"}`)
+        element("span", "shell-user-meta", `${readable(user.role)}  |  ${organization.organization_name}${branch}`)
     );
 
     const button = element("button", "shell-signout", "Sign out");
@@ -97,6 +103,7 @@ function renderShell(account) {
 function showShellError(message) {
     document.getElementById("shell").replaceChildren(element("p", "form-message error", message));
 }
+
 async function initialiseShell() {
     try {
         const { data } = await getJson("auth/session.php");
@@ -110,7 +117,6 @@ async function initialiseShell() {
         document.body.classList.add("shell-ready");
 
         return data;
-
     } catch (error) {
         showShellError(`Unable to load the page: ${error.message}`);
         return null;

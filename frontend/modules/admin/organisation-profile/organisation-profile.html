@@ -2,21 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Organisation Profile | SupplyChain Management System</title>
     <link rel="stylesheet" href="../../../shared/css/base.css">
     <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <title>Organisation profile | Supply Chain Management System</title>
 </head>
 <body>
     <div id="shell"></div>
 
     <main class="page">
-        <h1 class="page-title">Organisation Profile</h1>
-        <p class="page-subtitle" id="pageSubtitle"></p>
+        <h1 class="page-title">Organisation profile</h1>
+        <p class="page-description">The details other organisations see when they work with you.</p>
 
         <section class="page-section">
-            <h2>Organisation details</h2>
-
-            <form id="profileForm" novalidate>
+            <form id="profileForm" class="form-grid" novalidate>
                 <div class="form-group">
                     <label for="organizationName">Organisation name</label>
                     <input type="text" id="organizationName" maxlength="150">
@@ -27,33 +25,31 @@
                     <input type="text" id="organizationType" disabled>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="kraPin">KRA PIN <span class="optional">(optional)</span></label>
-                        <input type="text" id="kraPin" maxlength="30" placeholder="A123456789Z">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="organizationEmail">Email <span class="optional">(optional)</span></label>
-                        <input type="email" id="organizationEmail" maxlength="150">
-                    </div>
+                <div class="form-group">
+                    <label for="kraPin">KRA PIN <span class="optional">(optional)</span></label>
+                    <input type="text" id="kraPin" maxlength="30" placeholder="A123456789Z">
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="organizationPhone">Phone <span class="optional">(optional)</span></label>
-                        <input type="tel" id="organizationPhone" maxlength="30">
-                    </div>
+                <div class="form-group">
+                    <label for="organizationEmail">Email <span class="optional">(optional)</span></label>
+                    <input type="email" id="organizationEmail" maxlength="150">
+                </div>
 
-                    <div class="form-group">
-                        <label for="organizationAddress">Address <span class="optional">(optional)</span></label>
-                        <input type="text" id="organizationAddress" maxlength="255">
-                    </div>
+                <div class="form-group">
+                    <label for="organizationPhone">Phone <span class="optional">(optional)</span></label>
+                    <input type="tel" id="organizationPhone" maxlength="30">
+                </div>
+
+                <div class="form-group">
+                    <label for="organizationAddress">Address <span class="optional">(optional)</span></label>
+                    <input type="text" id="organizationAddress" maxlength="255">
                 </div>
 
                 <div id="formMessage" class="form-message" role="alert" aria-live="polite"></div>
 
-                <button type="submit" class="primary-button" id="saveButton">Save changes</button>
+                <div class="form-actions">
+                    <button type="submit" class="primary-button" id="saveButton">Save changes</button>
+                </div>
             </form>
         </section>
     </main>

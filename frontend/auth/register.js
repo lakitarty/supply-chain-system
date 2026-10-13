@@ -33,14 +33,7 @@ const PAYLOAD_FIELDS = [
     "adminEmail"
 ];
 
-function field(id) {
-    return document.getElementById(id);
-}
 
-function fieldValue(id) {
-    const input = field(id);
-    return input.type === "password" ? input.value : input.value.trim();
-}
 
 function isStrongPassword(value) {
     return value.length >= 8 && /[A-Za-z]/.test(value) && /[0-9]/.test(value);

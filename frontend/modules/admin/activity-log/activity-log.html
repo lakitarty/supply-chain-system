@@ -2,21 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Activity Log | SupplyChain Management System</title>
     <link rel="stylesheet" href="../../../shared/css/base.css">
     <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <title>Activity log | Supply Chain Management System</title>
 </head>
 <body>
     <div id="shell"></div>
 
     <main class="page">
-        <h1 class="page-title">Activity Log</h1>
-        <p class="page-subtitle" id="pageSubtitle"></p>
+        <h1 class="page-title">Activity log</h1>
+        <p class="page-description">What was done in your organisation, by whom, and when.</p>
 
         <section class="page-section">
-            <h2>Filters</h2>
-
-            <div class="form-row">
+            <div class="form-grid">
                 <div class="form-group">
                     <label for="filterUser">User</label>
                     <select id="filterUser"></select>
@@ -26,9 +24,7 @@
                     <label for="filterAction">Action</label>
                     <select id="filterAction"></select>
                 </div>
-            </div>
 
-            <div class="form-row">
                 <div class="form-group">
                     <label for="filterFrom">From date</label>
                     <input type="date" id="filterFrom">
@@ -42,14 +38,14 @@
         </section>
 
         <section class="page-section">
-            <h2>Entries</h2>
-
             <div id="logMessage" class="form-message" role="alert" aria-live="polite"></div>
 
-            <div class="form-group">
-                <label for="entrySelect">Select an entry</label>
-                <select id="entrySelect"></select>
-                <p class="field-hint" id="logNote"></p>
+            <div class="record-bar">
+                <div class="form-group">
+                    <label for="entrySelect">Select an entry</label>
+                    <select id="entrySelect"></select>
+                    <p class="field-hint" id="logNote"></p>
+                </div>
             </div>
 
             <dl class="detail-list" id="entryDetail"></dl>

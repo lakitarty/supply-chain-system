@@ -2,85 +2,125 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Register Organization | SupplyChain Management System</title>
     <link rel="stylesheet" href="../shared/css/base.css">
+    <link rel="stylesheet" href="../shared/css/shell.css">
     <link rel="stylesheet" href="auth.css">
+    <title>Register an organisation | Supply Chain Management System</title>
 </head>
 <body>
-    <header class="top-header">
-        <div class="system-name">SUPPLYCHAIN MANAGEMENT SYSTEM</div>
-        <a href="login.html" class="header-link">Sign in</a>
+    <header class="shell-main-row">
+        <div class="shell-brand">Supply Chain Management System</div>
+        <a class="shell-tab auth-switch" href="login.html">Sign in</a>
     </header>
 
-    <main class="auth-panel auth-panel--wide">
-        <h1>Register Organization</h1>
-        <p class="auth-intro">Create your organization, its main branch and the administrator account.</p>
+    <main class="page">
+        <h1 class="page-title">Register an organisation</h1>
+        <p class="page-description">Create the organisation, its main branch and the administrator account in one step.</p>
 
-        <form id="registerForm" class="auth-form" novalidate>
+        <form id="registerForm" class="page-section" novalidate>
+            <section class="form-section">
+                <h2>Organisation</h2>
 
-            <div class="form-section">
-                <h2>Organization Details</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="organizationName">Organisation name</label>
+                        <input type="text" id="organizationName" maxlength="150" autocomplete="organization">
+                    </div>
 
-                <div class="form-group">
-                    <label for="organizationName">Organization Name</label>
-                    <input type="text" id="organizationName" name="organizationName" maxlength="150" autocomplete="organization" required>
-                </div>
+                    <div class="form-group">
+                        <label for="organizationType">Organisation type</label>
+                        <select id="organizationType">
+                            <option value="">Select a type</option>
+                            <option value="MANUFACTURER">Manufacturer</option>
+                            <option value="SUPPLIER">Supplier</option>
+                            <option value="MANUFACTURER_SUPPLIER">Manufacturer and supplier</option>
+                            <option value="RETAILER">Retailer</option>
+                        </select>
+                    </div>
 
-                <div class="form-group">
-                    <label for="organizationType">Organization Type</label>
-                    <select id="organizationType" name="organizationType" required>
-                        <option value="">Select organization type</option>
-                        <option value="MANUFACTURER">Manufacturer</option>
-                        <option value="SUPPLIER">Supplier</option>
-                        <option value="MANUFACTURER_SUPPLIER">Manufacturer + Supplier</option>
-                        <option value="RETAILER">Retailer</option>
-                    </select>
-                </div>
-
-                <div class="form-row">
                     <div class="form-group">
                         <label for="kraPin">KRA PIN <span class="optional">(optional)</span></label>
-                        <input type="text" id="kraPin" name="kraPin" maxlength="30" placeholder="A123456789Z" autocomplete="off">
+                        <input type="text" id="kraPin" maxlength="30" placeholder="A123456789Z" autocomplete="off">
                     </div>
 
                     <div class="form-group">
-                        <label for="organizationEmail">Organization Email <span class="optional">(optional)</span></label>
-                        <input type="email" id="organizationEmail" name="organizationEmail" maxlength="150" autocomplete="off">
+                        <label for="organizationEmail">Email <span class="optional">(optional)</span></label>
+                        <input type="email" id="organizationEmail" maxlength="150" autocomplete="off">
                     </div>
-                </div>
 
-                <div class="form-row">
                     <div class="form-group">
-                        <label for="organizationPhone">Phone Number <span class="optional">(optional)</span></label>
-                        <input type="tel" id="organizationPhone" name="organizationPhone" maxlength="30" placeholder="+254 700 000 000" autocomplete="tel">
+                        <label for="organizationPhone">Phone <span class="optional">(optional)</span></label>
+                        <input type="tel" id="organizationPhone" maxlength="30" placeholder="+254 700 000 000" autocomplete="tel">
                     </div>
 
                     <div class="form-group">
                         <label for="organizationAddress">Address <span class="optional">(optional)</span></label>
-                        <input type="text" id="organizationAddress" name="organizationAddress" maxlength="255" autocomplete="street-address">
+                        <input type="text" id="organizationAddress" maxlength="255" autocomplete="street-address">
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <div class="form-section">
-                <h2>Main Branch</h2>
+            <section class="form-section">
+                <h2>Main branch</h2>
 
-                <div class="form-row">
+                <div class="form-grid">
                     <div class="form-group">
-                        <label for="branchName">Branch Name</label>
-                        <input type="text" id="branchName" name="branchName" maxlength="150" autocomplete="off" required>
+                        <label for="branchName">Branch name</label>
+                        <input type="text" id="branchName" maxlength="150" autocomplete="off">
                     </div>
 
                     <div class="form-group">
                         <label for="branchLocation">Location</label>
-                        <input type="text" id="branchLocation" name="branchLocation" maxlength="255" autocomplete="off" required>
+                        <input type="text" id="branchLocation" maxlength="255" autocomplete="off">
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <div class="form-section">
-                <h2>Administrator
-                        </main>
+            <section class="form-section">
+                <h2>Administrator</h2>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="firstName">First name</label>
+                        <input type="text" id="firstName" maxlength="100" autocomplete="given-name">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="lastName">Last name</label>
+                        <input type="text" id="lastName" maxlength="100" autocomplete="family-name">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adminEmail">Email</label>
+                        <input type="email" id="adminEmail" maxlength="150" autocomplete="email">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="input-wrap">
+                            <input type="password" id="password" autocomplete="new-password">
+                            <button type="button" class="toggle-password" data-target="password" aria-pressed="false">Show</button>
+                        </div>
+                        <p class="field-hint" id="passwordHint">At least 8 characters, with a letter and a number.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm password</label>
+                        <div class="input-wrap">
+                            <input type="password" id="confirmPassword" autocomplete="new-password">
+                            <button type="button" class="toggle-password" data-target="confirmPassword" aria-pressed="false">Show</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div id="formMessage" class="form-message" role="alert" aria-live="polite"></div>
+
+            <div class="form-actions">
+                <button type="submit" class="primary-button" id="registerButton">Create organisation</button>
+            </div>
+        </form>
+    </main>
 
     <script src="../shared/js/api.js"></script>
     <script src="../shared/js/form-helpers.js"></script>

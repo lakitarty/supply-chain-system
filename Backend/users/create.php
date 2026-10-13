@@ -13,7 +13,8 @@ try {
     $actor = require_admin($pdo);
     $input = clean_user_input(read_json_body());
 
-    $error = first_user_error($pdo, $actor, $input);
+    $error = first_user_error($pdo, $actor, $input , true);
+
 
     if ($error !== null) {
         respond_field_error(400, $error);

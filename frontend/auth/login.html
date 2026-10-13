@@ -2,43 +2,43 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Sign In | SupplyChain Management System</title>
     <link rel="stylesheet" href="../shared/css/base.css">
+    <link rel="stylesheet" href="../shared/css/shell.css">
     <link rel="stylesheet" href="auth.css">
+    <title>Sign in | Supply Chain Management System</title>
 </head>
 <body>
-    <header class="top-header">
-        <div class="system-name">SUPPLYCHAIN MANAGEMENT SYSTEM</div>
-        <a href="register.html" class="header-link">Create account</a>
+    <header class="shell-main-row">
+        <div class="shell-brand">Supply Chain Management System</div>
+        <a class="shell-tab auth-switch" href="register.html">Register an organisation</a>
     </header>
 
-    <main class="auth-panel">
-        <h1>Sign In</h1>
-        <p class="auth-intro">Sign in to access your organization account.</p>
+    <main class="page">
+        <h1 class="page-title">Sign in</h1>
+        <p class="page-description">Use the email and password of your organisation account.</p>
 
-        <form id="loginForm" class="auth-form" novalidate>
-            <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" name="email" autocomplete="username" autofocus required>
-            </div>
-
-            <div class="form-group">
-                <label for="password">Password</label>
-                <div class="input-wrap">
-                    <input type="password" id="password" name="password" autocomplete="current-password" required>
-                    <button type="button" class="toggle-password" data-target="password" aria-pressed="false">Show</button>
+        <section class="page-section">
+            <form id="loginForm" class="auth-form" novalidate>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" autocomplete="username" autofocus>
                 </div>
-            </div>
 
-            <div id="formMessage" class="form-message" role="alert" aria-live="polite"></div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-wrap">
+                        <input type="password" id="password" autocomplete="current-password">
+                        <button type="button" class="toggle-password" data-target="password" aria-pressed="false">Show</button>
+                    </div>
+                </div>
 
-            <button type="submit" class="primary-button" id="loginButton">Sign In</button>
+                <div id="formMessage" class="form-message" role="alert" aria-live="polite"></div>
 
-            <p class="bottom-text">
-                Don't have an organization account?
-                <a href="register.html">Register</a>
-            </p>
-        </form>
+                <div class="form-actions">
+                    <button type="submit" class="primary-button" id="loginButton">Sign in</button>
+                </div>
+            </form>
+        </section>
     </main>
 
     <script src="../shared/js/api.js"></script>

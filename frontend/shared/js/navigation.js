@@ -34,7 +34,7 @@ const TABS = [
     },
     {
         id: "network",
-        label: "Supply Network",
+        label: "Supply network",
         sections: [
             { label: "Relationships", path: page("network", "relationships") },
             { label: "Changes", path: page("network", "changes") }
@@ -73,8 +73,8 @@ const TABS = [
         sections: [
             { label: "Users", path: page("admin", "users") },
             { label: "Branches", path: page("admin", "branches") },
-            { label: "Organisation Profile", path: page("admin", "organisation-profile") },
-            { label: "Activity Log", path: page("admin", "activity-log") }
+            { label: "Organisation profile", path: page("admin", "organisation-profile") },
+            { label: "Activity log", path: page("admin", "activity-log") }
         ]
     }
 ];

@@ -226,14 +226,8 @@ button {
     height: var(--field-height);
     padding: 0 var(--space-l);
 }
-.form-section h2 {
-    margin: 0 0 var(--space-m);
-    padding-bottom: var(--space-s);
-    border-bottom: 1px solid var(--border-light);
-    font-size: var(--text-base);
-    font-weight: 600;
-}
-
-.form-section + .form-section {
-    margin-top: var(--space-l);
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 var(--space-l);
 }

@@ -5,14 +5,6 @@ declare(strict_types=1);
 require_once __DIR__ . '/../core/validation.php';
 
 const AUDIT_ENTRY_LIMIT = 200;
-
-function valid_date(string $value): bool
-{
-    $date = DateTime::createFromFormat('Y-m-d', $value);
-
-    return $date !== false && $date->format('Y-m-d') === $value;
-}
-
 function clean_audit_filters(array $query): array
 {
     $text = fn(string $key): string => trim((string)($query[$key] ?? ''));

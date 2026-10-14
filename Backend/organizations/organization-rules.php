@@ -67,10 +67,6 @@ function kra_pin_conflict(PDO $pdo, string $kraPin, int $excludedOrganizationId 
         : null;
 }
 
-function optional_text(string $value): ?string
-{
-    return $value !== '' ? $value : null;
-}
 
 function find_organization(PDO $pdo, array $actor): array|false
 {

@@ -7,12 +7,12 @@ const TYPE_LABELS = {
 
 const BUILT_PATHS = [
     "dashboard/dashboard.html",
+    "modules/products/catalogue/catalogue.html",
     "modules/admin/users/users.html",
     "modules/admin/branches/branches.html",
     "modules/admin/organisation-profile/organisation-profile.html",
     "modules/admin/activity-log/activity-log.html"
 ];
-
 function page(module, name) {
     return `modules/${module}/${name}/${name}.html`;
 }

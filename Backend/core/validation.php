@@ -31,3 +31,18 @@ function record_exists(PDO $pdo, string $sql, array $params): bool
 
     return $statement->fetchColumn() !== false;
 }
+function sql_placeholders(array $values): string
+{
+    return implode(', ', array_fill(0, count($values), '?'));
+}
+function valid_date(string $value): bool
+{
+    $date = DateTime::createFromFormat('Y-m-d', $value);
+
+    return $date !== false && $date->format('Y-m-d') === $value;
+}
+
+function optional_text(string $value): ?string
+{
+    return $value !== '' ? $value : null;
+}

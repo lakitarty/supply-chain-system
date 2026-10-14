@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <title>Catalogue | Supply Chain Management System</title>
+</head>
+<body>
+    <div id="shell"></div>
+
+    <main class="page">
+        <h1 class="page-title">Catalogue</h1>
+        <p class="page-description">The products that reach your organisation, with the current barcode and every earlier version.</p>
+
+        <section class="page-section">
+            <div id="catalogueMessage" class="form-message" role="alert" aria-live="polite"></div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="productSelect">Select a product</label>
+                    <select id="productSelect"></select>
+                </div>
+
+                <div class="form-group">
+                    <label for="versionSelect">Select a version</label>
+                    <select id="versionSelect"></select>
+                </div>
+            </div>
+
+            <dl class="detail-list" id="productDetail"></dl>
+        </section>
+    </main>
+
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/form-helpers.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="catalogue.js"></script>
+</body>
+</html>

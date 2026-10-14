@@ -32,8 +32,7 @@ const PAYLOAD_FIELDS = [
     "lastName",
     "adminEmail"
 ];
-
-
+ 
 
 function isStrongPassword(value) {
     return value.length >= 8 && /[A-Za-z]/.test(value) && /[0-9]/.test(value);

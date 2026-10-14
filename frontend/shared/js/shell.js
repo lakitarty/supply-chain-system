@@ -15,7 +15,11 @@ function element(tag, className, text) {
 
     return node;
 }
-
+function renderDetailList(list, rows) {
+    list.replaceChildren(
+        ...rows.flatMap(([label, value]) => [element("dt", "", label), element("dd", "", value)])
+    );
+}
 function isCurrent(path) {
     return new URL(pageUrl(path)).pathname === window.location.pathname;
 }

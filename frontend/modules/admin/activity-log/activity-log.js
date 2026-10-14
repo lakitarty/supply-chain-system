@@ -32,9 +32,8 @@ function renderDetail(entry) {
         ]
         : [];
 
-    entryDetail.replaceChildren(
-        ...rows.flatMap(([label, value]) => [element("dt", "", label), element("dd", "", value)])
-    );
+        renderDetailList(entryDetail, rows);
+
 }
 
 function renderEntries(limit) {

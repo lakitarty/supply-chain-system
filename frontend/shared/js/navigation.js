@@ -1,4 +1,4 @@
-const TYPE_LABELS = {
+﻿const TYPE_LABELS = {
     RETAILER: "Retailer",
     SUPPLIER: "Supplier",
     MANUFACTURER: "Manufacturer",
@@ -10,6 +10,7 @@ const BUILT_PATHS = [
     "modules/products/catalogue/catalogue.html",
     "modules/products/updates/updates.html",
     "modules/products/management/management.html",
+    "modules/messages/announcements/announcements.html",
     "modules/admin/users/users.html",
     "modules/admin/branches/branches.html",
     "modules/admin/organisation-profile/organisation-profile.html",

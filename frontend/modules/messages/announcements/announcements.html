@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <title>Product Announcements | Supply Chain Management System</title>
+</head>
+<body>
+    <div id="shell"></div>
+
+    <main class="page">
+        <h1 class="page-title">Product announcements</h1>
+        <p class="page-description">
+            Discover newly announced products from connected manufacturers
+            or publish product announcements for your retail network.
+        </p>
+
+        <section class="page-section" id="publishSection" hidden>
+            <h2 class="section-title">Publish a product announcement</h2>
+
+            <form id="announcementForm" novalidate>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="announcementProduct">Product</label>
+                        <select id="announcementProduct" required>
+                            <option value="">Loading products...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="announcementTitle">Announcement title</label>
+                        <input type="text" id="announcementTitle"
+                               maxlength="200" required
+                               placeholder="e.g. Introducing our new product">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="announcementMessage">Message <span class="optional">(optional)</span></label>
+                    <textarea id="announcementMessage" rows="4"
+                              maxlength="5000"
+                              placeholder="Share useful information about this product."></textarea>
+                </div>
+
+                <div id="announcementProductPreview" hidden>
+                    <img id="announcementImage" alt="Selected product"
+                         width="120">
+                    <p id="announcementProductDetails"></p>
+                </div>
+
+                <div id="announcementFormMessage"
+                     class="form-message" role="alert"
+                     aria-live="polite"></div>
+
+                <div class="form-actions">
+                    <button type="submit" class="primary-button"
+                            id="publishButton">Publish announcement</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="page-section">
+            <h2 class="section-title" id="listTitle">Announcements</h2>
+
+            <div id="announcementStatus" role="status"
+                 aria-live="polite">Loading announcements...</div>
+
+            <div id="announcementList"></div>
+        </section>
+    </main>
+
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/form-helpers.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="announcements.js"></script>
+</body>
+</html>

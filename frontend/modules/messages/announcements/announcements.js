@@ -13,10 +13,19 @@ const productDetails = document.getElementById("announcementProductDetails");
 const announcementList = document.getElementById("announcementList");
 const announcementStatus = document.getElementById("announcementStatus");
 const listTitle = document.getElementById("listTitle");
+const announcementSearch = document.getElementById("announcementSearch");
+const availabilityFilter = document.getElementById("announcementAvailabilityFilter");
+const receiptFilter = document.getElementById("announcementReceiptFilter");
+const receiptFilterGroup = document.getElementById("receiptFilterGroup");
+const announcementPagination = document.getElementById("announcementPagination");
 
 let account = null;
 let products = [];
 let announcements = [];
+let announcementDirection = "none";
+let announcementPage = 1;
+
+const announcementsPerPage = 10;
 
 function showFormMessage(message, type = "error") {
     formMessage.textContent = message;
@@ -216,18 +225,97 @@ function openImageViewer(source, altText, trigger) {
 
 function renderAnnouncements() {
     announcementList.replaceChildren();
+    announcementPagination.replaceChildren();
 
     if (announcements.length === 0) {
         announcementStatus.textContent = "No product announcements yet.";
         return;
     }
 
-    announcementStatus.textContent = `${announcements.length} announcement(s)`;
+    const searchTerm = announcementSearch.value.trim().toLowerCase();
+    const availabilityValue = availabilityFilter.value;
+    const receiptValue = announcementDirection === "incoming"
+        ? receiptFilter.value
+        : "ALL";
+
+    const filteredAnnouncements = announcements.filter(item => {
+        const searchableText = [
+            item.announcement_title,
+            item.product_name,
+            item.manufacturer_name,
+            item.category,
+            item.announcement_message,
+            item.product_description
+        ].filter(Boolean).join(" ").toLowerCase();
+
+        if (searchTerm && !searchableText.includes(searchTerm)) {
+            return false;
+        }
+
+        if (
+            availabilityValue !== "ALL"
+            && item.availability_status !== availabilityValue
+        ) {
+            return false;
+        }
+
+        if (
+            receiptValue === "PENDING"
+            && item.acknowledgement_status === "ACKNOWLEDGED"
+        ) {
+            return false;
+        }
+
+        if (
+            receiptValue === "ACKNOWLEDGED"
+            && item.acknowledgement_status !== "ACKNOWLEDGED"
+        ) {
+            return false;
+        }
+
+        return true;
+    });
+
+    if (filteredAnnouncements.length === 0) {
+        announcementStatus.textContent = announcements.length
+            ? "No announcements match your search or filters."
+            : "No product announcements yet.";
+
+        if (announcements.length > 0) {
+            announcementList.append(
+                createTextElement(
+                    "p",
+                    "announcement-empty-state",
+                    "Try changing your search or filters."
+                )
+            );
+        }
+        return;
+    }
+
+    const pageCount = Math.ceil(
+        filteredAnnouncements.length / announcementsPerPage
+    );
+
+    announcementPage = Math.min(announcementPage, pageCount);
+
+    const startIndex = (announcementPage - 1) * announcementsPerPage;
+    const pageAnnouncements = filteredAnnouncements.slice(
+        startIndex,
+        startIndex + announcementsPerPage
+    );
+
+    announcementStatus.textContent =
+        `Showing ${startIndex + 1}–${Math.min(
+            startIndex + announcementsPerPage,
+            filteredAnnouncements.length
+        )} of ${filteredAnnouncements.length} announcement(s)`;
+
     const fragment = document.createDocumentFragment();
 
-    for (const item of announcements) {
+    for (const item of pageAnnouncements) {
         const card = document.createElement("article");
-        card.className = "page-section";
+        card.className = "announcement-card";
 
         card.append(
             createTextElement("h3", "section-title", item.announcement_title),
@@ -282,12 +370,14 @@ function renderAnnouncements() {
 
         if (item.image_path) {
             const image = document.createElement("img");
+            image.className = "announcement-product-image";
             image.src = imageSource(item.image_path);
             image.alt = item.product_name || "Product image";
             image.width = 140;
             image.loading = "lazy";
 
             const viewImageButton = document.createElement("button");
+            viewImageButton.className = "announcement-view-image";
             viewImageButton.type = "button";
             viewImageButton.textContent = "View image";
             viewImageButton.setAttribute(
@@ -295,17 +385,7 @@ function renderAnnouncements() {
                 `View larger image of ${image.alt}`
             );
 
-            Object.assign(viewImageButton.style, {
-                display: "block",
-                marginTop: "8px",
-                padding: "8px 14px",
-                border: "1px solid #cbd5e1",
-                borderRadius: "6px",
-                background: "#ffffff",
-                color: "#334155",
-                cursor: "pointer",
-                font: "inherit"
-            });
+
 
             viewImageButton.addEventListener("click", () => {
                 openImageViewer(image.src, image.alt, viewImageButton);
@@ -324,7 +404,7 @@ function renderAnnouncements() {
             card.append(createTextElement(
                 "p",
                 "",
-                `Retailers reached: ${item.recipient_count ?? 0} · `
+                `Organizations reached: ${item.recipient_count ?? 0} · `
                 + `Acknowledged: ${item.acknowledged_count ?? 0}`
             ));
         } else if (item.acknowledgement_status) {
@@ -355,6 +435,48 @@ function renderAnnouncements() {
     }
 
     announcementList.append(fragment);
+
+    if (pageCount > 1) {
+        const previousButton = createTextElement(
+            "button",
+            "announcement-page-button",
+            "Previous"
+        );
+        previousButton.type = "button";
+        previousButton.disabled = announcementPage === 1;
+        previousButton.addEventListener("click", () => {
+            if (announcementPage > 1) {
+                announcementPage--;
+                renderAnnouncements();
+            }
+        });
+
+        const pageSummary = createTextElement(
+            "span",
+            "announcement-page-summary",
+            `Page ${announcementPage} of ${pageCount}`
+        );
+
+        const nextButton = createTextElement(
+            "button",
+            "announcement-page-button",
+            "Next"
+        );
+        nextButton.type = "button";
+        nextButton.disabled = announcementPage === pageCount;
+        nextButton.addEventListener("click", () => {
+            if (announcementPage < pageCount) {
+                announcementPage++;
+                renderAnnouncements();
+            }
+        });
+
+        announcementPagination.append(
+            previousButton,
+            pageSummary,
+            nextButton
+        );
+    }
 }
 
 async function loadAnnouncements() {
@@ -369,6 +491,10 @@ async function loadAnnouncements() {
     announcements = Array.isArray(result.data.announcements)
         ? result.data.announcements
         : [];
+
+    announcementDirection = result.data.direction || "none";
+    receiptFilterGroup.hidden = announcementDirection !== "incoming";
+    announcementPage = 1;
 
     if (result.data.direction === "outgoing") {
         listTitle.textContent = "Published announcements";
@@ -465,6 +591,21 @@ async function initialiseAnnouncements() {
 
         productSelect.addEventListener("change", showProductPreview);
         announcementForm.addEventListener("submit", publishAnnouncement);
+
+        announcementSearch.addEventListener("input", () => {
+            announcementPage = 1;
+            renderAnnouncements();
+        });
+
+        availabilityFilter.addEventListener("change", () => {
+            announcementPage = 1;
+            renderAnnouncements();
+        });
+
+        receiptFilter.addEventListener("change", () => {
+            announcementPage = 1;
+            renderAnnouncements();
+        });
 
         await loadAnnouncements();
     } catch (error) {

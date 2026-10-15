@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../../shared/css/base.css">
     <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <link rel="stylesheet" href="announcements.css">
     <title>Product Announcements | Supply Chain Management System</title>
 </head>
 <body>
     <div id="shell"></div>
 
-    <main class="page">
+    <main class="page announcements-page">
         <h1 class="page-title">Product announcements</h1>
         <p class="page-description">
             Discover newly announced products from connected manufacturers
@@ -64,10 +65,37 @@
         <section class="page-section">
             <h2 class="section-title" id="listTitle">Announcements</h2>
 
+            <div class="announcement-controls" id="announcementControls">
+                <div class="announcement-control announcement-search-control">
+                    <label for="announcementSearch">Search announcements</label>
+                    <input type="search" id="announcementSearch"
+                           placeholder="Search title, product or manufacturer">
+                </div>
+
+                <div class="announcement-control">
+                    <label for="announcementAvailabilityFilter">Availability</label>
+                    <select id="announcementAvailabilityFilter">
+                        <option value="ALL">All availability</option>
+                        <option value="COMING_SOON">Coming soon</option>
+                        <option value="AVAILABLE">Available now</option>
+                    </select>
+                </div>
+
+                <div class="announcement-control" id="receiptFilterGroup" hidden>
+                    <label for="announcementReceiptFilter">Receipt status</label>
+                    <select id="announcementReceiptFilter">
+                        <option value="ALL">All receipt statuses</option>
+                        <option value="PENDING">Awaiting acknowledgement</option>
+                        <option value="ACKNOWLEDGED">Acknowledged</option>
+                    </select>
+                </div>
+            </div>
+
             <div id="announcementStatus" role="status"
                  aria-live="polite">Loading announcements...</div>
 
             <div id="announcementList"></div>
+            <div id="announcementPagination" class="announcement-pagination"></div>
         </section>
     </main>
 

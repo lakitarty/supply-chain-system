@@ -17,6 +17,7 @@ if (can_publish_announcements($actor)) {
             a.status,
             p.product_id,
             p.product_name,
+            p.availability_status,
             p.category,
             p.description AS product_description,
             p.image_path,
@@ -51,7 +52,7 @@ if (can_publish_announcements($actor)) {
     ]);
 }
 
-if ($actor['organization_type'] === 'RETAILER') {
+if (in_array($actor['organization_type'], ['SUPPLIER', 'RETAILER'], true)) {
     $statement = $pdo->prepare(
         "SELECT
             a.announcement_id,
@@ -60,6 +61,7 @@ if ($actor['organization_type'] === 'RETAILER') {
             a.published_at,
             p.product_id,
             p.product_name,
+            p.availability_status,
             p.category,
             p.description AS product_description,
             p.image_path,

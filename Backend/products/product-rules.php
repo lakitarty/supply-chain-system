@@ -24,6 +24,7 @@ function fetch_visible_products(PDO $pdo, array $actor): array
                 p.category,
                 p.description,
                 p.image_path,
+                p.availability_status,
                 o.organization_name AS manufacturer_name
          FROM products p
          INNER JOIN organizations o

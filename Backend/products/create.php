@@ -27,6 +27,11 @@ try {
     $packSize = trim((string)($_POST['packSize'] ?? ''));
     $packaging = trim((string)($_POST['packaging'] ?? ''));
     $effectiveDate = trim((string)($_POST['effectiveDate'] ?? ''));
+    $availabilityStatus = trim((string)($_POST['availabilityStatus'] ?? 'AVAILABLE'));
+
+    if (!in_array($availabilityStatus, ['COMING_SOON', 'AVAILABLE'], true)) {
+        respond_field_error(400, field_error('availabilityStatus', 'Select a valid launch availability.'));
+    }
 
     if ($name === '' || mb_strlen($name) > 150) {
         respond_field_error(400, field_error('productName', 'Enter a product name of up to 150 characters.'));
@@ -40,11 +45,15 @@ try {
         respond_field_error(400, field_error('description', 'Description must be 10,000 characters or fewer.'));
     }
 
-    if (!preg_match('/^[0-9]{8,14}$/', $barcode)) {
+    if ($barcode !== '' && !preg_match('/^[0-9]{8,14}$/', $barcode)) {
         respond_field_error(400, field_error('barcode', 'Enter a barcode containing 8 to 14 digits.'));
     }
 
-    if (record_exists($pdo, 'SELECT 1 FROM product_versions WHERE barcode = ? LIMIT 1', [$barcode])) {
+    if ($availabilityStatus === 'AVAILABLE' && $barcode === '') {
+        respond_field_error(400, field_error('barcode', 'A barcode is required for an available product.'));
+    }
+
+    if ($barcode !== '' && record_exists($pdo, 'SELECT 1 FROM product_versions WHERE barcode = ? LIMIT 1', [$barcode])) {
         respond_field_error(400, field_error('barcode', 'This barcode is already in use.'));
     }
 
@@ -119,8 +128,8 @@ try {
 
     $productStatement = $pdo->prepare(
         'INSERT INTO products
-            (manufacturer_id, product_name, category, description, image_path, status)
-         VALUES (?, ?, ?, ?, ?, \'ACTIVE\')'
+            (manufacturer_id, product_name, category, description, image_path, status, availability_status)
+         VALUES (?, ?, ?, ?, ?, \'ACTIVE\', ?)'
     );
 
     $productStatement->execute([
@@ -128,7 +137,8 @@ try {
         $name,
         optional_text($category),
         optional_text($description),
-        $uploadedPath
+        $uploadedPath,
+        $availabilityStatus
     ]);
 
     $productId = (int)$pdo->lastInsertId();
@@ -141,7 +151,7 @@ try {
 
     $versionStatement->execute([
         $productId,
-        $barcode,
+        $barcode !== '' ? $barcode : null,
         optional_text($packSize),
         optional_text($packaging),
         $effectiveDate
@@ -153,7 +163,7 @@ try {
         'PRODUCT_CREATED',
         'PRODUCT',
         $productId,
-        "Created product {$name} with initial barcode {$barcode}."
+        "Created product {$name}" . ($barcode !== '' ? " with initial barcode {$barcode}." : " without an assigned barcode yet.")
     );
 
     $pdo->commit();

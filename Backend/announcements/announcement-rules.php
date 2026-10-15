@@ -26,6 +26,7 @@ function find_announcement_product(
     $statement = $pdo->prepare(
         "SELECT p.product_id,
                 p.product_name,
+                p.availability_status,
                 p.category,
                 p.description,
                 p.image_path,
@@ -73,7 +74,7 @@ function find_announcement_recipients(
         "SELECT organization_id
          FROM organizations
          WHERE organization_id IN ($placeholders)
-           AND organization_type = 'RETAILER'
+           AND organization_type IN ('SUPPLIER', 'RETAILER')
            AND status = 'ACTIVE'
          ORDER BY organization_id"
     );

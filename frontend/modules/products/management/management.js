@@ -1,4 +1,4 @@
-﻿const form = document.getElementById("productForm");
+const form = document.getElementById("productForm");
 const productSelect = document.getElementById("existingProduct");
 const formTitle = document.getElementById("formTitle");
 const productMessage = document.getElementById("productMessage");
@@ -12,6 +12,7 @@ const previewLabel = document.getElementById("imagePreviewLabel");
 const inputs = {
     name: document.getElementById("productName"),
     category: document.getElementById("category"),
+    availability: document.getElementById("availabilityStatus"),
     barcode: document.getElementById("barcode"),
     packSize: document.getElementById("packSize"),
     packaging: document.getElementById("packaging"),
@@ -51,6 +52,14 @@ function currentVersion(product) {
         ?? null;
 }
 
+function updateBarcodeRequirement() {
+    const version = selectedProduct ? currentVersion(selectedProduct) : null;
+    const canSetInitialBarcode = !selectedProduct || !version?.barcode;
+
+    inputs.barcode.required =
+        canSetInitialBarcode && inputs.availability.value === "AVAILABLE";
+}
+
 function setInitialFormState() {
     form.reset();
     selectedProduct = null;
@@ -61,7 +70,7 @@ function setInitialFormState() {
     inputs.packaging.disabled = false;
     inputs.effectiveDate.disabled = false;
 
-    inputs.barcode.required = true;
+    updateBarcodeRequirement();
     inputs.effectiveDate.required = true;
 
     formTitle.textContent = "Create a product";
@@ -114,19 +123,22 @@ function selectProduct(productId) {
 
     inputs.name.value = product.product_name || "";
     inputs.category.value = product.category || "";
+    inputs.availability.value = product.availability_status || "AVAILABLE";
     inputs.description.value = product.description || "";
     inputs.barcode.value = version?.barcode || "";
     inputs.packSize.value = version?.pack_size || "";
     inputs.packaging.value = version?.packaging_description || "";
     inputs.effectiveDate.value = version?.effective_from || "";
 
-    inputs.barcode.disabled = true;
-    inputs.packSize.disabled = true;
-    inputs.packaging.disabled = true;
-    inputs.effectiveDate.disabled = true;
+    const canSetInitialBarcode = !version?.barcode;
 
-    inputs.barcode.required = false;
-    inputs.effectiveDate.required = false;
+    inputs.barcode.disabled = !canSetInitialBarcode;
+    inputs.packSize.disabled = !canSetInitialBarcode;
+    inputs.packaging.disabled = !canSetInitialBarcode;
+    inputs.effectiveDate.disabled = !canSetInitialBarcode;
+
+    updateBarcodeRequirement();
+    inputs.effectiveDate.required = canSetInitialBarcode;
 
     formTitle.textContent = "Edit product information";
     saveButton.textContent = "Save changes";
@@ -160,7 +172,10 @@ function validateForm() {
 
     const barcode = inputs.barcode.value.trim();
 
-    if (!selectedProduct && !/^[0-9]{8,14}$/.test(barcode)) {
+    if (
+        (inputs.availability.value === "AVAILABLE" || barcode !== "")
+        && !/^[0-9]{8,14}$/.test(barcode)
+    ) {
         showProductMessage("Enter an initial barcode containing 8 to 14 digits.");
         inputs.barcode.focus();
         return false;
@@ -199,9 +214,17 @@ async function submitProduct(event) {
     body.append("productName", inputs.name.value.trim());
     body.append("category", inputs.category.value.trim());
     body.append("description", inputs.description.value.trim());
+    body.append("availabilityStatus", inputs.availability.value);
 
     if (editing) {
         body.append("productId", String(selectedProduct.product_id));
+
+        if (!currentVersion(selectedProduct)?.barcode) {
+            body.append("barcode", inputs.barcode.value.trim());
+            body.append("packSize", inputs.packSize.value.trim());
+            body.append("packaging", inputs.packaging.value.trim());
+            body.append("effectiveDate", inputs.effectiveDate.value);
+        }
     } else {
         body.append("barcode", inputs.barcode.value.trim());
         body.append("packSize", inputs.packSize.value.trim());
@@ -295,6 +318,8 @@ previewImage.addEventListener("error", () => {
     previewImage.removeAttribute("src");
     previewLabel.textContent = "Image preview unavailable";
 });
+
+inputs.availability.addEventListener("change", updateBarcodeRequirement);
 
 productSelect.addEventListener("change", () => {
     selectProduct(productSelect.value);

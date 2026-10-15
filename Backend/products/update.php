@@ -31,7 +31,7 @@ try {
     }
 
     $statement = $pdo->prepare(
-        'SELECT product_id, product_name, image_path
+        'SELECT product_id, product_name, image_path, availability_status
          FROM products
          WHERE product_id = ? AND manufacturer_id = ? AND status = \'ACTIVE\'
          LIMIT 1'
@@ -43,9 +43,67 @@ try {
         respond_error(404, 'The product was not found in your organisation.');
     }
 
+    $versionStatement = $pdo->prepare(
+        'SELECT version_number, barcode
+         FROM product_versions
+         WHERE product_id = ? AND is_current = 1
+         LIMIT 1'
+    );
+    $versionStatement->execute([$productId]);
+    $currentVersion = $versionStatement->fetch();
+
+    if (!$currentVersion) {
+        respond_error(409, 'The product has no current version to update.');
+    }
+
     $name = trim((string)($_POST['productName'] ?? ''));
     $category = trim((string)($_POST['category'] ?? ''));
     $description = trim((string)($_POST['description'] ?? ''));
+    $availabilityStatus = trim((string)(
+        $_POST['availabilityStatus'] ?? $existing['availability_status'] ?? 'AVAILABLE'
+    ));
+
+    if (!in_array($availabilityStatus, ['COMING_SOON', 'AVAILABLE'], true)) {
+        respond_field_error(400, field_error('availabilityStatus', 'Select a valid launch availability.'));
+    }
+
+    $submittedBarcode = trim((string)($_POST['barcode'] ?? ''));
+    $canAssignInitialBarcode = $currentVersion['barcode'] === null
+        || $currentVersion['barcode'] === '';
+
+    if ($canAssignInitialBarcode) {
+        if ($availabilityStatus === 'AVAILABLE' && $submittedBarcode === '') {
+            respond_field_error(400, field_error('barcode', 'A barcode is required for an available product.'));
+        }
+
+        if ($submittedBarcode !== '' && !preg_match('/^[0-9]{8,14}$/', $submittedBarcode)) {
+            respond_field_error(400, field_error('barcode', 'Enter a barcode containing 8 to 14 digits.'));
+        }
+
+        if ($submittedBarcode !== '' && record_exists(
+            $pdo,
+            'SELECT 1 FROM product_versions WHERE barcode = ? LIMIT 1',
+            [$submittedBarcode]
+        )) {
+            respond_field_error(400, field_error('barcode', 'This barcode is already in use.'));
+        }
+
+        $packSize = trim((string)($_POST['packSize'] ?? ''));
+        $packaging = trim((string)($_POST['packaging'] ?? ''));
+        $effectiveDate = trim((string)($_POST['effectiveDate'] ?? ''));
+
+        if (mb_strlen($packSize) > 100) {
+            respond_field_error(400, field_error('packSize', 'Pack size must be 100 characters or fewer.'));
+        }
+
+        if (mb_strlen($packaging) > 255) {
+            respond_field_error(400, field_error('packaging', 'Packaging description must be 255 characters or fewer.'));
+        }
+
+        if (!valid_date($effectiveDate)) {
+            respond_field_error(400, field_error('effectiveDate', 'Enter a valid effective date.'));
+        }
+    }
 
     if ($name === '' || mb_strlen($name) > 150) {
         respond_field_error(400, field_error('productName', 'Enter a product name of up to 150 characters.'));
@@ -122,7 +180,7 @@ try {
     if ($uploadedPath !== null) {
         $update = $pdo->prepare(
             'UPDATE products
-             SET product_name = ?, category = ?, description = ?, image_path = ?
+             SET product_name = ?, category = ?, description = ?, image_path = ?, availability_status = ?
              WHERE product_id = ? AND manufacturer_id = ?'
         );
 
@@ -131,13 +189,14 @@ try {
             optional_text($category),
             optional_text($description),
             $uploadedPath,
+            $availabilityStatus,
             $productId,
             $actor['organization_id']
         ]);
     } else {
         $update = $pdo->prepare(
             'UPDATE products
-             SET product_name = ?, category = ?, description = ?
+             SET product_name = ?, category = ?, description = ?, availability_status = ?
              WHERE product_id = ? AND manufacturer_id = ?'
         );
 
@@ -145,8 +204,26 @@ try {
             $name,
             optional_text($category),
             optional_text($description),
+            $availabilityStatus,
             $productId,
             $actor['organization_id']
+        ]);
+    }
+
+    if ($canAssignInitialBarcode && $submittedBarcode !== '') {
+        $versionUpdate = $pdo->prepare(
+            "UPDATE product_versions
+             SET barcode = ?, pack_size = ?, packaging_description = ?, effective_from = ?
+             WHERE product_id = ? AND version_number = ? AND (barcode IS NULL OR barcode = '')"
+        );
+
+        $versionUpdate->execute([
+            $submittedBarcode,
+            optional_text($packSize),
+            optional_text($packaging),
+            $effectiveDate,
+            $productId,
+            $currentVersion['version_number']
         ]);
     }
 

@@ -130,6 +130,90 @@ function createTextElement(tag, className, text) {
     return element;
 }
 
+function openImageViewer(source, altText, trigger) {
+    const overlay = document.createElement("div");
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-label", "Product image viewer");
+
+    Object.assign(overlay.style, {
+        position: "fixed",
+        inset: "0",
+        zIndex: "99999",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "24px",
+        boxSizing: "border-box",
+        background: "rgba(0, 0, 0, 0.88)",
+        cursor: "zoom-out"
+    });
+
+    const fullImage = document.createElement("img");
+    fullImage.src = source;
+    fullImage.alt = altText;
+
+    Object.assign(fullImage.style, {
+        display: "block",
+        maxWidth: "94vw",
+        maxHeight: "88vh",
+        width: "auto",
+        height: "auto",
+        objectFit: "contain",
+        borderRadius: "8px",
+        boxShadow: "0 8px 40px rgba(0, 0, 0, 0.4)",
+        cursor: "default"
+    });
+
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.textContent = "×";
+    closeButton.setAttribute("aria-label", "Close image viewer");
+
+    Object.assign(closeButton.style, {
+        position: "absolute",
+        top: "16px",
+        right: "20px",
+        width: "44px",
+        height: "44px",
+        border: "none",
+        borderRadius: "50%",
+        background: "#ffffff",
+        color: "#222222",
+        fontSize: "32px",
+        lineHeight: "1",
+        cursor: "pointer"
+    });
+
+    function closeViewer() {
+        document.removeEventListener("keydown", handleKeyDown);
+        overlay.remove();
+
+        if (trigger && trigger.isConnected) {
+            trigger.focus();
+        }
+    }
+
+    function handleKeyDown(event) {
+        if (event.key === "Escape") {
+            closeViewer();
+        }
+    }
+
+    overlay.addEventListener("click", closeViewer);
+    fullImage.addEventListener("click", event => event.stopPropagation());
+
+    closeButton.addEventListener("click", event => {
+        event.stopPropagation();
+        closeViewer();
+    });
+
+    overlay.append(fullImage, closeButton);
+    document.body.append(overlay);
+    document.addEventListener("keydown", handleKeyDown);
+    closeButton.focus();
+}
+
 function renderAnnouncements() {
     announcementList.replaceChildren();
 
@@ -153,6 +237,18 @@ function renderAnnouncements() {
                 `Product: ${item.product_name || "Product"}`
             )
         );
+
+        if (item.availability_status) {
+            const availabilityLabel = item.availability_status === "COMING_SOON"
+                ? "Coming soon"
+                : "Available now";
+
+            card.append(createTextElement(
+                "p",
+                "product-availability",
+                `Availability: ${availabilityLabel}`
+            ));
+        }
 
         if (item.manufacturer_name) {
             card.append(createTextElement(
@@ -190,7 +286,32 @@ function renderAnnouncements() {
             image.alt = item.product_name || "Product image";
             image.width = 140;
             image.loading = "lazy";
-            card.append(image);
+
+            const viewImageButton = document.createElement("button");
+            viewImageButton.type = "button";
+            viewImageButton.textContent = "View image";
+            viewImageButton.setAttribute(
+                "aria-label",
+                `View larger image of ${image.alt}`
+            );
+
+            Object.assign(viewImageButton.style, {
+                display: "block",
+                marginTop: "8px",
+                padding: "8px 14px",
+                border: "1px solid #cbd5e1",
+                borderRadius: "6px",
+                background: "#ffffff",
+                color: "#334155",
+                cursor: "pointer",
+                font: "inherit"
+            });
+
+            viewImageButton.addEventListener("click", () => {
+                openImageViewer(image.src, image.alt, viewImageButton);
+            });
+
+            card.append(image, viewImageButton);
         }
 
         card.append(createTextElement(

@@ -6,8 +6,10 @@ const TYPE_LABELS = {
 };
 
 const BUILT_PATHS = [
-    "dashboard/dashboard.html",
+  "dashboard/dashboard.html",
     "modules/products/catalogue/catalogue.html",
+    "modules/products/updates/updates.html",
+    "modules/products/management/management.html",
     "modules/admin/users/users.html",
     "modules/admin/branches/branches.html",
     "modules/admin/organisation-profile/organisation-profile.html",
@@ -29,6 +31,11 @@ const TABS = [
         sections: [
             { label: "Catalogue", path: page("products", "catalogue") },
             { label: "Updates", path: page("products", "updates") },
+            {
+                label: "Product management",
+                path: page("products", "management"),
+                types: ["MANUFACTURER", "MANUFACTURER_SUPPLIER"]
+            },
             { label: "History", path: page("products", "history") }
         ]
     },

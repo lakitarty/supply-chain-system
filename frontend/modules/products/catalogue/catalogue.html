@@ -11,24 +11,32 @@
 
     <main class="page">
         <h1 class="page-title">Catalogue</h1>
-        <p class="page-description">The products that reach your organisation, with the current barcode and every earlier version.</p>
+        <p class="page-description">Check your product details.</p>
 
         <section class="page-section">
             <div id="catalogueMessage" class="form-message" role="alert" aria-live="polite"></div>
 
             <div class="form-grid">
                 <div class="form-group">
-                    <label for="productSelect">Select a product</label>
+                    <label for="productSelect">Select product</label>
                     <select id="productSelect"></select>
                 </div>
 
                 <div class="form-group">
-                    <label for="versionSelect">Select a version</label>
+                    <label for="versionSelect">Select version</label>
                     <select id="versionSelect"></select>
                 </div>
             </div>
 
-            <dl class="detail-list" id="productDetail"></dl>
+            <div id="catalogueImageContainer" hidden>
+    <img
+        id="catalogueProductImage"
+        alt="Product image"
+        style="display:block;max-width:240px;max-height:240px;object-fit:contain;margin-bottom:20px;"
+    >
+</div>
+
+<dl class="detail-list" id="productDetail"></dl>
         </section>
     </main>
 

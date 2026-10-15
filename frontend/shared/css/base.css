@@ -231,3 +231,6 @@ button {
     grid-template-columns: 1fr 1fr;
     gap: 0 var(--space-l);
 }
+.detail-list + .form-actions {
+    margin-top: var(--space-m);
+}

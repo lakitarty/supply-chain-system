@@ -2,6 +2,8 @@ const productSelect = field("productSelect");
 const versionSelect = field("versionSelect");
 const productDetail = field("productDetail");
 const catalogueMessage = field("catalogueMessage");
+const catalogueImageContainer = field("catalogueImageContainer");
+const catalogueProductImage = field("catalogueProductImage");
 
 let products = [];
 
@@ -22,6 +24,15 @@ function selectedVersion() {
 function renderDetail() {
     const product = selectedProduct();
     const version = selectedVersion();
+
+    if (product?.image_path) {
+        catalogueProductImage.src = pageUrl(product.image_path);
+        catalogueProductImage.alt = `${product.product_name} product image`;
+        catalogueImageContainer.hidden = false;
+    } else {
+        catalogueProductImage.removeAttribute("src");
+        catalogueImageContainer.hidden = true;
+    }
 
     renderDetailList(productDetail, product && version
         ? [

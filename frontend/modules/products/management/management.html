@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <title>Product Management | Supply Chain Management System</title>
+</head>
+<body>
+    <div id="shell"></div>
+
+    <main class="page">
+        <h1 class="page-title">Product management</h1>
+        <p class="page-description">
+            Create products, maintain product information, and manage catalogue images.
+        </p>
+
+        <section class="page-section">
+            <h2 class="section-title">Select a product</h2>
+
+            <div class="form-group">
+                <label for="existingProduct">Existing product</label>
+                <select id="existingProduct">
+                    <option value="">Create a new product</option>
+                </select>
+            </div>
+
+            <p class="field-hint">
+                Select an existing product to edit it, or choose Create a new product.
+            </p>
+        </section>
+
+        <section class="page-section">
+            <h2 class="section-title" id="formTitle">Create a product</h2>
+
+            <form id="productForm" enctype="multipart/form-data" novalidate>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="productName">Product name</label>
+                        <input type="text" id="productName" maxlength="150" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category">Category</label>
+                        <input type="text" id="category" maxlength="100" placeholder="e.g. Personal Care">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="barcode">Initial barcode</label>
+                        <input type="text" id="barcode" maxlength="14" inputmode="numeric" required>
+                        <p class="field-hint">For a new product only. Use Updates for later barcode changes.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="packSize">Pack size</label>
+                        <input type="text" id="packSize" maxlength="100" placeholder="e.g. 40 ml">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="packaging">Packaging description</label>
+                        <input type="text" id="packaging" maxlength="255" placeholder="e.g. Roll-on bottle">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="effectiveDate">Effective date</label>
+                        <input type="date" id="effectiveDate" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="productImage">Product image <span class="optional">(optional)</span></label>
+                        <input type="file" id="productImage" accept="image/jpeg,image/png,image/webp">
+                        <p class="field-hint">JPG, PNG, or WebP. Maximum size: 5 MB.</p>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" rows="4" maxlength="10000"></textarea>
+                </div>
+
+                <div id="imagePreviewContainer" hidden>
+                    <p class="field-hint" id="imagePreviewLabel">Image preview</p>
+                    <img id="imagePreview" alt="Product image preview" width="180">
+                </div>
+
+                <div id="productMessage" class="form-message" role="alert" aria-live="polite"></div>
+
+                <div class="form-actions">
+                    <button type="submit" class="primary-button" id="saveProductButton">
+                        Create product
+                    </button>
+                    <button type="button" id="cancelEditButton" hidden>
+                        Cancel editing
+                    </button>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/form-helpers.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="management.js"></script>
+</body>
+</html>

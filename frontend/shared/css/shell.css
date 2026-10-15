@@ -1,14 +1,11 @@
-.shell {
-    background: var(--white);
-    border-bottom: 1px solid var(--border-light);
-}
-
-.shell-main-row {
+﻿.shell-main-row {
     display: flex;
     align-items: stretch;
     gap: var(--space-xl);
-    min-height: 60px;
-    padding-inline: var(--edge);
+    min-height: 48px;
+    padding-inline: var(--gutter);
+    background:#000000;
+    color: var(--white);
 }
 
 .shell-brand {
@@ -18,49 +15,11 @@
     font-weight: 600;
     white-space: nowrap;
 }
-.shell-mark {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    margin-right: 10px;
-    border-radius: var(--radius);
-    background: var(--brand);
-    color: var(--white);
-    font-size: var(--text-small);
-    font-weight: 600;
-    letter-spacing: 0.04em;
-}
-
-.shell-avatar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--brand-soft);
-    color: var(--brand-dark);
-    font-size: var(--text-label);
-    font-weight: 600;
-}
-
-.shell-role {
-    margin-left: 8px;
-    padding: 1px 8px;
-    border-radius: 10px;
-    background: var(--brand-soft);
-    color: var(--brand-dark);
-    font-size: 11px;
-    font-weight: 600;
-}
 
 .shell-tabs {
     display: flex;
     align-items: stretch;
     flex: 1;
-    gap: 4px;
 }
 
 .shell-tab {
@@ -68,26 +27,25 @@
     align-items: center;
     padding: 0 14px;
     border-bottom: 3px solid transparent;
-    color: var(--text);
+    color: rgba(255, 255, 255, 0.82);
     font-size: var(--text-base);
-    font-weight: 500;
     text-decoration: none;
     white-space: nowrap;
 }
 
 a.shell-tab:hover {
-    background: var(--brand-soft);
-    color: var(--brand);
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--white);
 }
 
 .shell-tab.active {
-    border-bottom-color: var(--brand);
-    color: var(--brand);
+    border-bottom-color: var(--white);
+    color: var(--white);
+    font-weight: 600;
 }
 
 .shell-tab.disabled {
-    color: var(--disabled);
-    font-weight: 400;
+    color: rgba(255, 255, 255, 0.4);
     cursor: default;
 }
 
@@ -102,10 +60,9 @@ a.shell-tab:hover {
 .shell-user-text {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
+    align-items: flex-end;
+    line-height: 1.3;
 }
-
 
 .shell-user-name {
     font-size: var(--text-label);
@@ -114,32 +71,31 @@ a.shell-tab:hover {
 
 .shell-user-meta {
     font-size: var(--text-small);
-    color: var(--muted);
+    color: rgba(255, 255, 255, 0.75);
 }
 
 .shell-signout {
-    height: 34px;
-    padding: 0 14px;
-    border: 1px solid var(--border);
+    height: 30px;
+    padding: 0 12px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
     border-radius: var(--radius);
-    background: var(--white);
-    color: var(--text);
+    background: transparent;
+    color: var(--white);
     font-size: var(--text-label);
     cursor: pointer;
 }
 
 .shell-signout:hover {
-    border-color: var(--brand);
-    color: var(--brand);
+    background: rgba(255, 255, 255, 0.12);
 }
 
 .shell-sections {
     display: flex;
     gap: 4px;
-    min-height: 42px;
-    padding-inline: var(--edge);
-    background: var(--background);
-    border-top: 1px solid var(--border-light);
+    min-height: 38px;
+    padding-inline: var(--gutter);
+    background: var(--white);
+    border-bottom: 1px solid var(--border-light);
 }
 
 .shell-sections:empty {
@@ -151,7 +107,7 @@ a.shell-tab:hover {
     align-items: center;
     padding: 0 12px;
     border-bottom: 2px solid transparent;
-    color: var(--text);
+    color: var(--muted);
     font-size: var(--text-label);
     text-decoration: none;
 }
@@ -172,10 +128,7 @@ a.shell-section:hover {
 }
 
 .page {
-    width: 100%;
-    max-width: var(--page-width);
-    margin: 0 auto;
-    padding: var(--space-xl);
+    padding: var(--space-l) var(--gutter) var(--space-xl);
 }
 
 body:has(#shell):not(.shell-ready) .page {
@@ -183,41 +136,70 @@ body:has(#shell):not(.shell-ready) .page {
 }
 
 .page-title {
-    margin: 0 0 4px;
+    margin: 0;
     font-size: var(--text-title);
-    font-weight: 500;
-    letter-spacing: -0.01em;
+    font-weight: 600;
 }
 
-.page-subtitle {
-    margin: 0;
+.page-description {
+    margin: 2px 0 0;
     color: var(--muted);
-    font-size: var(--text-base);
+    font-size: var(--text-label);
 }
 
 .page-section {
-    max-width: 760px;
-    margin-top: var(--space-xl);
-    padding-top: var(--space-l);
-    border-top: 1px solid var(--border-light);
+    margin-top: var(--space-l);
 }
 
-.page-section h2 {
+.section-title {
     margin: 0 0 var(--space-m);
-    font-size: var(--text-large);
+    padding-bottom: var(--space-s);
+    border-bottom: 1px solid var(--border-light);
+    font-size: var(--text-base);
     font-weight: 600;
+}
+
+.thread {
+    max-height: 280px;
+    margin-bottom: var(--space-m);
+    padding: var(--space-m);
+    overflow-y: auto;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    background: var(--white);
+}
+
+.thread:empty::before {
+    content: "No messages yet. Start the discussion below.";
+    color: var(--muted);
+    font-size: var(--text-label);
+}
+
+.message-line {
+    margin-bottom: var(--space-m);
+}
+
+.message-meta {
+    display: block;
+    color: var(--muted);
+    font-size: var(--text-small);
+}
+
+.record-bar {
+    max-width: 640px;
+    margin-bottom: var(--space-m);
 }
 
 .detail-list {
     display: grid;
-    grid-template-columns: 160px 1fr;
-    margin: var(--space-m) 0 0;
+    grid-template-columns: 140px 1fr;
+    margin: 0;
 }
 
 .detail-list dt,
 .detail-list dd {
     margin: 0;
-    padding: 12px 0;
+    padding: 8px 0;
     border-bottom: 1px solid var(--border-light);
 }
 

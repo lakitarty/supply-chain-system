@@ -24,6 +24,18 @@ let threadChangeId = null;
 let lastMessageId = 0;
 let permissions = { can_create: false, can_publish: false };
 
+const acknowledgementActions = document.createElement("div");
+acknowledgementActions.className = "form-actions acknowledgement-actions";
+acknowledgementActions.hidden = true;
+
+const acknowledgementViewButton = document.createElement("button");
+acknowledgementViewButton.type = "button";
+acknowledgementViewButton.className = "acknowledgement-view-button";
+acknowledgementViewButton.textContent = "View acknowledgements";
+
+acknowledgementActions.append(acknowledgementViewButton);
+changeDetail.insertAdjacentElement("afterend", acknowledgementActions);
+
 const isIncoming = change => change.direction === "INCOMING";
 const orNone = value => value ?? "None";
 const selectedChange = () => changes.find(change => String(change.product_change_id) === changeSelect.value);
@@ -39,16 +51,123 @@ function acknowledgementRows(change) {
         return [];
     }
 
-    const done = change.recipients.filter(recipient => recipient.notification_status === "ACKNOWLEDGED").length;
+    const recipients = change.recipients || [];
+    const done = recipients.filter(
+        recipient => recipient.notification_status === "ACKNOWLEDGED"
+    ).length;
 
     return [
-        ["Acknowledged", `${done} of ${change.recipients.length} organisations`],
-        ...change.recipients.map(recipient => [
-            recipient.organization_name,
-            recipient.acknowledged_at ? `Acknowledged on ${recipient.acknowledged_at}` : "Not acknowledged yet"
-        ])
+        ["Acknowledgements", `${done} of ${recipients.length} organisations acknowledged`]
     ];
 }
+
+function showAcknowledgements(change) {
+    if (!change || isIncoming(change) || change.status !== "PUBLISHED") {
+        return;
+    }
+
+    const recipients = change.recipients || [];
+    const acknowledged = recipients.filter(
+        recipient => recipient.notification_status === "ACKNOWLEDGED"
+    ).length;
+
+    const overlay = document.createElement("div");
+    overlay.className = "acknowledgement-overlay";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-labelledby", "acknowledgementDialogTitle");
+
+    const panel = document.createElement("section");
+    panel.className = "acknowledgement-dialog";
+
+    const heading = element("h2", "acknowledgement-dialog-title",
+        "Organisation acknowledgements");
+
+    heading.id = "acknowledgementDialogTitle";
+
+    const summary = element(
+        "p",
+        "acknowledgement-dialog-summary",
+        `${acknowledged} of ${recipients.length} organisations acknowledged receipt`
+    );
+
+    const closeButton = element(
+        "button",
+        "acknowledgement-close-button",
+        "Close"
+    );
+    closeButton.type = "button";
+
+    const list = document.createElement("ul");
+    list.className = "acknowledgement-list";
+
+    for (const recipient of recipients) {
+        const done = recipient.notification_status === "ACKNOWLEDGED";
+        const row = document.createElement("li");
+        row.className = "acknowledgement-row";
+
+        const organizationName = element(
+            "span",
+            "acknowledgement-organization",
+            recipient.organization_name
+        );
+
+        const status = element(
+            "span",
+            done ? "acknowledgement-status is-acknowledged" : "acknowledgement-status is-pending",
+            done ? "Acknowledged" : "Awaiting acknowledgement"
+        );
+
+        row.append(organizationName, status);
+
+        if (done && recipient.acknowledged_at) {
+            row.append(element(
+                "span",
+                "acknowledgement-date",
+                `Received on ${recipient.acknowledged_at}`
+            ));
+        }
+
+        list.append(row);
+    }
+
+    const dialogHeader = document.createElement("div");
+    dialogHeader.className = "acknowledgement-dialog-header";
+    dialogHeader.append(heading, closeButton);
+
+    panel.append(dialogHeader, summary, list);
+    overlay.append(panel);
+
+    function closeDialog() {
+        document.removeEventListener("keydown", handleDialogKey);
+        overlay.remove();
+
+        if (acknowledgementViewButton.isConnected) {
+            acknowledgementViewButton.focus();
+        }
+    }
+
+    function handleDialogKey(event) {
+        if (event.key === "Escape") {
+            closeDialog();
+        }
+    }
+
+    closeButton.addEventListener("click", closeDialog);
+    overlay.addEventListener("click", event => {
+        if (event.target === overlay) {
+            closeDialog();
+        }
+    });
+
+    document.addEventListener("keydown", handleDialogKey);
+    document.body.append(overlay);
+    closeButton.focus();
+}
+
+acknowledgementViewButton.addEventListener("click", () => {
+    showAcknowledgements(selectedChange());
+});
 
 function detailRows(change) {
     const yourResponse = isIncoming(change)
@@ -137,6 +256,25 @@ function renderSelectedChange() {
     renderThread(change);
 
     renderDetailList(changeDetail, change ? detailRows(change) : []);
+
+    const canViewAcknowledgements = Boolean(
+        change &&
+        !isIncoming(change) &&
+        change.status === "PUBLISHED" &&
+        Array.isArray(change.recipients) &&
+        change.recipients.length > 0
+    );
+
+    acknowledgementActions.hidden = !canViewAcknowledgements;
+
+    if (canViewAcknowledgements) {
+        const done = change.recipients.filter(
+            recipient => recipient.notification_status === "ACKNOWLEDGED"
+        ).length;
+
+        acknowledgementViewButton.textContent =
+            `View acknowledgements (${done}/${change.recipients.length})`;
+    }
 
     changeActions.hidden = action === null;
     actionButton.textContent = action?.label ?? "";

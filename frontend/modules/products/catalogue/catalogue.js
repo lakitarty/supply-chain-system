@@ -39,6 +39,7 @@ function renderDetail() {
             ["Product", product.product_name],
             ["Manufacturer", product.manufacturer_name],
             ["Category", product.category || "None"],
+            ["Availability", product.availability_status === "COMING_SOON" ? "Coming soon" : "Available now"],
             ["Version", versionLabel(version)],
             ["Barcode", version.barcode],
             ["Pack size", version.pack_size || "None"],

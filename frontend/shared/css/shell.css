@@ -128,7 +128,7 @@ a.shell-section:hover {
 }
 
 .page {
-    padding: var(--space-l) var(--gutter) var(--space-xl);
+    padding: 20px var(--gutter) 28px;
 }
 
 body:has(#shell):not(.shell-ready) .page {
@@ -148,7 +148,7 @@ body:has(#shell):not(.shell-ready) .page {
 }
 
 .page-section {
-    margin-top: var(--space-l);
+    margin-top: 16px;
 }
 
 .section-title {

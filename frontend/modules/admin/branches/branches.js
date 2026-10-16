@@ -23,7 +23,6 @@ const editor = createRecordEditor({
 });
 
 async function initialise(account) {
-    field("pageSubtitle").textContent = account.organization.organization_name;
 
     try {
         await editor.start();

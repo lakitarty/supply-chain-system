@@ -91,7 +91,6 @@ function fillFilters(users, actions) {
 }
 
 async function initialise(account) {
-    field("pageSubtitle").textContent = account.organization.organization_name;
 
     try {
         const { data: userData } = await getJson("users/list.php");

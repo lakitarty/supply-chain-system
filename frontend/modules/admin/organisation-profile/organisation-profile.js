@@ -50,7 +50,6 @@ async function submitProfile(event) {
 }
 
 async function initialise(account) {
-    field("pageSubtitle").textContent = account.organization.organization_name;
 
     try {
         await loadProfile();

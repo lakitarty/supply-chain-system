@@ -1,29 +1,24 @@
-.activity-log-page {
-    width: min(100% - 64px, 1320px);
+﻿.activity-log-page {
+    width: min(100% - 64px, 1200px);
     margin: 0 auto;
-    padding: 30px 0 48px;
+    padding: 24px 0 40px;
     color: #182230;
 }
 
 .activity-log-page > .page-title {
+    margin-bottom: 22px;
     font-size: 28px;
     font-weight: 650;
-    letter-spacing: -0.4px;
-}
-
-.activity-log-page > .page-description {
-    margin-top: 7px;
-    color: #667085;
-    font-size: 14px;
-    line-height: 1.6;
+    letter-spacing: -0.5px;
 }
 
 .activity-log-page > .page-section {
-    margin-top: 20px;
-    padding: 22px 24px;
-    border: 1px solid #e0e6ed;
-    border-radius: 7px;
-    background: #ffffff;
+    margin-top: 22px;
+    padding: 22px 0;
+    border: 0;
+    border-top: 1px solid #e5e7eb;
+    border-radius: 0;
+    background: transparent;
 }
 
 .activity-log-page .form-grid {
@@ -34,56 +29,47 @@
 
 .activity-log-page .form-group {
     min-width: 0;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 
 .activity-log-page .form-group label {
-    margin-bottom: 7px;
+    display: block;
+    margin-bottom: 6px;
     color: #344054;
     font-size: 13px;
     font-weight: 600;
 }
 
 .activity-log-page .form-group input,
-.activity-log-page .form-group select {
+.activity-log-page .form-group select,
+.activity-log-page #entrySelect {
+    box-sizing: border-box;
     width: 100%;
     height: 40px;
-    padding: 0 10px;
-    border: 1px solid #d0d7e0;
+    padding: 0 11px;
+    border: 1px solid #d5d9e0;
     border-radius: 5px;
-    background: #ffffff;
+    background: #fff;
     color: #182230;
-    font-family: inherit;
+    font: inherit;
     font-size: 13px;
 }
 
 .activity-log-page .form-group input:focus,
-.activity-log-page .form-group select:focus {
-    border-color: #0f766e;
-    outline: 3px solid rgba(15, 118, 110, 0.12);
+.activity-log-page .form-group select:focus,
+.activity-log-page #entrySelect:focus {
+    border-color: #8B3D68;
+    outline: 3px solid rgb(139 61 104 / 12%);
 }
 
 .activity-log-page .record-bar {
     width: 100%;
     max-width: none;
-    margin-bottom: 18px;
+    margin-bottom: 14px;
 }
 
 .activity-log-page .record-bar .form-group {
-    max-width: 100%;
     margin-bottom: 0;
-}
-
-.activity-log-page #entrySelect {
-    width: 100%;
-    height: 42px;
-    padding: 0 11px;
-    border: 1px solid #d0d7e0;
-    border-radius: 5px;
-    background: #ffffff;
-    color: #182230;
-    font-family: inherit;
-    font-size: 13px;
 }
 
 .activity-log-page .field-hint {
@@ -95,33 +81,50 @@
 
 .activity-log-page .detail-list {
     display: grid;
-    grid-template-columns: 170px minmax(0, 1fr);
-    margin: 12px 0 0;
-    border-top: 1px solid #e5eaf0;
+    grid-template-columns: 140px minmax(0, 1fr);
+    margin: 14px 0 0;
+    border-top: 1px solid #e5e7eb;
 }
 
 .activity-log-page .detail-list dt,
 .activity-log-page .detail-list dd {
     min-width: 0;
     margin: 0;
-    padding: 11px 12px;
-    border-bottom: 1px solid #e5eaf0;
+    padding: 12px 10px;
+    border-bottom: 1px solid #e5e7eb;
     overflow-wrap: anywhere;
-    line-height: 1.55;
+    line-height: 1.5;
+    font-size: 13px;
 }
 
 .activity-log-page .detail-list dt {
-    background: #f8fafb;
-    color: #475467;
-    font-size: 13px;
+    color: #667085;
     font-weight: 600;
 }
 
 .activity-log-page .detail-list dd {
     color: #182230;
-    font-size: 13px;
 }
 
 .activity-log-page .form-message {
     margin-bottom: 12px;
 }
+
+@media (max-width: 1100px) {
+    .activity-log-page .form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 16px;
+    }
+}
+
+@media (max-width: 899px) {
+    .shell,
+    .page {
+        display: none;
+    }
+
+    .desktop-notice {
+        display: block;
+    }
+}
+

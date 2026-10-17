@@ -4,7 +4,7 @@
     gap: var(--space-xl);
     min-height: 48px;
     padding-inline: var(--gutter);
-    background:#000000;
+    background:#104e5cd2;
     color: var(--white);
 }
 
@@ -113,12 +113,12 @@ a.shell-tab:hover {
 }
 
 a.shell-section:hover {
-    color: var(--brand);
+    color: #8B3D68;
 }
 
 .shell-section.active {
-    border-bottom-color: var(--brand);
-    color: var(--brand);
+    border-bottom-color: #8B3D68;
+    color: #8B3D68;
     font-weight: 600;
 }
 
@@ -129,6 +129,21 @@ a.shell-section:hover {
 
 .page {
     padding: 20px var(--gutter) 28px;
+}
+
+/* Users form layout */
+body:has(#recordForm) #recordForm {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 24px;
+}
+
+body:has(#recordForm) #recordForm .form-group {
+    margin-bottom: 12px;
+}
+/* Admin form page width */
+body:has(#recordForm) .page,
+body:has(#profileForm) .page {
+    max-width: 808px;
 }
 
 body:has(#shell):not(.shell-ready) .page {
@@ -225,3 +240,5 @@ body:has(#shell):not(.shell-ready) .page {
         display: block;
     }
 }
+
+

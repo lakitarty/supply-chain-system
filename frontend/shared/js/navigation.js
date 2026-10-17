@@ -6,7 +6,7 @@
 };
 
 const BUILT_PATHS = [
-  "dashboard/dashboard.html",
+    "dashboard/dashboard.html",
     "modules/products/catalogue/catalogue.html",
     "modules/products/updates/updates.html",
     "modules/products/management/management.html",

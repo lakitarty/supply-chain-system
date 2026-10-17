@@ -29,3 +29,27 @@ function reachable_organization_ids(PDO $pdo, int $organizationId, string $direc
 
     return array_map('intval', $statement->fetchAll(PDO::FETCH_COLUMN));
 }
+function fetch_relationships(PDO $pdo, array $actor): array
+{
+    $organizationId = $actor['organization_id'];
+
+    $statement = $pdo->prepare(
+        "SELECT r.relationship_id,
+                r.status,
+                r.start_date,
+                r.end_date,
+                r.requested_by_organization_id,
+                r.source_organization_id = ? AS i_supply,
+                partner.organization_name AS partner_name,
+                partner.organization_type AS partner_type
+         FROM organization_relationships r
+         INNER JOIN organizations partner
+            ON partner.organization_id = IF(r.source_organization_id = ?, r.target_organization_id, r.source_organization_id)
+         WHERE r.source_organization_id = ? OR r.target_organization_id = ?
+         ORDER BY FIELD(r.status, 'PENDING', 'ACTIVE', 'INACTIVE'), partner.organization_name"
+    );
+
+    $statement->execute([$organizationId, $organizationId, $organizationId, $organizationId]);
+
+    return $statement->fetchAll();
+}

@@ -118,8 +118,6 @@
 .catalogue-page #catalogueMessage {
     margin-bottom: 12px;
 }
-
-/* Compact catalogue details */
 .catalogue-page .detail-list {
     grid-template-columns: 170px minmax(0, 1fr);
     max-width: 1040px;

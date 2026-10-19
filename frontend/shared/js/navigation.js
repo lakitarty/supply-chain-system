@@ -14,7 +14,8 @@ const BUILT_PATHS = [
     "modules/admin/users/users.html",
     "modules/admin/branches/branches.html",
     "modules/admin/organisation-profile/organisation-profile.html",
-    "modules/admin/activity-log/activity-log.html"
+    "modules/admin/activity-log/activity-log.html",
+    "modules/network/relationships/relationships.html",
 ];
 function page(module, name) {
     return `modules/${module}/${name}/${name}.html`;
@@ -43,6 +44,7 @@ const TABS = [
     {
         id: "network",
         label: "Supply network",
+        adminOnly: true,
         sections: [
             { label: "Relationships", path: page("network", "relationships") },
             { label: "Changes", path: page("network", "changes") }

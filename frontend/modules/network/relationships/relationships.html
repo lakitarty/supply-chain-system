@@ -2,64 +2,182 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="../../../shared/css/base.css">
     <link rel="stylesheet" href="../../../shared/css/shell.css">
-    <title>Relationships | Supply Chain Management System</title>
+    <link rel="stylesheet" href="relationships.css">
+    <title>Supply network | Nexora MSRC</title>
 </head>
 <body>
     <div id="shell"></div>
 
-    <main class="page">
-        <h1 class="page-title">Network</h1>
+    <main class="page network-page">
+        <header class="page-header network-page-header">
+    <div class="network-heading">
+        <p class="network-kicker">PARTNER MANAGEMENT</p>
+    </div>
+    <div class="network-header-actions">
+        <button type="button" class="header-directory-trigger" id="openDirectoryButton" aria-haspopup="dialog" aria-controls="searchSection">
+    <span class="header-search-icon" aria-hidden="true"></span>
+    <span>Search organisations to connect with</span>
+</button>
+        <button type="button" class="register-organization-button" id="registerOrganizationButton" data-registration-url="../../admin/organisation-profile/organisation-profile.html">
+            <span aria-hidden="true">+</span> Register new organisation
+        </button>
+        <p class="register-organisation-note" id="registerOrganisationNote" role="status" hidden></p>
+    </div>
+</header>
 
-        <section class="page-section">
-            <div id="relationshipMessage" class="form-message" role="alert" aria-live="polite"></div>
+        <div class="directory-modal-backdrop" id="directoryModalBackdrop" hidden></div>
+<section class="search-workspace" id="searchSection" role="dialog" aria-modal="true" aria-labelledby="directoryModalTitle" hidden>
+            <div class="search-workspace-header">
+                <div>
+                    <p class="network-kicker">DIRECTORY</p>
+                    <h2 id="directoryModalTitle">Find a trading partner</h2>
 
-            <div class="record-bar">
-                <div class="form-group">
-                    <label for="relationshipSelect">My Network  </label>
-                    <select id="relationshipSelect"></select>
                 </div>
+                <button type="button" class="directory-close-button" id="closeDirectoryButton">Close directory</button>
             </div>
-
-            <dl class="detail-list" id="relationshipDetail"></dl>
-
-            <div class="form-actions" id="relationshipActions" hidden>
-                <button type="button" class="primary-button" id="acceptButton">Accept</button>
-                <button type="button" class="primary-button" id="declineButton">Decline</button>
-                <button type="button" class="primary-button" id="endButton"></button>
-            </div>
-        </section>
-
-        <section class="page-section">
-            <h2 class="section-title">Connect with an organisation</h2>
 
             <form id="connectForm" novalidate>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="term">Search Name or KRA PIN</label>
-                        <input type="text" id="term" maxlength="150" autocomplete="off">
-                        <input type="hidden" id="partnerId">
-                        <p class="field-hint" id="foundOrganisation"></p>
-                    </div>
+                <div class="directory-columns">
+                    <section class="directory-search-pane">
+                        <div class="directory-search-controls">
+    <div class="search-field">
+        <label for="searchTerm">Search organisations</label>
+        <input type="search" id="searchTerm" autocomplete="off" placeholder="Enter an organisation name">
+    </div>
+                            <div class="search-field">
+                                <label for="organizationTypeFilter">Organisation type</label>
+                                <select id="organizationTypeFilter">
+                                    <option value="">All types</option>
+                                    <option value="MANUFACTURER">Manufacturer</option>
+                                    <option value="SUPPLIER">Supplier</option>
+                                    <option value="MANUFACTURER_SUPPLIER">Manufacturer and Supplier</option>
+                                    <option value="RETAILER">Retailer</option>
+                                </select>
+                            </div>
+                        </div>
 
-                    <div class="form-group">
-                        <label for="direction">Who supplies whom</label>
-                        <select id="direction">
-                            <option value="THEY_SUPPLY_ME">They supply me</option>
-                            <option value="I_SUPPLY_THEM">I supply them</option>
-                        </select>
-                    </div>
-                </div>
+                        <div class="directory-results-header">
+                            <span id="searchCount">Loading organisations</span>
+                            <span class="directory-results-label">DIRECTORY RESULTS</span>
+                        </div>
 
-                <div id="connectMessage" class="form-message" role="alert" aria-live="polite"></div>
+                        <div class="directory-results" id="directoryResults" aria-label="Organisation search results"></div>
+                        <select id="partnerId" hidden aria-hidden="true" tabindex="-1"></select>
+                    </section>
 
-                <div class="form-actions">
-                    <button type="button" class="primary-button" id="findButton">Find organisation</button>
-                    <button type="submit" class="primary-button" id="requestButton">Send request</button>
+                    <aside class="connection-setup">
+                        <p class="network-kicker">CONNECTION REQUEST</p>
+                        <h3>Relationship details</h3>
+                        <p class="connection-intro">Select an organisation to review the permitted relationship direction.</p>
+
+                        <div class="selected-organization" id="selectedOrganization">
+                            <div class="selection-placeholder">
+                                <span class="placeholder-mark" aria-hidden="true">+</span>
+                                <span>
+                                    <strong>No organisation selected</strong>
+                                    <small>Choose a result from the directory.</small>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="form-group relationship-direction-field">
+                            <label for="direction">Relationship direction</label>
+                            <select id="direction" disabled>
+                                <option value="">Choose an organisation first</option>
+                            </select>
+                            <p class="field-hint" id="directionHint">The available direction depends on both registered organisation types.</p>
+                        </div>
+
+                        <div class="eligibility-message" id="eligibilityMessage" role="status" aria-live="polite" hidden>
+                            <strong id="eligibilityTitle"></strong>
+                            <p id="eligibilityText"></p>
+                        </div>
+
+                        <div id="connectMessage" class="form-message" role="alert" aria-live="polite"></div>
+
+                        <button type="submit" class="primary-button connection-submit" id="requestButton" disabled>
+                            Send relationship request
+                        </button>
+                        <p class="connection-footnote">The other organisation must accept the request before the relationship becomes active.</p>
+                    </aside>
                 </div>
             </form>
         </section>
+
+        <div class="network-content-grid">
+            <section class="network-list-panel">
+                <header class="panel-title-row">
+                    <div>
+                        <p class="network-kicker">YOUR ECOSYSTEM</p>
+                        <h2>Organisations</h2>
+                        <p>Choose a relationship to view its details.</p>
+                    </div>
+                    <span class="network-count" id="networkCount">0 entries</span>
+                </header>
+
+                <div class="network-list-tools">
+                    <label class="network-filter-search" for="networkFilter">
+                        <span class="search-icon" aria-hidden="true"></span>
+                        <input type="search" id="networkFilter" placeholder="Search your network" autocomplete="off">
+                    </label>
+                </div>
+
+                <div class="network-filter-tabs" role="group" aria-label="Filter network relationships">
+                    <button type="button" class="network-filter-tab is-active" data-network-filter="ALL" aria-pressed="true">All</button>
+                    <button type="button" class="network-filter-tab" data-network-filter="PENDING" aria-pressed="false">Pending</button>
+                    <button type="button" class="network-filter-tab" data-network-filter="DIRECT" aria-pressed="false">Direct</button>
+                    <button type="button" class="network-filter-tab" data-network-filter="INDIRECT" aria-pressed="false">Through partners</button>
+                    <button type="button" class="network-filter-tab" data-network-filter="ENDED" aria-pressed="false">Ended</button>
+                </div>
+
+                <div class="network-list" id="networkList"></div>
+                <select id="relationshipSelect" hidden aria-hidden="true" tabindex="-1"></select>
+            </section>
+        <div class="detail-overlay" id="detailOverlay" hidden>
+            <button type="button" class="detail-overlay-backdrop" id="detailBackdrop" aria-label="Close relationship details"></button>
+            <aside class="detail-drawer" role="dialog" aria-modal="true" aria-labelledby="detailPartnerName">
+                <header class="detail-drawer-header">
+                    <div>
+                        <p class="network-kicker">RELATIONSHIP DETAILS</p>
+                        <p class="detail-drawer-subtitle">Organisation profile and available actions</p>
+                    </div>
+                    <button type="button" class="detail-drawer-close" id="closeDetail" aria-label="Close relationship details">Close</button>
+                </header>
+
+                <div class="network-detail-empty" id="networkEmptyState" hidden>
+                    <h2>Select a relationship</h2>
+                    <p>Choose an organisation from your network to view its details.</p>
+                </div>
+
+                <div class="network-detail-content" id="networkDetailContent" hidden>
+                    <header class="relationship-identity">
+                        <span class="partner-avatar partner-avatar-large" id="detailPartnerAvatar">?</span>
+                        <div class="relationship-identity-copy">
+                            <p class="network-kicker">ORGANISATION PROFILE</p>
+                            <h2 id="detailPartnerName"></h2>
+                            <p id="detailPartnerType"></p>
+                        </div>
+                        <span class="relationship-status" id="detailStatus"></span>
+                    </header>
+
+                    <div class="detail-section-heading">
+                        <h3>Relationship information</h3>
+                    </div>
+                    <dl class="detail-list" id="relationshipDetail"></dl>
+
+                    <div id="relationshipMessage" class="form-message" role="alert" aria-live="polite"></div>
+
+                    <div class="form-actions network-actions" id="relationshipActions" hidden>
+                        <button type="button" class="primary-button" id="acceptButton">Accept request</button>
+                        <button type="button" class="secondary-button" id="declineButton">Decline</button>
+                        <button type="button" class="secondary-button end-relationship-button" id="endButton"></button>
+                    </div>
+                </div>
+            </aside>
+        </div>
     </main>
 
     <script src="../../../shared/js/api.js"></script>

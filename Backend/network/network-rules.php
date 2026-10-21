@@ -40,8 +40,14 @@ function fetch_relationships(PDO $pdo, array $actor): array
                 r.end_date,
                 r.requested_by_organization_id,
                 r.source_organization_id = ? AS i_supply,
+                partner.organization_id AS partner_id,
                 partner.organization_name AS partner_name,
-                partner.organization_type AS partner_type
+                partner.organization_type AS partner_type,
+                partner.logo_path AS partner_logo_path,
+                IF(r.status = 'ACTIVE', partner.email, NULL) AS partner_email,
+                IF(r.status = 'ACTIVE', partner.phone, NULL) AS partner_phone,
+                IF(r.status = 'ACTIVE', partner.address, NULL) AS partner_address,
+                IF(r.status = 'ACTIVE', partner.kra_pin, NULL) AS partner_kra_pin
          FROM organization_relationships r
          INNER JOIN organizations partner
             ON partner.organization_id = IF(r.source_organization_id = ?, r.target_organization_id, r.source_organization_id)
@@ -60,7 +66,6 @@ const SUPPLY_DIRECTIONS = ['THEY_SUPPLY_ME', 'I_SUPPLY_THEM'];
 function clean_network_input(array $data): array
 {
     return [
-        'term' => trim((string)($data['term'] ?? '')),
         'partnerId' => (int)($data['partnerId'] ?? 0),
         'direction' => trim((string)($data['direction'] ?? '')),
         'relationshipId' => (int)($data['relationshipId'] ?? 0),
@@ -68,23 +73,6 @@ function clean_network_input(array $data): array
     ];
 }
 
-function find_organization_by_term(PDO $pdo, array $actor, string $term): array|false
-{
-    if ($term === '') {
-        return false;
-    }
-
-    $statement = $pdo->prepare(
-        "SELECT organization_id, organization_name, organization_type
-         FROM organizations
-         WHERE status = 'ACTIVE' AND organization_id <> ? AND (organization_name = ? OR kra_pin = ?)
-         LIMIT 1"
-    );
-
-    $statement->execute([$actor['organization_id'], $term, strtoupper($term)]);
-
-    return $statement->fetch();
-}
 
 function find_active_organization(PDO $pdo, array $actor, int $organizationId): array|false
 {
@@ -121,11 +109,18 @@ function first_request_error(PDO $pdo, array $actor, array $input, array|false $
 
     $pair = supply_pair($actor, $partner, $input['direction']);
 
+    $sourceType = $pair['source']['organization_type'];
+    $targetType = $pair['target']['organization_type'];
+
     if (
-        !in_array($pair['source']['organization_type'], SUPPLYING_TYPES, true) ||
-        !in_array($pair['target']['organization_type'], SUPPLIED_TYPES, true)
+        !in_array($sourceType, SUPPLYING_TYPES, true) ||
+        !in_array($targetType, SUPPLIED_TYPES, true) ||
+        ($sourceType === 'MANUFACTURER' && $targetType === 'RETAILER')
     ) {
-        return field_error('direction', 'These organisation types cannot have that supply relationship.');
+        return field_error(
+            'direction',
+            'These organisation types cannot have that supply relationship.'
+        );
     }
 
     $mine = $actor['organization_id'];
@@ -213,4 +208,83 @@ function set_relationship_status(PDO $pdo, int $relationshipId, string $status):
     );
 
     $statement->execute([$status, $status, $status, $relationshipId]);
+}
+function fetch_indirect_connections(PDO $pdo, array $actor, array $relationships): array
+{
+    $knownIds = [(int)$actor['organization_id']];
+
+    foreach ($relationships as $relationship) {
+        if ($relationship['status'] === 'ACTIVE') {
+            $knownIds[] = (int)$relationship['partner_id'];
+        }
+    }
+
+    $knownIds = array_values(array_unique($knownIds));
+
+    $found = [];
+
+    foreach ($relationships as $relationship) {
+        if ($relationship['status'] !== 'ACTIVE') {
+            continue;
+        }
+
+        $iSupply = (int)$relationship['i_supply'] === 1;
+        $reached = reachable_organization_ids($pdo, (int)$relationship['partner_id'], $iSupply ? 'downstream' : 'upstream');
+
+        foreach ($reached as $id) {
+            if (!in_array($id, $knownIds, true) && !isset($found[$id])) {
+                $found[$id] = [
+                    'partner_id' => $id,
+                    'via' => $relationship['partner_name'],
+                    'i_supply' => $iSupply ? 1 : 0
+                ];
+            }
+        }
+    }
+
+    if ($found === []) {
+        return [];
+    }
+
+    $ids = array_keys($found);
+
+    $statement = $pdo->prepare(
+        'SELECT organization_id, organization_name, organization_type, logo_path
+         FROM organizations
+         WHERE organization_id IN (' . sql_placeholders($ids) . ')'
+    );
+
+    $statement->execute($ids);
+
+    return array_map(
+        fn(array $organization) => $found[(int)$organization['organization_id']] + [
+            'partner_name' => $organization['organization_name'],
+            'partner_logo_path' => $organization['logo_path'],
+            'partner_type' => $organization['organization_type']
+        ],
+        $statement->fetchAll()
+    );
+}
+
+function fetch_directory(PDO $pdo, array $actor): array
+{
+    $organizationId = $actor['organization_id'];
+
+    $statement = $pdo->prepare(
+        "SELECT o.organization_id, o.organization_name, o.organization_type, o.logo_path
+         FROM organizations o
+         WHERE o.status = 'ACTIVE'
+           AND o.organization_id <> ?
+           AND NOT EXISTS (
+               SELECT 1 FROM organization_relationships r
+               WHERE r.status IN ('PENDING', 'ACTIVE')
+                 AND ((r.source_organization_id = o.organization_id AND r.target_organization_id = ?)
+                   OR (r.source_organization_id = ? AND r.target_organization_id = o.organization_id))
+           )
+         ORDER BY o.organization_type, o.organization_name"
+    );
+
+    $statement->execute([$organizationId, $organizationId, $organizationId]);
+
+    return $statement->fetchAll();
 }

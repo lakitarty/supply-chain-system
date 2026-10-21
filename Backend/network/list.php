@@ -8,11 +8,13 @@ require_once __DIR__ . '/network-rules.php';
 
 try {
     $actor = require_admin($pdo);
+    $relationships = fetch_relationships($pdo, $actor);
 
     respond(200, [
         'success' => true,
         'organization_id' => $actor['organization_id'],
-        'relationships' => fetch_relationships($pdo, $actor)
+        'relationships' => $relationships,
+        'indirect' => fetch_indirect_connections($pdo, $actor, $relationships)
     ]);
 
 } catch (PDOException $e) {

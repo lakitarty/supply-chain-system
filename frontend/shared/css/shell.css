@@ -149,7 +149,12 @@ body:has(#profileForm) .page {
 body:has(#shell):not(.shell-ready) .page {
     visibility: hidden;
 }
-
+.page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-l);
+}
 .page-title {
     margin: 0;
     font-size: var(--text-title);

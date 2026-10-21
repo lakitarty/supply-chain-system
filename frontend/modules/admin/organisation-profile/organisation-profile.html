@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <link rel="stylesheet" href="../../../shared/css/base.css">
     <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <link rel="stylesheet" href="organisation-profile.css">
     <title>Organisation profile | Supply Chain Management System</title>
 </head>
 <body>
@@ -13,6 +14,25 @@
         <h1 class="page-title">Organisation profile</h1>
         <p class="page-description">The details other organisations see when they work with you.</p>
 
+        <section class="page-section organisation-branding">
+            <div class="organisation-logo-preview" id="organizationLogoPreview">
+                <img id="logoPreview" alt="Organisation logo" hidden>
+                <span id="logoFallback">?</span>
+            </div>
+            <div class="organisation-branding-content">
+                <p class="network-kicker">ORGANISATION IDENTITY</p>
+                <h2>Organisation logo</h2>
+                <p class="organisation-branding-description">Your logo will appear in organisation search results and supply network relationships.</p>
+                <p class="organisation-branding-hint">PNG, JPEG or WebP · Maximum 2 MB</p>
+                <input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp" hidden>
+                <div class="organisation-logo-actions">
+                    <button type="button" class="secondary-button" id="chooseLogoButton">Choose image</button>
+                    <button type="button" class="primary-button" id="uploadLogoButton" disabled>Upload logo</button>
+                    <button type="button" class="secondary-button" id="removeLogoButton" hidden>Remove logo</button>
+                </div>
+                <div id="logoMessage" class="form-message" role="status" aria-live="polite"></div>
+            </div>
+        </section>
         <section class="page-section">
             <form id="profileForm" class="form-grid" novalidate>
                 <div class="form-group">

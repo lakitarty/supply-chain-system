@@ -71,7 +71,7 @@ function kra_pin_conflict(PDO $pdo, string $kraPin, int $excludedOrganizationId 
 function find_organization(PDO $pdo, array $actor): array|false
 {
     $statement = $pdo->prepare(
-        'SELECT organization_name, organization_type, kra_pin, email, phone, address, status
+        'SELECT organization_name, organization_type, kra_pin, email, phone, address, logo_path, status
          FROM organizations
          WHERE organization_id = ?
          LIMIT 1'

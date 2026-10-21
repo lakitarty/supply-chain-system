@@ -20,6 +20,13 @@ function showMessage(element, message, type) {
 
 function setFieldError(input, message) {
     const group = input.closest(".form-group");
+    if (!group) {
+        if (!message) {
+            input.removeAttribute("aria-invalid");
+            input.removeAttribute("aria-describedby");
+        }
+        return;
+    }
     let error = group.querySelector(".field-error");
 
     if (!message) {

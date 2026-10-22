@@ -11,10 +11,37 @@
 
     <main class="page">
         <h1 class="page-title">Dashboard</h1>
+        <p class="page-description">What needs your attention today, and where your organisation stands.</p>
+
+        <section class="page-section">
+            <h2 class="section-title">At a glance</h2>
+            <dl class="detail-list" id="summaryList"></dl>
+        </section>
+
+        <section class="page-section">
+            <h2 class="section-title">Attention</h2>
+
+            <div id="dashboardMessage" class="form-message" role="alert" aria-live="polite"></div>
+
+            <div class="record-bar">
+                <div class="form-group">
+                    <label for="attentionSelect">Select an item</label>
+                    <select id="attentionSelect"></select>
+                </div>
+            </div>
+
+            <dl class="detail-list" id="attentionDetail"></dl>
+
+            <div class="form-actions" id="attentionActions" hidden>
+                <button type="button" class="primary-button" id="openButton">Open</button>
+            </div>
+        </section>
     </main>
 
     <script src="../shared/js/api.js"></script>
+    <script src="../shared/js/form-helpers.js"></script>
     <script src="../shared/js/navigation.js"></script>
     <script src="../shared/js/shell.js"></script>
+    <script src="dashboard.js"></script>
 </body>
 </html>

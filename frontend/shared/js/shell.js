@@ -20,6 +20,21 @@ function renderDetailList(list, rows) {
         ...rows.flatMap(([label, value]) => [element("dt", "", label), element("dd", "", value)])
     );
 }
+function groupedOptions(items, groupName, optionFor) {
+    const groups = new Map();
+
+    items.forEach(item => {
+        const name = groupName(item);
+        groups.set(name, [...(groups.get(name) ?? []), optionFor(item)]);
+    });
+
+    return [...groups].map(([name, options]) => {
+        const group = element("optgroup", "");
+        group.label = name;
+        group.append(...options);
+        return group;
+    });
+}
 function isCurrent(path) {
     return new URL(pageUrl(path)).pathname === window.location.pathname;
 }

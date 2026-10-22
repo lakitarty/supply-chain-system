@@ -1,0 +1,78 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <link rel="stylesheet" href="history.css">
+    <title>Product History | Supply Chain Management System</title>
+</head>
+<body>
+    <div id="shell"></div>
+
+    <main class="page history-page">
+        <h1 class="page-title">Product history</h1>
+        <p class="page-description">Review recorded product changes and version details.</p>
+
+        <section class="history-content">
+            <div id="historyMessage" class="form-message" role="alert" aria-live="polite"></div>
+
+            <div class="history-toolbar">
+                <div class="form-group history-search">
+                    <label for="historySearch">Search history</label>
+                    <input type="search" id="historySearch" placeholder="Product, barcode, manufacturer or reason">
+                </div>
+
+                <div class="form-group">
+                    <label for="typeFilter">Change type</label>
+                    <select id="typeFilter">
+                        <option value="">All change types</option>
+                        <option value="BARCODE_CHANGE">Barcode change</option>
+                        <option value="PACKAGING_CHANGE">Packaging change</option>
+                        <option value="PRODUCT_INFORMATION_CHANGE">Product information</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="statusFilter">Status</label>
+                    <select id="statusFilter">
+                        <option value="">All visible statuses</option>
+                        <option value="PUBLISHED">Published</option>
+                        <option value="PENDING_APPROVAL">Pending approval</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="history-summary" id="historySummary" aria-live="polite"></div>
+
+            <div class="history-table-wrap">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Date</th>
+                            <th scope="col">Product</th>
+                            <th scope="col">Manufacturer</th>
+                            <th scope="col">Change</th>
+                            <th scope="col">Version details</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyRows">
+                        <tr><td colspan="7">Loading product history...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="history-empty" id="historyEmpty" hidden>No history records match your search.</p>
+        </section>
+    </main>
+
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/form-helpers.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="history.js"></script>
+</body>
+</html>

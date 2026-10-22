@@ -9,8 +9,10 @@ const BUILT_PATHS = [
     "dashboard/dashboard.html",
     "modules/products/catalogue/catalogue.html",
     "modules/products/updates/updates.html",
+    "modules/products/history/history.html",
     "modules/products/management/management.html",
     "modules/messages/announcements/announcements.html",
+    "modules/messages/notifications/notifications.html",
     "modules/admin/users/users.html",
     "modules/admin/branches/branches.html",
     "modules/admin/organisation-profile/organisation-profile.html",
@@ -114,3 +116,5 @@ function tabTarget(tab) {
 
     return candidates.find(isBuilt) ?? null;
 }
+
+

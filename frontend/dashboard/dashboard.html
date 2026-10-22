@@ -2,39 +2,41 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../shared/css/base.css">
     <link rel="stylesheet" href="../shared/css/shell.css">
-    <title>Dashboard | Supply Chain Management System</title>
+    <link rel="stylesheet" href="dashboard.css">
+    <title>Nexora MSRC</title>
 </head>
 <body>
     <div id="shell"></div>
 
-    <main class="page">
-        <h1 class="page-title">Dashboard</h1>
-        <p class="page-description">What needs your attention today, and where your organisation stands.</p>
+    <main class="page dashboard-page">
+        <div id="dashboardMessage" class="form-message" role="alert" aria-live="polite"></div>
 
-        <section class="page-section">
-            <h2 class="section-title">At a glance</h2>
-            <dl class="detail-list" id="summaryList"></dl>
+        <section id="notificationNotice" class="dashboard-notification" aria-live="polite" hidden>
+            <div>
+                <h2 id="notificationTitle"></h2>
+                <p id="notificationText"></p>
+            </div>
+            <a id="notificationsLink" href="../modules/messages/notifications/notifications.html">View notifications</a>
         </section>
 
-        <section class="page-section">
-            <h2 class="section-title">Attention</h2>
-
-            <div id="dashboardMessage" class="form-message" role="alert" aria-live="polite"></div>
-
-            <div class="record-bar">
-                <div class="form-group">
-                    <label for="attentionSelect">Select an item</label>
-                    <select id="attentionSelect"></select>
-                </div>
+        <section class="dashboard-section" aria-labelledby="attentionHeading">
+            <div class="dashboard-section-heading">
+                <h2 id="attentionHeading">Needs your attention</h2>
             </div>
-
-            <dl class="detail-list" id="attentionDetail"></dl>
-
-            <div class="form-actions" id="attentionActions" hidden>
-                <button type="button" class="primary-button" id="openButton">Open</button>
+            <div id="attentionGroups" aria-live="polite">
+                <p class="dashboard-empty">Loading...</p>
             </div>
+        </section>
+
+        <section class="dashboard-section" aria-labelledby="activityHeading">
+            <div class="dashboard-section-heading dashboard-activity-heading">
+                <h2 id="activityHeading">Recent updates</h2>
+                <button type="button" id="activityToggle" class="dashboard-toggle" aria-expanded="false" aria-controls="activityList">Show recent updates</button>
+            </div>
+            <div id="activityList" class="dashboard-activity-list" hidden></div>
         </section>
     </main>
 

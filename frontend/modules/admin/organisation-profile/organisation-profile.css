@@ -1,109 +1,322 @@
+.organisation-profile-page {
+    width: min(100% - 40px, 900px);
+    margin: 0 auto;
+    padding-bottom: 40px;
+}
+
 .organisation-branding {
     display: flex;
-    align-items: flex-start;
-    gap: 22px;
-    padding: 22px 0;
-    border-top: 1px solid var(--border-light);
-    border-bottom: 1px solid var(--border-light);
+    align-items: center;
+    gap: 24px;
+    padding: 28px 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.logo-photo-button {
+    flex: 0 0 auto;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
 }
 
 .organisation-logo-preview {
-    display: flex;
-    flex: 0 0 104px;
-    width: 104px;
-    height: 104px;
-    align-items: center;
-    justify-content: center;
+    position: relative;
+    display: grid;
+    width: 112px;
+    height: 112px;
     overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    background: var(--brand-soft);
-    color: var(--brand-dark);
-    font-size: 25px;
+    place-items: center;
+    border: 1px solid #e5e7eb;
+    border-radius: 50%;
+    background: #f2f4f7;
+    color: #344054;
+    font-size: 28px;
     font-weight: 600;
 }
 
 .organisation-logo-preview img {
-    display: block;
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: contain;
-    background: var(--white);
+    object-fit: cover;
+    background: #fff;
 }
 
-.organisation-logo-preview img[hidden],
-#logoFallback[hidden],
-#removeLogoButton[hidden] {
+.organisation-logo-preview img[hidden] {
     display: none !important;
 }
 
+#logoFallback {
+    max-width: 100%;
+}
+
+.logo-change-label {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    padding: 7px 2px;
+    background: rgb(16 24 40 / 72%);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    opacity: 0;
+    transition: opacity .15s ease;
+}
+
+.logo-photo-button:hover .logo-change-label,
+.logo-photo-button:focus-visible .logo-change-label {
+    opacity: 1;
+}
+
+.logo-photo-button:focus-visible {
+    outline: 3px solid #98a2b3;
+    outline-offset: 4px;
+}
+
 .organisation-branding-content {
-    flex: 1;
     min-width: 0;
 }
 
-.organisation-branding-content h2 {
+.organisation-branding-content h2,
+.organisation-details-heading h2,
+.profile-modal-header h2 {
     margin: 0;
-    font-size: 17px;
+    color: #101828;
+    font-size: 19px;
     font-weight: 600;
 }
 
-.organisation-branding-description {
-    max-width: 580px;
+.organisation-type-label {
     margin: 5px 0 0;
-    color: var(--muted);
-    font-size: 12px;
-    line-height: 1.5;
+    color: #344054;
+    font-size: 14px;
 }
 
 .organisation-branding-hint {
-    margin: 7px 0 12px;
-    color: var(--muted);
-    font-size: 11px;
+    margin: 10px 0 12px;
+    color: #667085;
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 .organisation-logo-actions {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
 }
 
 .organisation-logo-actions button {
     min-height: 36px;
-    padding: 0 12px;
-    font: inherit;
-    font-size: 12px;
-    cursor: pointer;
 }
 
-.organisation-logo-actions button:disabled {
-    cursor: not-allowed;
-    opacity: 0.55;
+.organisation-logo-actions button[hidden] {
+    display: none !important;
 }
 
-#logoMessage {
-    margin-top: 10px;
-    font-size: 12px;
+.organisation-details-section {
+    padding-top: 25px;
 }
 
+.organisation-details-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
+.organisation-details {
+    margin: 0;
+    border-top: 1px solid #eaecf0;
+}
+
+.profile-detail-row {
+    display: grid;
+    grid-template-columns: minmax(140px, 210px) minmax(0, 1fr);
+    gap: 20px;
+    padding: 14px 0;
+    border-bottom: 1px solid #eaecf0;
+}
+
+.profile-detail-row dt {
+    color: #667085;
+    font-size: 14px;
+}
+
+.profile-detail-row dd {
+    min-width: 0;
+    margin: 0;
+    color: #101828;
+    font-size: 14px;
+    overflow-wrap: anywhere;
+}
+
+.profile-modal-backdrop {
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    overflow-y: auto;
+    background: rgb(16 24 40 / 48%);
+}
+
+.profile-modal-backdrop[hidden] {
+    display: none !important;
+}
+
+body.profile-modal-open {
+    overflow: hidden;
+}
+
+.profile-modal {
+    width: min(100%, 620px);
+    max-height: min(88vh, 780px);
+    overflow-y: auto;
+    padding: 24px;
+    border: 1px solid #eaecf0;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 20px 60px rgb(16 24 40 / 20%);
+}
+
+.profile-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.profile-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.profile-form .form-group {
+    min-width: 0;
+}
+
+.profile-form .form-group input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.profile-form .form-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.profile-form-message {
+    grid-column: 1 / -1;
+}
+
+#profileFormMessage:empty,
+#formMessage:empty,
 #logoMessage:empty {
     display: none;
 }
 
+#profileFormMessage,
+#formMessage,
+#logoMessage {
+    overflow-wrap: anywhere;
+}
+
 @media (max-width: 600px) {
+    .organisation-profile-page {
+        width: min(100% - 28px, 900px);
+    }
+
     .organisation-branding {
-        flex-direction: column;
-        gap: 14px;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 22px 0;
     }
 
     .organisation-logo-preview {
-        flex-basis: 88px;
-        width: 88px;
-        height: 88px;
+        width: 84px;
+        height: 84px;
+        font-size: 23px;
     }
 
-    .organisation-logo-actions button {
-        flex: 1 1 auto;
+    .organisation-branding-content h2 {
+        font-size: 17px;
     }
+
+    .organisation-branding-hint {
+        font-size: 12px;
+    }
+
+    .profile-detail-row {
+        grid-template-columns: minmax(105px, 38%) minmax(0, 1fr);
+        gap: 12px;
+    }
+
+    .profile-modal-backdrop {
+        padding: 12px;
+    }
+
+    .profile-modal {
+        padding: 18px;
+        border-radius: 10px;
+    }
+
+    .profile-form {
+        grid-template-columns: 1fr;
+        gap: 13px;
+    }
+
+    .profile-form .form-actions {
+        grid-column: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .logo-change-label {
+        transition: none;
+    }
+}
+body .page.organisation-profile-page {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 20px 24px 40px !important;
+    box-sizing: border-box !important;
+}
+
+body .organisation-profile-page > section,
+body .organisation-profile-page > #formMessage {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+@media (max-width: 600px) {
+    body .page.organisation-profile-page {
+        padding: 16px 14px 32px !important;
+    }
+}
+
+.organisation-details-heading {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    width: fit-content !important;
+    margin-bottom: 14px !important;
+}
+
+.organisation-details-heading h2,
+.organisation-details-heading #editProfileButton {
+    margin: 0 !important;
 }

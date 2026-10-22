@@ -128,3 +128,71 @@
     }
 }
 
+
+.activity-log-page {
+    width: calc(100% - 32px);
+    max-width: 1400px;
+    margin: 0;
+    padding: 10px 16px 24px;
+    box-sizing: border-box;
+}
+
+.activity-log-page > .page-section {
+    margin-top: 8px;
+    padding: 10px 0;
+}
+
+.activity-log-page .form-grid {
+    column-gap: 12px;
+}
+
+.activity-log-page .form-group {
+    margin-bottom: 4px;
+}
+
+.activity-log-page .form-group label {
+    margin-bottom: 4px;
+}
+
+.activity-log-page .form-group input,
+.activity-log-page .form-group select,
+.activity-log-page #entrySelect {
+    height: 34px;
+    padding: 0 9px;
+}
+
+.activity-log-page .record-bar {
+    margin-bottom: 8px;
+}
+
+.activity-log-page .field-hint {
+    margin-top: 4px;
+    line-height: 1.35;
+}
+
+.activity-log-page .detail-list {
+    grid-template-columns: 120px minmax(0, 1fr);
+    margin-top: 8px;
+}
+
+.activity-log-page .detail-list dt,
+.activity-log-page .detail-list dd {
+    padding: 8px 9px;
+    line-height: 1.35;
+}
+
+.activity-log-page .form-message {
+    margin-bottom: 6px;
+}
+
+
+.activity-log-page .record-bar {
+    width: 100%;
+    max-width: 440px;
+}
+
+@media (max-width: 600px) {
+    .activity-log-page .record-bar {
+        max-width: 100%;
+    }
+}

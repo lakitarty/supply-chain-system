@@ -12,7 +12,6 @@
     <div id="shell"></div>
 
     <main class="page announcements-page">
-        <h1 class="page-title">Product announcements</h1>
         <section class="page-section" id="publishSection" hidden>
             <h2 class="section-title">Publish announcement</h2>
 
@@ -58,7 +57,7 @@
         </section>
 
         <section class="page-section">
-            <h2 class="section-title" id="listTitle">Announcements</h2>
+            <h2 class="section-title" id="listTitle" hidden>Announcements</h2>
 
             <div class="announcement-controls" id="announcementControls">
                 <div class="announcement-control announcement-search-control">
@@ -94,7 +93,17 @@
         </section>
     </main>
 
-    <script src="../../../shared/js/api.js"></script>
+        <div class="announcement-preview-backdrop" id="announcementPreviewModal" hidden>
+        <section class="announcement-preview-modal" role="dialog" aria-modal="true" aria-labelledby="announcementPreviewTitle" tabindex="-1">
+            <header class="announcement-preview-header">
+                <h2 id="announcementPreviewTitle">Announcement</h2>
+                <button type="button" class="secondary-button" id="closeAnnouncementPreview">Close</button>
+            </header>
+            <div class="announcement-preview-content" id="announcementPreviewContent"></div>
+            <div class="announcement-preview-actions" id="announcementPreviewActions"></div>
+        </section>
+    </div>
+<script src="../../../shared/js/api.js"></script>
     <script src="../../../shared/js/form-helpers.js"></script>
     <script src="../../../shared/js/navigation.js"></script>
     <script src="../../../shared/js/shell.js"></script>

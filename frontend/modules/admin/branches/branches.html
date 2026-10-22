@@ -2,51 +2,69 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../../shared/css/base.css">
     <link rel="stylesheet" href="../../../shared/css/shell.css">
-    <title>Branches | Supply Chain Management System</title>
+    <link rel="stylesheet" href="branches.css">
+    <title>Branches | Nexora MSRC</title>
 </head>
 <body>
     <div id="shell"></div>
 
-    <main class="page">
-        <h1 class="page-title">Branches</h1>
-        <p class="page-description">Add or edit organisation branches.</p>
+    <main class="page branches-page">
+        <div id="branchesMessage" class="form-message" role="alert" aria-live="polite"></div>
 
-        <section class="page-section">
-            <div class="record-bar">
-                <div class="form-group">
-                    <label for="recordSelect">Select a branch</label>
-                    <select id="recordSelect"></select>
-                </div>
-            </div>
+        <div class="branches-picker" id="branchesPicker">
+            <button type="button" class="branch-picker-trigger" id="selectBranchButton"
+                aria-expanded="false" aria-controls="branchList">
+                <span id="selectedBranchLabel">Select branch</span>
+                <span class="branch-picker-chevron" aria-hidden="true">▾</span>
+            </button>
+            <button type="button" class="branch-add-trigger" id="addBranchButton"
+                aria-label="Add branch" title="Add branch">+</button>
+            <div id="branchList" class="branches-dropdown" role="listbox"
+                aria-label="Select a branch" hidden></div>
+        </div>
 
-            <form id="recordForm" class="form-grid" novalidate>
-                <div class="form-group">
-                    <label for="branchName">Branch name</label>
-                    <input type="text" id="branchName" maxlength="150">
-                </div>
+        <section id="branchDetails" class="branch-details-panel" hidden></section>
 
-                <div class="form-group">
-                    <label for="location">Location</label>
-                    <input type="text" id="location" maxlength="255">
-                </div>
+        <select id="recordSelect" hidden aria-hidden="true" tabindex="-1"></select>
 
-                <div class="form-group" id="statusGroup">
-                    <label for="status">Status</label>
-                    <select id="status">
-                        <option value="ACTIVE">Active</option>
-                        <option value="INACTIVE">Inactive</option>
-                    </select>
-                </div>
+        <div id="editorHost" class="branch-modal-backdrop" hidden>
+            <section id="branchEditorPanel" class="branch-modal" role="dialog"
+                aria-modal="true" aria-labelledby="branchEditorTitle" tabindex="-1">
+                <header class="branch-modal-header">
+                    <h2 id="branchEditorTitle">Add branch</h2>
+                    <button type="button" class="secondary-button" id="closeEditorButton">Close</button>
+                </header>
 
-                <div id="formMessage" class="form-message" role="alert" aria-live="polite"></div>
+                <form id="recordForm" class="form-grid branch-form" novalidate>
+                    <div class="form-group">
+                        <label for="branchName">Branch name</label>
+                        <input type="text" id="branchName" maxlength="150">
+                    </div>
 
-                <div class="form-actions">
-                    <button type="submit" class="primary-button" id="saveButton">save</button>
-                </div>
-            </form>
-        </section>
+                    <div class="form-group">
+                        <label for="location">Location</label>
+                        <input type="text" id="location" maxlength="255">
+                    </div>
+
+                    <div class="form-group" id="statusGroup">
+                        <label for="status">Status</label>
+                        <select id="status">
+                            <option value="ACTIVE">Active</option>
+                            <option value="INACTIVE">Inactive</option>
+                        </select>
+                    </div>
+
+                    <div id="formMessage" class="form-message" role="alert" aria-live="polite"></div>
+
+                    <div class="form-actions branch-form-actions">
+                        <button type="submit" class="primary-button" id="saveButton">Save</button>
+                    </div>
+                </form>
+            </section>
+        </div>
     </main>
 
     <script src="../../../shared/js/api.js"></script>

@@ -2,76 +2,100 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../../shared/css/base.css">
     <link rel="stylesheet" href="../../../shared/css/shell.css">
     <link rel="stylesheet" href="organisation-profile.css">
-    <title>Organisation profile | Supply Chain Management System</title>
+    <title>Organisation profile | Nexora MSRC</title>
 </head>
 <body>
     <div id="shell"></div>
 
-    <main class="page">
-        <h1 class="page-title">Organisation profile</h1>
-        <p class="page-description">The details other organisations see when they work with you.</p>
+    <main class="page organisation-profile-page">
+        <section class="organisation-branding" aria-label="Organisation profile photo">
+            <button type="button" class="logo-photo-button" id="chooseLogoButton" aria-label="Change organisation logo">
+                <span class="organisation-logo-preview" id="organizationLogoPreview">
+                    <img id="logoPreview" alt="Organisation logo" hidden>
+                    <span id="logoFallback">?</span>
+                    <span class="logo-change-label">Change</span>
+                </span>
+            </button>
 
-        <section class="page-section organisation-branding">
-            <div class="organisation-logo-preview" id="organizationLogoPreview">
-                <img id="logoPreview" alt="Organisation logo" hidden>
-                <span id="logoFallback">?</span>
-            </div>
             <div class="organisation-branding-content">
-                <p class="network-kicker">ORGANISATION IDENTITY</p>
-                <h2>Organisation logo</h2>
-                <p class="organisation-branding-description">Your logo will appear in organisation search results and supply network relationships.</p>
-                <p class="organisation-branding-hint">PNG, JPEG or WebP · Maximum 2 MB</p>
+                <h2 id="organizationDisplayName">Organisation</h2>
+                <p class="organisation-type-label" id="organizationDisplayType"></p>
+                <p class="organisation-branding-hint">Choose a profile image. PNG, JPEG or WebP, up to 2 MB.</p>
+
                 <input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp" hidden>
+
                 <div class="organisation-logo-actions">
-                    <button type="button" class="secondary-button" id="chooseLogoButton">Choose image</button>
-                    <button type="button" class="primary-button" id="uploadLogoButton" disabled>Upload logo</button>
-                    <button type="button" class="secondary-button" id="removeLogoButton" hidden>Remove logo</button>
+                    <button type="button" class="primary-button" id="uploadLogoButton" disabled>Save photo</button>
+                    <button type="button" class="secondary-button" id="cancelLogoButton" hidden>Cancel</button>
+                    <button type="button" class="secondary-button" id="removeLogoButton" hidden>Remove photo</button>
                 </div>
+
                 <div id="logoMessage" class="form-message" role="status" aria-live="polite"></div>
             </div>
         </section>
-        <section class="page-section">
-            <form id="profileForm" class="form-grid" novalidate>
-                <div class="form-group">
-                    <label for="organizationName">Organisation name</label>
-                    <input type="text" id="organizationName" maxlength="150">
-                </div>
 
-                <div class="form-group">
-                    <label for="organizationType">Organisation type</label>
-                    <input type="text" id="organizationType" disabled>
-                </div>
+        <section class="organisation-details-section">
+            <div class="organisation-details-heading">
+                <h2>Organisation details</h2>
+                <button type="button" class="secondary-button" id="editProfileButton">Edit details</button>
+            </div>
 
-                <div class="form-group">
-                    <label for="kraPin">KRA PIN <span class="optional">(optional)</span></label>
-                    <input type="text" id="kraPin" maxlength="30" placeholder="A123456789Z">
-                </div>
-
-                <div class="form-group">
-                    <label for="organizationEmail">Email <span class="optional">(optional)</span></label>
-                    <input type="email" id="organizationEmail" maxlength="150">
-                </div>
-
-                <div class="form-group">
-                    <label for="organizationPhone">Phone <span class="optional">(optional)</span></label>
-                    <input type="tel" id="organizationPhone" maxlength="30">
-                </div>
-
-                <div class="form-group">
-                    <label for="organizationAddress">Address <span class="optional">(optional)</span></label>
-                    <input type="text" id="organizationAddress" maxlength="255">
-                </div>
-
-                <div id="formMessage" class="form-message" role="alert" aria-live="polite"></div>
-
-                <div class="form-actions">
-                    <button type="submit" class="primary-button" id="saveButton">save changes</button>
-                </div>
-            </form>
+            <dl id="organizationSummary" class="organisation-details" aria-live="polite"></dl>
         </section>
+
+        <div id="formMessage" class="form-message" role="status" aria-live="polite"></div>
+
+        <div id="profileModal" class="profile-modal-backdrop" hidden>
+            <section class="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle" tabindex="-1">
+                <header class="profile-modal-header">
+                    <h2 id="profileModalTitle">Edit organisation details</h2>
+                    <button type="button" class="secondary-button" id="closeProfileModal">Close</button>
+                </header>
+
+                <form id="profileForm" class="form-grid profile-form" novalidate>
+                    <div class="form-group">
+                        <label for="organizationName">Organisation name</label>
+                        <input type="text" id="organizationName" maxlength="150" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="organizationType">Organisation type</label>
+                        <input type="text" id="organizationType" disabled>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="kraPin">KRA PIN <span class="optional">(optional)</span></label>
+                        <input type="text" id="kraPin" maxlength="30" placeholder="A123456789Z">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="organizationEmail">Email <span class="optional">(optional)</span></label>
+                        <input type="email" id="organizationEmail" maxlength="150">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="organizationPhone">Phone <span class="optional">(optional)</span></label>
+                        <input type="tel" id="organizationPhone" maxlength="30">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="organizationAddress">Address <span class="optional">(optional)</span></label>
+                        <input type="text" id="organizationAddress" maxlength="255">
+                    </div>
+
+                    <div id="profileFormMessage" class="form-message" role="alert" aria-live="polite"></div>
+
+                    <div class="form-actions profile-form-actions">
+                        <button type="button" class="secondary-button" id="cancelProfileButton">Cancel</button>
+                        <button type="submit" class="primary-button" id="saveButton">Save changes</button>
+                    </div>
+                </form>
+            </section>
+        </div>
     </main>
 
     <script src="../../../shared/js/api.js"></script>

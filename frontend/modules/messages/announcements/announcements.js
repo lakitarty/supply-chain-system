@@ -18,12 +18,18 @@ const availabilityFilter = document.getElementById("announcementAvailabilityFilt
 const receiptFilter = document.getElementById("announcementReceiptFilter");
 const receiptFilterGroup = document.getElementById("receiptFilterGroup");
 const announcementPagination = document.getElementById("announcementPagination");
+const previewModal = document.getElementById("announcementPreviewModal");
+const previewTitle = document.getElementById("announcementPreviewTitle");
+const previewContent = document.getElementById("announcementPreviewContent");
+const previewActions = document.getElementById("announcementPreviewActions");
+const closePreviewButton = document.getElementById("closeAnnouncementPreview");
 
 let account = null;
 let products = [];
 let announcements = [];
 let announcementDirection = "none";
 let announcementPage = 1;
+let previewTrigger = null;
 
 const announcementsPerPage = 10;
 
@@ -223,12 +229,149 @@ function openImageViewer(source, altText, trigger) {
     closeButton.focus();
 }
 
+function openAnnouncementPreview(item, trigger) {
+    previewTrigger = trigger;
+    previewTitle.textContent = item.announcement_title || "Announcement";
+    previewContent.replaceChildren();
+    previewActions.replaceChildren();
+
+    const productLine = createTextElement(
+        "p",
+        "announcement-preview-product",
+        item.product_name || "Product"
+    );
+    previewContent.append(productLine);
+
+    if (item.availability_status) {
+        previewContent.append(createTextElement(
+            "p",
+            "announcement-preview-availability",
+            item.availability_status === "COMING_SOON" ? "Coming soon" : "Available now"
+        ));
+    }
+
+    const details = [
+        ["Manufacturer", item.manufacturer_name],
+        ["Category", item.category],
+        ["Pack size", item.pack_size],
+        ["Barcode", item.barcode],
+        ["Packaging", item.packaging_description],
+        ["Published", item.published_at]
+    ];
+
+    const detailList = document.createElement("dl");
+    detailList.className = "announcement-preview-details";
+
+    for (const [label, value] of details) {
+        if (value === null || value === undefined || String(value).trim() === "") {
+            continue;
+        }
+
+        const term = createTextElement("dt", "", label);
+        const description = createTextElement("dd", "", String(value));
+        detailList.append(term, description);
+    }
+
+    if (detailList.children.length) {
+        previewContent.append(detailList);
+    }
+
+    if (item.product_description) {
+        const description = document.createElement("section");
+        description.className = "announcement-preview-section";
+        description.append(
+            createTextElement("h3", "", "Product information"),
+            createTextElement("p", "", item.product_description)
+        );
+        previewContent.append(description);
+    }
+
+    if (item.announcement_message) {
+        const message = document.createElement("section");
+        message.className = "announcement-preview-section";
+        message.append(
+            createTextElement("h3", "", "Announcement"),
+            createTextElement("p", "", item.announcement_message)
+        );
+        previewContent.append(message);
+    }
+
+    if (item.image_path) {
+        const source = imageSource(item.image_path);
+
+        if (source) {
+            const image = document.createElement("img");
+            image.className = "announcement-preview-image";
+            image.src = source;
+            image.alt = item.product_name || "Product image";
+            image.loading = "lazy";
+            image.tabIndex = 0;
+            image.title = "Select to view full size";
+
+            image.addEventListener("click", () => {
+                openImageViewer(image.src, image.alt, image);
+            });
+
+            image.addEventListener("keydown", event => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openImageViewer(image.src, image.alt, image);
+                }
+            });
+
+            previewContent.append(image);
+        }
+    }
+
+    if (canPublish()) {
+        previewActions.append(createTextElement(
+            "p",
+            "announcement-preview-recipient-count",
+            `Organizations reached: ${item.recipient_count ?? 0} · Acknowledged: ${item.acknowledged_count ?? 0}`
+        ));
+    } else if (item.acknowledgement_status === "ACKNOWLEDGED") {
+        previewActions.append(createTextElement(
+            "p",
+            "announcement-preview-receipt",
+            "Receipt acknowledged"
+        ));
+    } else if (item.acknowledgement_status) {
+        const acknowledgeButton = createTextElement(
+            "button",
+            "primary-button",
+            "Acknowledge receipt"
+        );
+
+        acknowledgeButton.type = "button";
+        acknowledgeButton.addEventListener("click", () =>
+            acknowledgeAnnouncement(item.announcement_id, acknowledgeButton)
+        );
+
+        previewActions.append(acknowledgeButton);
+    }
+
+    previewModal.hidden = false;
+    document.body.classList.add("announcement-preview-open");
+    closePreviewButton.focus();
+}
+
+function closeAnnouncementPreview() {
+    previewModal.hidden = true;
+    document.body.classList.remove("announcement-preview-open");
+
+    if (previewTrigger && previewTrigger.isConnected) {
+        previewTrigger.focus();
+    }
+
+    previewTrigger = null;
+}
+
 function renderAnnouncements() {
     announcementList.replaceChildren();
     announcementPagination.replaceChildren();
 
     if (announcements.length === 0) {
-        announcementStatus.textContent = "No product announcements yet.";
+        announcementStatus.textContent = "No announcements yet.";
         return;
     }
 
@@ -277,27 +420,17 @@ function renderAnnouncements() {
     });
 
     if (filteredAnnouncements.length === 0) {
-        announcementStatus.textContent = announcements.length
-            ? "No announcements match your search or filters."
-            : "No product announcements yet.";
-
-        if (announcements.length > 0) {
-            announcementList.append(
-                createTextElement(
-                    "p",
-                    "announcement-empty-state",
-                    "Try changing your search or filters."
-                )
-            );
-        }
+        announcementStatus.textContent = "No announcements match your search or filters.";
+        announcementList.append(createTextElement(
+            "p",
+            "announcement-empty-state",
+            "Try changing your search or filters."
+        ));
         return;
     }
 
-    const pageCount = Math.ceil(
-        filteredAnnouncements.length / announcementsPerPage
-    );
-
-    announcementPage = Math.min(announcementPage, pageCount);
+    const pageCount = Math.ceil(filteredAnnouncements.length / announcementsPerPage);
+    announcementPage = Math.max(1, Math.min(announcementPage, pageCount));
 
     const startIndex = (announcementPage - 1) * announcementsPerPage;
     const pageAnnouncements = filteredAnnouncements.slice(
@@ -306,132 +439,60 @@ function renderAnnouncements() {
     );
 
     announcementStatus.textContent =
-        `Showing ${startIndex + 1}–${Math.min(
-            startIndex + announcementsPerPage,
-            filteredAnnouncements.length
-        )} of ${filteredAnnouncements.length} announcement(s)`;
+        `Showing ${startIndex + 1}-${Math.min(startIndex + announcementsPerPage, filteredAnnouncements.length)} of ${filteredAnnouncements.length}`;
 
     const fragment = document.createDocumentFragment();
 
     for (const item of pageAnnouncements) {
-        const card = document.createElement("article");
-        card.className = "announcement-card";
+        const row = createTextElement("button", "announcement-preview-row", "");
+        row.type = "button";
+        row.setAttribute(
+            "aria-label",
+            `Preview ${item.announcement_title || "announcement"}`
+        );
 
-        card.append(
-            createTextElement("h3", "section-title", item.announcement_title),
+        const copy = document.createElement("span");
+        copy.className = "announcement-row-copy";
+
+        copy.append(
             createTextElement(
-                "p",
-                "",
-                `Product: ${item.product_name || "Product"}`
+                "span",
+                "announcement-row-title",
+                item.announcement_title || "Untitled announcement"
+            ),
+            createTextElement(
+                "span",
+                "announcement-row-product",
+                item.product_name || "Product"
             )
         );
 
+        const meta = document.createElement("span");
+        meta.className = "announcement-row-meta";
+
         if (item.availability_status) {
-            const availabilityLabel = item.availability_status === "COMING_SOON"
-                ? "Coming soon"
-                : "Available now";
-
-            card.append(createTextElement(
-                "p",
-                "product-availability",
-                `Availability: ${availabilityLabel}`
+            meta.append(createTextElement(
+                "span",
+                "announcement-row-status",
+                item.availability_status === "COMING_SOON" ? "Coming soon" : "Available"
             ));
         }
 
-        if (item.manufacturer_name) {
-            card.append(createTextElement(
-                "p",
-                "",
-                `Manufacturer: ${item.manufacturer_name}`
+        if (announcementDirection === "incoming" && item.acknowledgement_status) {
+            meta.append(createTextElement(
+                "span",
+                "announcement-row-receipt",
+                item.acknowledgement_status === "ACKNOWLEDGED"
+                    ? "Acknowledged"
+                    : "Awaiting acknowledgement"
             ));
         }
 
-        if (item.category) {
-            card.append(createTextElement("p", "", `Category: ${item.category}`));
-        }
+        meta.append(createTextElement("span", "announcement-row-open", "Preview"));
 
-        const details = [
-            item.pack_size,
-            item.barcode ? `Barcode: ${item.barcode}` : "",
-            item.packaging_description
-        ].filter(Boolean);
-
-        if (details.length) {
-            card.append(createTextElement("p", "", details.join(" · ")));
-        }
-
-        if (item.product_description) {
-            card.append(createTextElement("p", "", item.product_description));
-        }
-
-        if (item.announcement_message) {
-            card.append(createTextElement("p", "", item.announcement_message));
-        }
-
-        if (item.image_path) {
-            const image = document.createElement("img");
-            image.className = "announcement-product-image";
-            image.src = imageSource(item.image_path);
-            image.alt = item.product_name || "Product image";
-            image.width = 140;
-            image.loading = "lazy";
-
-            const viewImageButton = document.createElement("button");
-            viewImageButton.className = "announcement-view-image";
-            viewImageButton.type = "button";
-            viewImageButton.textContent = "View image";
-            viewImageButton.setAttribute(
-                "aria-label",
-                `View larger image of ${image.alt}`
-            );
-
-
-
-            viewImageButton.addEventListener("click", () => {
-                openImageViewer(image.src, image.alt, viewImageButton);
-            });
-
-            card.append(image, viewImageButton);
-        }
-
-        card.append(createTextElement(
-            "p",
-            "",
-            `Published: ${item.published_at || "Date unavailable"}`
-        ));
-
-        if (canPublish()) {
-            card.append(createTextElement(
-                "p",
-                "",
-                `Organizations reached: ${item.recipient_count ?? 0} · `
-                + `Acknowledged: ${item.acknowledged_count ?? 0}`
-            ));
-        } else if (item.acknowledgement_status) {
-            const acknowledged =
-                item.acknowledgement_status === "ACKNOWLEDGED";
-
-            card.append(createTextElement(
-                "p",
-                "",
-                acknowledged ? "Receipt acknowledged" : "Awaiting acknowledgement"
-            ));
-
-            if (!acknowledged) {
-                const button = createTextElement(
-                    "button",
-                    "primary-button",
-                    "Acknowledge receipt"
-                );
-                button.type = "button";
-                button.addEventListener("click", () =>
-                    acknowledgeAnnouncement(item.announcement_id, button)
-                );
-                card.append(button);
-            }
-        }
-
-        fragment.append(card);
+        row.append(copy, meta);
+        row.addEventListener("click", () => openAnnouncementPreview(item, row));
+        fragment.append(row);
     }
 
     announcementList.append(fragment);
@@ -471,11 +532,7 @@ function renderAnnouncements() {
             }
         });
 
-        announcementPagination.append(
-            previousButton,
-            pageSummary,
-            nextButton
-        );
+        announcementPagination.append(previousButton, pageSummary, nextButton);
     }
 }
 
@@ -496,13 +553,7 @@ async function loadAnnouncements() {
     receiptFilterGroup.hidden = announcementDirection !== "incoming";
     announcementPage = 1;
 
-    if (result.data.direction === "outgoing") {
-        listTitle.textContent = "Published announcements";
-    } else if (result.data.direction === "incoming") {
-        listTitle.textContent = "Announcements from manufacturers";
-    } else {
-        listTitle.textContent = "Announcements";
-    }
+    listTitle.textContent = "Announcements";
 
     renderAnnouncements();
 }
@@ -613,5 +664,19 @@ async function initialiseAnnouncements() {
             error.message || "Unable to load product announcements.";
     }
 }
+
+closePreviewButton.addEventListener("click", closeAnnouncementPreview);
+
+previewModal.addEventListener("click", event => {
+    if (event.target === previewModal) {
+        closeAnnouncementPreview();
+    }
+});
+
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && !previewModal.hidden) {
+        closeAnnouncementPreview();
+    }
+});
 
 initialiseAnnouncements();

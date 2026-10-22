@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <link rel="stylesheet" href="settings.css">
+    <title>Settings | Nexora MSRC</title>
+</head>
+<body>
+    <div id="shell"></div>
+
+    <main class="page settings-page">
+        <section class="page-section settings-section">
+            <h2 class="section-title">Session</h2>
+
+            <div class="settings-action-row">
+                <span>Refresh current page</span>
+                <button type="button" class="secondary-button" id="settingsRefreshButton">
+                    Refresh
+                </button>
+            </div>
+
+            <div class="settings-action-row">
+                <span>End your current session</span>
+                <button type="button" class="secondary-button" id="settingsSignOutButton">
+                    Sign out
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/form-helpers.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="settings.js"></script>
+</body>
+</html>

@@ -2,73 +2,99 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../../../shared/css/base.css">
     <link rel="stylesheet" href="../../../shared/css/shell.css">
-    <title>Users | Supply Chain Management System</title>
+    <link rel="stylesheet" href="users.css">
+    <title>Users | Nexora MSRC</title>
 </head>
 <body>
     <div id="shell"></div>
 
-    <main class="page">
-        <h1 class="page-title">Users</h1>
+    <main class="page users-page">
+        <div id="usersMessage" class="form-message" role="alert" aria-live="polite"></div>
 
-        <section class="page-section">
-            <div class="record-bar">
-                <div class="form-group">
-                    <label for="recordSelect">Select a user</label>
-                    <select id="recordSelect"></select>
-                </div>
+        <div class="users-workspace">
+            <div class="users-picker" id="usersPicker">
+                <button type="button" class="user-picker-trigger" id="selectUserButton"
+                    aria-expanded="false" aria-controls="userList">
+                    <span id="selectedUserLabel">Select user</span>
+                    <span class="user-picker-chevron" aria-hidden="true">▾</span>
+                </button>
+                <button type="button" class="user-add-trigger" id="addUserButton"
+                    aria-label="Add user" title="Add user">+</button>
+                <div id="userList" class="users-dropdown" role="listbox"
+                    aria-label="Select a user" hidden></div>
             </div>
 
-            <form id="recordForm" class="form-grid" novalidate>
-                <div class="form-group">
-                    <label for="firstName">First name</label>
-                    <input type="text" id="firstName" maxlength="100">
-                </div>
+            <section id="userDetails" class="user-details-panel" hidden></section>
+        </div>
 
-                <div class="form-group">
-                    <label for="lastName">Last name</label>
-                    <input type="text" id="lastName" maxlength="100">
-                </div>
+        <select id="recordSelect" hidden aria-hidden="true" tabindex="-1"></select>
 
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" maxlength="150" autocomplete="off">
-                </div>
+        <div id="editorHost" class="user-modal-backdrop" hidden>
+            <section id="userEditorPanel" class="user-modal" role="dialog"
+                aria-modal="true" aria-labelledby="userEditorTitle" tabindex="-1">
+                <header class="user-modal-header">
+                    <h2 id="userEditorTitle">Add user</h2>
+                    <button type="button" class="secondary-button" id="closeEditorButton">Close</button>
+                </header>
 
-                <div class="form-group">
-                    <label for="role">Role</label>
-                    <select id="role">
-                        <option value="STAFF">Staff</option>
-                        <option value="ADMIN">Admin</option>
-                    </select>
-                </div>
+                <form id="recordForm" class="form-grid user-form" novalidate>
+                    <section class="user-form-section">
+                        <h3>Account details</h3>
+                        <div class="user-form-grid">
+                            <div class="form-group">
+                                <label for="firstName">First name</label>
+                                <input type="text" id="firstName" maxlength="100" autocomplete="given-name">
+                            </div>
+                            <div class="form-group">
+                                <label for="lastName">Last name</label>
+                                <input type="text" id="lastName" maxlength="100" autocomplete="family-name">
+                            </div>
+                            <div class="form-group user-form-wide">
+                                <label for="email">Email</label>
+                                <input type="email" id="email" maxlength="150" autocomplete="off">
+                            </div>
+                        </div>
+                    </section>
 
-                <div class="form-group">
-                    <label for="branchId">Branch</label>
-                    <select id="branchId"></select>
-                </div>
+                    <section class="user-form-section">
+                        <h3>Access</h3>
+                        <div class="user-form-grid">
+                            <div class="form-group">
+                                <label for="role">Role</label>
+                                <select id="role">
+                                    <option value="STAFF">Staff</option>
+                                    <option value="ADMIN">Admin</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="branchId">Branch</label>
+                                <select id="branchId"></select>
+                            </div>
+                            <div class="form-group" id="statusGroup">
+                                <label for="status">Status</label>
+                                <select id="status">
+                                    <option value="ACTIVE">Active</option>
+                                    <option value="INACTIVE">Inactive</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="password" id="passwordLabel"></label>
+                                <input type="password" id="password" autocomplete="new-password">
+                            </div>
+                        </div>
+                    </section>
 
-                <div class="form-group" id="statusGroup">
-                    <label for="status">Status</label>
-                    <select id="status">
-                        <option value="ACTIVE">Active</option>
-                        <option value="INACTIVE">Inactive</option>
-                    </select>
-                </div>
+                    <div id="formMessage" class="form-message" role="alert" aria-live="polite"></div>
 
-                <div class="form-group">
-                    <label for="password" id="passwordLabel"></label>
-                    <input type="password" id="password" autocomplete="new-password">
-                </div>
-
-                <div id="formMessage" class="form-message" role="alert" aria-live="polite"></div>
-
-                <div class="form-actions">
-                    <button type="submit" class="primary-button" id="saveButton">save</button>
-                </div>
-            </form>
-        </section>
+                    <div class="form-actions user-form-actions">
+                        <button type="submit" class="primary-button" id="saveButton">Save</button>
+                    </div>
+                </form>
+            </section>
+        </div>
     </main>
 
     <script src="../../../shared/js/api.js"></script>

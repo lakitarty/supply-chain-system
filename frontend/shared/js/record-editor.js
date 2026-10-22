@@ -78,6 +78,9 @@ function createRecordEditor(config) {
         if (data !== null) {
             await load(creating ? String(data[config.idKey]) : select.value);
             showMessage(message, data.message, "success");
+            if (typeof config.onSaved === "function") {
+                await config.onSaved(data);
+            }
         }
 
         applyMode();

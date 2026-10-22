@@ -1,4 +1,4 @@
-﻿const TYPE_LABELS = {
+const TYPE_LABELS = {
     RETAILER: "Retailer",
     SUPPLIER: "Supplier",
     MANUFACTURER: "Manufacturer",
@@ -6,6 +6,7 @@
 };
 
 const BUILT_PATHS = [
+    "modules/settings/settings/settings.html",
     "dashboard/dashboard.html",
     "modules/products/catalogue/catalogue.html",
     "modules/products/updates/updates.html",
@@ -77,6 +78,11 @@ const TABS = [
             { label: "Notifications", path: page("messages", "notifications") },
             { label: "Conversations", path: page("messages", "conversations") }
         ]
+    },
+    {
+        id: "settings",
+        label: "Settings",
+        path: "modules/settings/settings/settings.html"
     },
     {
         id: "admin",

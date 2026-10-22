@@ -1,0 +1,53 @@
+.settings-page {
+    max-width: 760px;
+}
+
+.settings-section {
+    max-width: 540px;
+    margin-top: 12px;
+}
+
+.settings-section .section-title {
+    margin-bottom: 4px;
+}
+
+.settings-action-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+    min-height: 44px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.settings-action-row button {
+    order: -1;
+    flex: 0 0 112px;
+    min-width: 112px;
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 12px;
+}
+
+.settings-action-row span {
+    min-width: 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+@media (max-width: 520px) {
+    .settings-section {
+        max-width: 100%;
+    }
+
+    .settings-action-row {
+        gap: 10px;
+    }
+
+    .settings-action-row button {
+        flex-basis: 104px;
+        min-width: 104px;
+    }
+}

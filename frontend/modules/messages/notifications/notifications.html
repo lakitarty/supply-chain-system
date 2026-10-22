@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -12,36 +12,39 @@
     <div id="shell"></div>
 
     <main class="page notifications-page">
-        <h1 class="page-title">Notifications</h1>
-        <p class="notifications-description">
-            Product updates, supply changes and other alerts relevant to your organisation.
-        </p>
-
         <section class="notification-toolbar" aria-label="Notification controls">
             <div class="notification-search">
-                <label for="notificationSearch">Search notifications</label>
-                <input id="notificationSearch" type="search"
-                       placeholder="Search title or message">
+                <label for="notificationSearch">Search</label>
+                <input id="notificationSearch" type="search" placeholder="Search notifications">
             </div>
 
             <div class="notification-filter">
                 <label for="notificationFilter">Show</label>
                 <select id="notificationFilter">
                     <option value="ALL">All notifications</option>
-                    <option value="UNREAD">Unread only</option>
-                    <option value="READ">Read only</option>
+                    <option value="UNREAD">Unread</option>
+                    <option value="READ">Read</option>
                 </select>
             </div>
 
-            <button id="refreshNotifications" type="button" class="secondary-button">
-                Refresh
-            </button>
+            <button id="refreshNotifications" type="button" class="secondary-button">Refresh</button>
         </section>
 
-        <p id="notificationStatus" class="notification-status"
-           role="status" aria-live="polite">Loading notifications...</p>
-        <section id="notificationList" class="notification-list"
-                 aria-label="Your notifications"></section>
+        <p id="notificationStatus" class="notification-status" role="status" aria-live="polite">Loading notifications...</p>
+
+        <section id="notificationList" class="notification-list" aria-label="Your notifications"></section>
+
+        <div class="notification-preview-backdrop" id="notificationPreview" hidden>
+            <section class="notification-preview-modal" role="dialog" aria-modal="true" aria-labelledby="notificationPreviewTitle" tabindex="-1">
+                <header class="notification-preview-header">
+                    <h2 id="notificationPreviewTitle">Notification</h2>
+                    <button type="button" class="secondary-button" id="closeNotificationPreview">Close</button>
+                </header>
+
+                <div id="notificationPreviewContent" class="notification-preview-content"></div>
+                <div id="notificationPreviewActions" class="notification-preview-actions"></div>
+            </section>
+        </div>
     </main>
 
     <script src="../../../shared/js/api.js"></script>

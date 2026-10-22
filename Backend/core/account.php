@@ -26,6 +26,7 @@ function fetch_account(PDO $pdo, string $lookup, string|int $value): array|false
                 o.email AS organization_email,
                 o.phone AS organization_phone,
                 o.address AS organization_address,
+                o.logo_path AS organization_logo_path,
                 o.status AS organization_status,
                 b.branch_name
          FROM users u
@@ -73,7 +74,8 @@ function account_payload(array $row): array
             'organization_type' => $row['organization_type'],
             'email' => $row['organization_email'],
             'phone' => $row['organization_phone'],
-            'address' => $row['organization_address']
+            'address' => $row['organization_address'],
+            'logo_path' => $row['organization_logo_path']
         ]
     ];
 }

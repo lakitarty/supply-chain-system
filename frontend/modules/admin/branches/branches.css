@@ -1,0 +1,317 @@
+.branches-page {
+    max-width: 1200px;
+}
+
+.branches-picker {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 40px;
+    gap: 8px;
+    width: min(100%, 460px);
+}
+
+.branch-picker-trigger,
+.branch-add-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    height: 40px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--white);
+    color: var(--text);
+    cursor: pointer;
+}
+
+.branch-picker-trigger {
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 12px;
+    font-size: var(--text-label);
+    text-align: left;
+}
+
+.branch-picker-trigger:hover,
+.branch-add-trigger:hover {
+    border-color: var(--brand);
+}
+
+.branch-picker-chevron {
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.branch-add-trigger {
+    padding: 0;
+    color: var(--brand);
+    font-size: 25px;
+    font-weight: 400;
+    line-height: 1;
+}
+
+.branch-picker-trigger:focus-visible,
+.branch-add-trigger:focus-visible,
+.branch-option:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+}
+
+.branches-dropdown {
+    position: absolute;
+    top: calc(100% + 5px);
+    right: 48px;
+    left: 0;
+    z-index: 20;
+    max-height: 320px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--white);
+    box-shadow: 0 8px 24px rgba(20, 35, 45, 0.12);
+}
+
+.branches-dropdown[hidden],
+.branch-details-panel[hidden],
+.branch-modal-backdrop[hidden] {
+    display: none !important;
+}
+
+.branch-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    width: 100%;
+    min-height: 58px;
+    padding: 10px 12px;
+    border: 0;
+    border-bottom: 1px solid var(--border-light);
+    background: var(--white);
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+}
+
+.branch-option:last-child {
+    border-bottom: 0;
+}
+
+.branch-option:hover,
+.branch-option[aria-selected="true"] {
+    background: var(--surface);
+}
+
+.branch-option-identity {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.branch-option .branch-name {
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.branch-option-location {
+    color: var(--muted);
+    font-size: 11px;
+    overflow-wrap: anywhere;
+}
+
+.branch-main-label {
+    flex: 0 0 auto;
+    color: var(--brand);
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.branches-empty {
+    margin: 0;
+    padding: 14px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.branch-details-panel {
+    width: min(100%, 680px);
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.branch-details-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 14px;
+}
+
+.branch-details-identity {
+    min-width: 0;
+}
+
+.branch-details-identity .branch-name {
+    margin: 0;
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.branch-details-identity .branch-location {
+    margin: 5px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.branch-details-heading button {
+    flex: 0 0 auto;
+    min-height: 32px;
+    padding: 0 12px;
+    font-size: 11px;
+}
+
+.branch-detail-list {
+    display: grid;
+    grid-template-columns: minmax(110px, 150px) minmax(0, 1fr);
+    margin: 0;
+}
+
+.branch-detail-list dt,
+.branch-detail-list dd {
+    min-width: 0;
+    margin: 0;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.branch-detail-list dt {
+    color: var(--muted);
+}
+
+.branch-detail-list dd {
+    color: var(--text);
+}
+
+.branch-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 6000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 22px;
+    overflow-y: auto;
+    background: rgba(17, 31, 42, 0.38);
+}
+
+.branch-modal {
+    width: min(520px, 100%);
+    max-height: calc(100vh - 44px);
+    max-height: calc(100dvh - 44px);
+    min-width: 0;
+    padding: 22px 26px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--white);
+    box-shadow: 0 14px 42px rgba(20, 35, 45, 0.16);
+}
+
+.branch-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin: -22px -26px 20px;
+    padding: 17px 26px;
+    border-bottom: 1px solid var(--border);
+}
+
+.branch-modal-header h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.branch-modal-header button {
+    flex: 0 0 auto;
+    min-height: 30px;
+    padding: 0 10px;
+    font-size: 11px;
+}
+
+.branch-form {
+    display: block !important;
+    grid-template-columns: none !important;
+    min-width: 0;
+}
+
+.branch-form .form-group {
+    min-width: 0;
+    margin-bottom: 14px;
+}
+
+.branch-form input,
+.branch-form select {
+    width: 100%;
+    min-width: 0;
+}
+
+.branch-form-actions {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 12px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-light);
+}
+
+.branch-form-actions button {
+    min-width: 96px;
+}
+
+body.branch-modal-open {
+    overflow: hidden;
+}
+
+@media (max-width: 520px) {
+    .branches-picker {
+        width: 100%;
+    }
+
+    .branch-details-heading {
+        gap: 10px;
+    }
+
+    .branch-detail-list {
+        grid-template-columns: minmax(90px, 120px) minmax(0, 1fr);
+    }
+
+    .branch-modal-backdrop {
+        align-items: flex-start;
+        padding: 10px;
+    }
+
+    .branch-modal {
+        max-height: calc(100vh - 20px);
+        max-height: calc(100dvh - 20px);
+        padding: 18px;
+    }
+
+    .branch-modal-header {
+        margin: -18px -18px 18px;
+        padding: 15px 18px;
+    }
+}

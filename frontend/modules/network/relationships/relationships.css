@@ -1773,3 +1773,53 @@ body.directory-modal-open {
     height: 100%;
     object-fit: contain;
 }
+
+
+
+.network-page-header .network-heading {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+}
+
+.network-page-header .network-heading .header-directory-trigger {
+    width: min(100%, 360px);
+    min-width: 0;
+    justify-content: flex-start;
+}
+
+.network-page-header .network-header-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: flex-end;
+    width: auto;
+    min-width: 0;
+    grid-template-columns: none;
+}
+
+.network-page-header .network-header-actions .register-organization-button {
+    width: auto;
+    max-width: 100%;
+    white-space: normal;
+}
+
+@media (max-width: 760px) {
+    .network-page-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 14px !important;
+    }
+
+    .network-page-header .network-heading,
+    .network-page-header .network-heading .header-directory-trigger,
+    .network-page-header .network-header-actions,
+    .network-page-header .network-header-actions .register-organization-button {
+        width: 100%;
+        max-width: none;
+    }
+
+    .network-page-header .network-header-actions {
+        justify-content: flex-start;
+    }
+}

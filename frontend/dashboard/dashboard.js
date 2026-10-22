@@ -1,61 +1,177 @@
-const GROUP_ORDER = ["Needs your attention", "Waiting on others"];
-
-const attentionSelect = field("attentionSelect");
-const attentionDetail = field("attentionDetail");
-const attentionActions = field("attentionActions");
-const openButton = field("openButton");
+const attentionGroups = field("attentionGroups");
 const dashboardMessage = field("dashboardMessage");
+const notificationNotice = field("notificationNotice");
+const notificationTitle = field("notificationTitle");
+const notificationText = field("notificationText");
+const activityToggle = field("activityToggle");
+const activityList = field("activityList");
 
-let items = [];
+function createElement(tag, className, text) {
+    const node = document.createElement(tag);
 
-const selectedItem = () => items[Number(attentionSelect.value)];
+    if (className) {
+        node.className = className;
+    }
 
-function renderSelectedItem() {
-    const item = selectedItem();
+    if (text !== undefined && text !== null) {
+        node.textContent = String(text);
+    }
 
-    renderDetailList(attentionDetail, item
-        ? [
-            ["Item", item.title],
-            ["Details", item.detail],
-            ["Group", item.group]
-        ]
-        : []);
-
-    attentionActions.hidden = !item;
+    return node;
 }
 
-function renderItems() {
-    const indexed = items.map((item, index) => ({ ...item, index }));
+function createWorkspaceLink(path, label, className = "dashboard-item-link") {
+    const link = createElement("a", className, label);
+    link.href = pageUrl(path);
+    return link;
+}
 
-    attentionSelect.replaceChildren(
-        ...(items.length === 0
-            ? [option("", "Nothing needs your attention")]
-            : groupedOptions(indexed, item => item.group, item => option(String(item.index), `${item.title}  |  ${item.detail}`)))
+function renderNotificationNotice(summary) {
+    const unreadMetric = summary.find(
+        item => item.label === "Unread notifications"
     );
-    attentionSelect.disabled = items.length === 0;
+    const unreadCount = Number(unreadMetric?.value ?? 0);
 
-    renderSelectedItem();
-}
+    notificationNotice.hidden = unreadCount < 1;
 
-async function loadDashboard() {
-    const { ok, data } = await getJson("dashboard/overview.php");
-
-    if (!ok) {
-        showMessage(dashboardMessage, data.error || "Unable to load the dashboard.", "error");
+    if (unreadCount < 1) {
         return;
     }
 
-    renderDetailList(field("summaryList"), data.summary.map(entry => [entry.label, String(entry.value)]));
+    notificationTitle.textContent =
+        `${unreadCount} unread notification${unreadCount === 1 ? "" : "s"}`;
 
-    items = [...data.items].sort((a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group));
-    renderItems();
+    notificationText.textContent = "You have notifications to review.";
 }
 
-openButton.addEventListener("click", () => window.location.assign(pageUrl(selectedItem().path)));
-attentionSelect.addEventListener("change", renderSelectedItem);
+function renderAttention(items) {
+    attentionGroups.replaceChildren();
+
+    if (items.length === 0) {
+        attentionGroups.append(
+            createElement("p", "dashboard-empty", "Nothing needs your attention right now.")
+        );
+        return;
+    }
+
+    const groups = [...new Set(items.map(item => item.group))];
+
+    for (const groupName of groups) {
+        const groupItems = items.filter(item => item.group === groupName);
+        const group = createElement("section", "dashboard-attention-group");
+        const heading = createElement("h3", "dashboard-group-label", groupName);
+        const list = createElement("div", "dashboard-attention-list");
+
+        for (const item of groupItems) {
+            const entry = createElement("article", "dashboard-attention-item");
+            entry.append(
+                createElement("h3", "dashboard-item-title", item.title),
+                createElement("p", "dashboard-item-detail", item.detail)
+            );
+
+            if (item.path) {
+                entry.append(createWorkspaceLink(item.path, "Open"));
+            }
+
+            list.append(entry);
+        }
+
+        group.append(heading, list);
+        attentionGroups.append(group);
+    }
+}
+
+function formatActivityDate(value) {
+    if (!value) {
+        return "";
+    }
+
+    const date = new Date(String(value).replace(" ", "T"));
+
+    if (Number.isNaN(date.getTime())) {
+        return "";
+    }
+
+    return new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short"
+    }).format(date);
+}
+
+function renderActivity(activity) {
+    activityList.replaceChildren();
+
+    if (activity.length === 0) {
+        activityList.append(
+            createElement("p", "dashboard-empty", "No recent updates to show.")
+        );
+        return;
+    }
+
+    for (const item of activity) {
+        const entry = createElement("article", "dashboard-activity-item");
+        const heading = createElement("h3", "dashboard-item-title");
+
+        if (item.path) {
+            heading.append(createWorkspaceLink(item.path, item.title, "dashboard-activity-link"));
+        } else {
+            heading.textContent = item.title;
+        }
+
+        entry.append(heading);
+
+        if (item.detail) {
+            entry.append(createElement("p", "dashboard-item-detail", item.detail));
+        }
+
+        const dateText = formatActivityDate(item.date);
+
+        if (dateText) {
+            entry.append(createElement("p", "dashboard-item-date", dateText));
+        }
+
+        activityList.append(entry);
+    }
+}
+
+activityToggle.addEventListener("click", () => {
+    const willOpen = activityList.hidden;
+    activityList.hidden = !willOpen;
+    activityToggle.setAttribute("aria-expanded", String(willOpen));
+    activityToggle.textContent = willOpen ? "Hide recent updates" : "Show recent updates";
+});
+
+async function loadDashboard() {
+    try {
+        const { ok, data } = await getJson("dashboard/overview.php");
+
+        if (!ok) {
+            showMessage(
+                dashboardMessage,
+                data?.error || "Unable to load the dashboard.",
+                "error"
+            );
+            return;
+        }
+
+        const summary = Array.isArray(data.summary) ? data.summary : [];
+        const items = Array.isArray(data.items) ? data.items : [];
+        const activity = Array.isArray(data.activity) ? data.activity : [];
+
+        renderNotificationNotice(summary);
+        renderAttention(items);
+        renderActivity(activity);
+    } catch (error) {
+        showMessage(
+            dashboardMessage,
+            "Unable to load dashboard information. Check your connection and try again.",
+            "error"
+        );
+    }
+}
 
 shellReady.then(account => {
     if (account) {
         loadDashboard();
-    } 
+    }
 });

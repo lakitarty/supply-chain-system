@@ -1,4 +1,4 @@
-﻿.shell-main-row {
+.shell-main-row {
     display: flex;
     align-items: stretch;
     gap: var(--space-xl);
@@ -131,7 +131,7 @@ a.shell-section:hover {
     padding: 20px var(--gutter) 28px;
 }
 
-/* Users form layout */
+
 body:has(#recordForm) #recordForm {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     column-gap: 24px;
@@ -140,7 +140,7 @@ body:has(#recordForm) #recordForm {
 body:has(#recordForm) #recordForm .form-group {
     margin-bottom: 12px;
 }
-/* Admin form page width */
+
 body:has(#recordForm) .page,
 body:has(#profileForm) .page {
     max-width: 808px;
@@ -247,3 +247,332 @@ body:has(#shell):not(.shell-ready) .page {
 }
 
 
+
+
+.shell-refresh {
+    height: 30px;
+    padding: 0 12px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--white);
+    font-size: var(--text-label);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.shell-refresh:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.shell-refresh:focus-visible {
+    outline: 2px solid var(--white);
+    outline-offset: 2px;
+}
+
+
+
+.shell-main-row {
+    gap: clamp(8px, 1vw, var(--space-xl));
+}
+
+.shell-brand {
+    flex-shrink: 0;
+}
+
+.shell-tabs {
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+}
+
+.shell-tab {
+    flex-shrink: 0;
+}
+
+.shell-user {
+    flex-shrink: 0;
+    margin-left: auto;
+    gap: var(--space-s);
+}
+
+.shell-user-text {
+    min-width: 0;
+    max-width: 220px;
+}
+
+.shell-user-meta {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.shell-refresh,
+.shell-signout {
+    flex-shrink: 0;
+}
+
+
+
+.shell-main-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    min-width: 0;
+    min-height: 58px;
+    padding: 10px var(--gutter);
+    background: #104e5c;
+    color: var(--white);
+}
+
+.shell-brand {
+    flex: 0 1 auto;
+    min-width: 0;
+    white-space: normal;
+    line-height: 1.35;
+}
+
+.shell-user {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 0 1 auto;
+    min-width: 0;
+    gap: 10px;
+}
+
+.shell-user-text {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 300px;
+}
+
+.shell-user-name,
+.shell-user-meta {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.shell-user-meta {
+    line-height: 1.4;
+}
+
+.shell-refresh,
+.shell-signout {
+    flex: 0 0 auto;
+}
+
+.shell-primary-row {
+    min-width: 0;
+    padding: 0 var(--gutter);
+    background: #0b3f4a;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.shell-primary-row .shell-tabs {
+    display: flex;
+    align-items: stretch;
+    min-width: 0;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+}
+
+.shell-primary-row .shell-tab {
+    flex: 0 0 auto;
+    min-height: 43px;
+    padding: 0 16px;
+}
+
+.shell-primary-row .shell-tab.active {
+    border-bottom-color: #ffffff;
+    background: rgba(255, 255, 255, 0.09);
+}
+
+.shell-sections {
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+}
+
+.shell-section {
+    flex: 0 0 auto;
+    min-height: 38px;
+    white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+    .shell-main-row {
+        gap: 12px;
+    }
+
+    .shell-user-text {
+        max-width: 220px;
+    }
+
+    .shell-primary-row .shell-tab {
+        padding-inline: 12px;
+    }
+}
+
+@media (max-width: 899px) {
+    .shell-main-row {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .shell-user {
+        max-width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .shell-user-text {
+        max-width: 100%;
+    }
+}
+
+
+
+.shell-primary-row .shell-tabs,
+.shell-sections {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.shell-primary-row .shell-tabs::-webkit-scrollbar,
+.shell-sections::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+
+
+.shell-primary-row {
+    overflow: hidden;
+}
+
+.shell-primary-row .shell-tabs {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+.shell-primary-row .shell-tabs::-webkit-scrollbar,
+.shell-primary-row .shell-tabs::-webkit-scrollbar-track,
+.shell-primary-row .shell-tabs::-webkit-scrollbar-thumb {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+}
+
+
+
+html {
+    height: 100%;
+}
+
+body.shell-ready {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+}
+
+body.shell-ready #shell {
+    flex: 0 0 auto;
+    min-width: 0;
+}
+
+body.shell-ready #shell .shell {
+    flex: 0 0 auto;
+    min-width: 0;
+}
+
+body.shell-ready .page {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-gutter: stable;
+}
+
+body.shell-ready > .desktop-notice {
+    display: none;
+}
+
+
+
+body.shell-ready .page {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+body.shell-ready .page::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+
+
+.shell-organization-profile {
+    display: inline-flex;
+    flex: 0 0 34px;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--white);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.shell-organization-profile:hover {
+    border-color: var(--white);
+    background: rgba(255, 255, 255, 0.22);
+}
+
+.shell-organization-profile:focus-visible {
+    outline: 2px solid var(--white);
+    outline-offset: 3px;
+}
+
+.shell-organization-avatar-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.shell-organization-avatar-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    padding: 2px;
+    color: var(--white);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.2px;
+    text-align: center;
+    overflow-wrap: anywhere;
+}

@@ -81,12 +81,47 @@ function buildUserArea(account) {
         element("span", "shell-user-meta", `${readable(user.role)}  |  ${organization.organization_name}${branch}`)
     );
 
-    const button = element("button", "shell-signout", "Sign out");
-    button.type = "button";
-    button.addEventListener("click", signOut);
+    let profileLink = null;
+
+    if (user.role === "ADMIN") {
+        const profilePath = "modules/admin/organisation-profile/organisation-profile.html";
+        profileLink = element("a", "shell-organization-profile");
+        profileLink.href = pageUrl(profilePath);
+        profileLink.title = "Organisation profile";
+        profileLink.setAttribute("aria-label", "Open organisation profile");
+
+        const initials = String(organization.organization_name || "?")
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map(word => word.charAt(0).toUpperCase())
+            .join("") || "?";
+
+        const fallback = element("span", "shell-organization-avatar-fallback", initials);
+        const logoPath = organization.logo_path || "";
+        const validLogo = /^uploads\/organization-logos\/org-\d+-[a-f0-9]{32}\.(jpg|png|webp)$/i.test(logoPath);
+
+        if (validLogo) {
+            const image = element("img", "shell-organization-avatar-image");
+            image.alt = "";
+            image.src = new URL(
+                "../../../../" + logoPath,
+                pageUrl(profilePath)
+            ).href + "?v=" + encodeURIComponent(logoPath);
+
+            image.addEventListener("error", () => {
+                profileLink.replaceChildren(fallback);
+            }, { once: true });
+
+            profileLink.append(image);
+        } else {
+            profileLink.append(fallback);
+        }
+    }
 
     const area = element("div", "shell-user");
-    area.append(text, button);
+    area.append(text, ...(profileLink ? [profileLink] : []));
 
     return area;
 }
@@ -101,7 +136,13 @@ function renderShell(account) {
     );
 
     const mainRow = element("div", "shell-main-row");
-    mainRow.append(element("div", "shell-brand", SYSTEM_NAME), tabBar, buildUserArea(account));
+    mainRow.append(
+        element("div", "shell-brand", SYSTEM_NAME),
+        buildUserArea(account)
+    );
+
+    const primaryRow = element("div", "shell-primary-row");
+    primaryRow.append(tabBar);
 
     const sectionBar = element("nav", "shell-sections");
     sectionBar.append(
@@ -111,7 +152,7 @@ function renderShell(account) {
     );
 
     const shell = element("div", "shell");
-    shell.append(mainRow, sectionBar);
+    shell.append(mainRow, primaryRow, sectionBar);
 
     document.getElementById("shell").replaceChildren(shell);
     document.body.append(

@@ -127,6 +127,7 @@ function buildUserArea(account) {
 }
 
 function renderShell(account) {
+    window.__nexoraAccount = account;
     const tabs = tabsFor(account);
     const activeTab = tabs.find(tab => tabPaths(tab).some(isCurrent));
 

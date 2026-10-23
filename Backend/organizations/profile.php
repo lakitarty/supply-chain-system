@@ -7,7 +7,7 @@ require_once __DIR__ . '/../core/guard.php';
 require_once __DIR__ . '/organization-rules.php';
 
 try {
-    $actor = require_admin($pdo);
+    $actor = require_login($pdo);
 
     respond(200, [
         'success' => true,

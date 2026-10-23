@@ -74,6 +74,7 @@ let directory = [];
 let myOrganizationId = 0;
 let myType = "";
 let networkFilterMode = "ALL";
+let canManageNetwork = false;
 
 const isDirect = entry => entry.kind === "DIRECT";
 const iRequested = entry => Number(entry.requested_by_organization_id) === myOrganizationId;
@@ -81,6 +82,7 @@ const awaitingMe = entry => isDirect(entry) && entry.status === "PENDING" && !iR
 const selectedEntry = () => entries.find(entry => entry.key === relationshipSelect.value);
 
 function openDirectoryModal() {
+    if (!canManageNetwork) return;
     searchSection.hidden = false;
     directoryModalBackdrop.hidden = false;
     document.body.classList.add("directory-modal-open");
@@ -213,6 +215,7 @@ function groupOf(entry) {
     }
 
     if (entry.status === "PENDING") {
+        if (!canManageNetwork) return "Pending requests";
         return awaitingMe(entry) ? "Awaiting your answer" : "Requests you sent";
     }
 
@@ -235,6 +238,7 @@ function statusText(entry) {
     }
 
     if (entry.status === "PENDING") {
+        if (!canManageNetwork) return "Pending";
         return awaitingMe(entry) ? "Awaiting your answer" : "Waiting for them";
     }
 
@@ -272,8 +276,9 @@ function detailRows(entry) {
 }
 
 function renderActions(entry) {
-    const answering = Boolean(entry && awaitingMe(entry));
+    const answering = Boolean(canManageNetwork && entry && awaitingMe(entry));
     const endable = Boolean(
+        canManageNetwork &&
         entry &&
         isDirect(entry) &&
         (
@@ -372,7 +377,9 @@ function renderNetworkList() {
             "p",
             "",
             entries.length === 0
-                ? "Use Find an organisation to discover eligible partners and request a connection."
+                ? (canManageNetwork
+                    ? "Use Find an organisation to discover eligible partners and request a connection."
+                    : "Your organisation's supply relationships will appear here.")
                 : "Try another search term or relationship filter."
         );
 
@@ -395,7 +402,7 @@ function renderNetworkList() {
         const meta = makeElement(
             "span",
             "network-item-meta",
-            `${organizationTypeLabel(entry.partner_type)} · ${directionText(entry)}`
+            `${organizationTypeLabel(entry.partner_type)} | ${directionText(entry)}`
         );
         const status = makeElement(
             "span",
@@ -686,6 +693,7 @@ async function loadDirectory() {
 }
 
 async function runAction(button, path, payload) {
+    if (!canManageNetwork) return;
     const entry = selectedEntry();
 
     if (!entry) {
@@ -711,6 +719,7 @@ async function runAction(button, path, payload) {
 }
 
 async function submitRequest(event) {
+    if (!canManageNetwork) return;
     event.preventDefault();
 
     const partnerId = field("partnerId").value;
@@ -828,12 +837,17 @@ clearErrorOnInput(connectForm);
 
 shellReady.then(async account => {
     if (account) {
+        canManageNetwork = account.user.role === "ADMIN";
         myType = account.organization.organization_type;
 
-        await Promise.all([
-            loadNetwork(),
-            loadDirectory()
-        ]);
+        openDirectoryButton.hidden = !canManageNetwork;
+        registerOrganizationButton.hidden = !canManageNetwork;
+
+        await loadNetwork();
+
+        if (canManageNetwork) {
+            await loadDirectory();
+        }
     }
 });
 })();

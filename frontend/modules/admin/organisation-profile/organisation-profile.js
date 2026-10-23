@@ -31,6 +31,7 @@ let savedLogoPath = null;
 let localLogoPreviewUrl = null;
 let selectedLogoFile = null;
 let currentOrganization = null;
+let canEditProfile = false;
 
 function logoUrl(path) {
     if (!/^uploads\/organization-logos\/org-\d+-[a-f0-9]{32}\.(jpg|png|webp)$/.test(path || "")) {
@@ -117,6 +118,9 @@ function fillProfile(organization) {
     organizationDisplayType.textContent = type;
 
     savedLogoPath = organization.logo_path || null;
+    chooseLogoButton.disabled = !canEditProfile;
+    uploadLogoButton.hidden = !canEditProfile;
+    logoMessage.hidden = !canEditProfile;
     selectedLogoFile = null;
     logoFile.value = "";
 
@@ -126,7 +130,7 @@ function fillProfile(organization) {
     uploadLogoButton.disabled = true;
     uploadLogoButton.textContent = "Save photo";
     cancelLogoButton.hidden = true;
-    removeLogoButton.hidden = !savedLogoPath;
+    removeLogoButton.hidden = !canEditProfile || !savedLogoPath;
     removeLogoButton.disabled = false;
 }
 
@@ -208,7 +212,7 @@ function cancelLogoSelection() {
     uploadLogoButton.disabled = true;
     uploadLogoButton.textContent = "Save photo";
     cancelLogoButton.hidden = true;
-    removeLogoButton.hidden = !savedLogoPath;
+    removeLogoButton.hidden = !canEditProfile || !savedLogoPath;
     removeLogoButton.disabled = false;
     showMessage(logoMessage, "", "");
 }
@@ -283,7 +287,7 @@ async function uploadOrganizationLogo() {
         uploadLogoButton.disabled = true;
         uploadLogoButton.textContent = "Save photo";
         cancelLogoButton.hidden = true;
-        removeLogoButton.hidden = !savedLogoPath;
+        removeLogoButton.hidden = !canEditProfile || !savedLogoPath;
 
         showMessage(logoMessage, data.message || "Organisation photo updated.", "success");
     } catch (error) {
@@ -372,6 +376,26 @@ clearErrorOnInput(profileForm);
 
 shellReady.then(account => {
     if (account) {
+        canEditProfile = account.user.role === "ADMIN";
+
+        document.body.classList.toggle("profile-readonly", !canEditProfile);
+        editProfileButton.hidden = !canEditProfile;
+        chooseLogoButton.disabled = !canEditProfile;
+        chooseLogoButton.setAttribute(
+            "aria-label",
+            canEditProfile ? "Change organisation logo" : "Organisation logo"
+        );
+        uploadLogoButton.hidden = !canEditProfile;
+        cancelLogoButton.hidden = true;
+        removeLogoButton.hidden = !canEditProfile;
+        logoMessage.hidden = !canEditProfile;
+
+        const brandingHint = document.querySelector(".organisation-branding-hint");
+
+        if (brandingHint && !canEditProfile) {
+            brandingHint.textContent = "Organisation profile image";
+        }
+
         initialise();
     }
 });

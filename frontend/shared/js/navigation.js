@@ -31,6 +31,7 @@ const TABS = [
         label: "Dashboard",
         path: "dashboard/dashboard.html"
     },
+
     {
         id: "products",
         label: "Products",
@@ -48,10 +49,9 @@ const TABS = [
     {
         id: "network",
         label: "Supply network",
-        adminOnly: true,
+        roles: ["ADMIN", "BRANCH_ADMIN"],
         sections: [
             { label: "Relationships", path: page("network", "relationships") },
-            { label: "Changes", path: page("network", "changes") }
         ]
     },
     {
@@ -103,6 +103,12 @@ const TABS = [
             { label: "Organisation profile", path: page("admin", "organisation-profile") },
             { label: "Activity log", path: page("admin", "activity-log") }
         ]
+    },
+    {
+        id: "profile",
+        label: "Profile",
+        path: page("admin", "organisation-profile"),
+        roles: ["BRANCH_ADMIN", "STAFF"]
     }
 ];
 

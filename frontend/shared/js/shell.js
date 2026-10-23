@@ -15,11 +15,16 @@ function element(tag, className, text) {
 
     return node;
 }
+
 function renderDetailList(list, rows) {
     list.replaceChildren(
-        ...rows.flatMap(([label, value]) => [element("dt", "", label), element("dd", "", value)])
+        ...rows.flatMap(([label, value]) => [
+            element("dt", "", label),
+            element("dd", "", value)
+        ])
     );
 }
+
 function groupedOptions(items, groupName, optionFor) {
     const groups = new Map();
 
@@ -35,6 +40,7 @@ function groupedOptions(items, groupName, optionFor) {
         return group;
     });
 }
+
 function isCurrent(path) {
     return new URL(pageUrl(path)).pathname === window.location.pathname;
 }
@@ -65,9 +71,28 @@ function navItem(baseClass, label, path, active) {
 
 async function signOut() {
     try {
-        await postJson("auth/logout.php");
-    } finally {
+        const result = await postJson("auth/logout.php");
+
+        if (
+            result?.ok === false ||
+            result?.success === false ||
+            result?.data?.success === false
+        ) {
+            throw new Error(
+                result?.data?.error ||
+                result?.error ||
+                "Unable to sign out. Please try again."
+            );
+        }
+
+        if (window.nexoraDesktop?.exitAfterSignOut) {
+            window.nexoraDesktop.exitAfterSignOut();
+            return;
+        }
+
         goTo(LOGIN_PATH);
+    } catch (error) {
+        window.alert(error?.message || "Unable to sign out. Please try again.");
     }
 }
 
@@ -78,13 +103,18 @@ function buildUserArea(account) {
     const text = element("div", "shell-user-text");
     text.append(
         element("span", "shell-user-name", `${user.first_name} ${user.last_name}`),
-        element("span", "shell-user-meta", `${readable(user.role)}  |  ${organization.organization_name}${branch}`)
+        element(
+            "span",
+            "shell-user-meta",
+            (["BRANCH_ADMIN", "STAFF"].includes(user.role) && user.branch_name) ? user.branch_name : `${readable(user.role)}  |  ${organization.organization_name}${branch}`
+        )
     );
 
     let profileLink = null;
 
-    if (user.role === "ADMIN") {
+    if (["ADMIN", "BRANCH_ADMIN", "STAFF"].includes(user.role)) {
         const profilePath = "modules/admin/organisation-profile/organisation-profile.html";
+
         profileLink = element("a", "shell-organization-profile");
         profileLink.href = pageUrl(profilePath);
         profileLink.title = "Organisation profile";
@@ -121,19 +151,58 @@ function buildUserArea(account) {
     }
 
     const area = element("div", "shell-user");
-    area.append(text, ...(profileLink ? [profileLink] : []));
+    area.append(...(profileLink ? [profileLink] : []));
 
     return area;
 }
 
+function buildSessionFooter(account) {
+    const { user, organization } = account;
+    const name = `${user.first_name || ""} ${user.last_name || ""}`.trim();
+    const context = user.branch_name || organization.organization_name || "Organisation";
+
+    const footer = element("footer", "shell-status-footer");
+    footer.setAttribute("aria-label", "Current signed-in session");
+
+    const identity = element("div", "shell-status-identity");
+    const indicator = element("span", "shell-status-indicator");
+    indicator.setAttribute("aria-hidden", "true");
+
+    identity.append(
+        indicator,
+        element("span", "shell-status-label", "Signed in as"),
+        element("span", "shell-status-details", name + " | " + readable(user.role) + " | " + context)
+    );
+
+    footer.append(identity);
+
+    return footer;
+}
 function renderShell(account) {
     window.__nexoraAccount = account;
+
     const tabs = tabsFor(account);
-    const activeTab = tabs.find(tab => tabPaths(tab).some(isCurrent));
+    const activeTab = tabs.find(tab =>
+        tabPaths(tab).some(isCurrent)
+    );
 
     const tabBar = element("nav", "shell-tabs");
+
     tabBar.append(
-        ...tabs.map(tab => navItem("shell-tab", tab.label, tabTarget(tab), tab === activeTab))
+        ...tabs.map(tab => {
+            const item = navItem(
+                "shell-tab",
+                tab.label,
+                tabTarget(tab),
+                tab === activeTab
+            );
+
+            if (tab.id === "profile") {
+                item.classList.add("shell-tab-profile");
+            }
+
+            return item;
+        })
     );
 
     const mainRow = element("div", "shell-main-row");
@@ -146,23 +215,36 @@ function renderShell(account) {
     primaryRow.append(tabBar);
 
     const sectionBar = element("nav", "shell-sections");
+
     sectionBar.append(
         ...(activeTab?.sections ?? []).map(section =>
-            navItem("shell-section", section.label, section.path, isCurrent(section.path))
+            navItem(
+                "shell-section",
+                section.label,
+                section.path,
+                isCurrent(section.path)
+            )
         )
     );
 
     const shell = element("div", "shell");
-    shell.append(mainRow, primaryRow, sectionBar);
+    shell.append(mainRow, primaryRow, sectionBar, buildSessionFooter(account));
 
     document.getElementById("shell").replaceChildren(shell);
+
     document.body.append(
-        element("p", "desktop-notice", "This system is designed for desktop and laptop screens. Please open it on a larger device.")
+        element(
+            "p",
+            "desktop-notice",
+            "This system is designed for desktop and laptop screens. Please open it on a larger device."
+        )
     );
 }
 
 function showShellError(message) {
-    document.getElementById("shell").replaceChildren(element("p", "form-message error", message));
+    document.getElementById("shell").replaceChildren(
+        element("p", "form-message error", message)
+    );
 }
 
 async function initialiseShell() {

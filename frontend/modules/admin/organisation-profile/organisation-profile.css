@@ -320,3 +320,21 @@ body .organisation-profile-page > #formMessage {
 .organisation-details-heading #editProfileButton {
     margin: 0 !important;
 }
+
+/* Read-only organisation profile */
+.profile-readonly #editProfileButton[hidden],
+.profile-readonly #uploadLogoButton[hidden],
+.profile-readonly #cancelLogoButton[hidden],
+.profile-readonly #removeLogoButton[hidden],
+.profile-readonly #logoMessage[hidden] {
+    display: none !important;
+}
+
+.profile-readonly .logo-change-label {
+    display: none !important;
+}
+
+.profile-readonly .logo-photo-button:disabled {
+    cursor: default;
+    opacity: 1;
+}

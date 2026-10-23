@@ -1823,3 +1823,9 @@ body.directory-modal-open {
         justify-content: flex-start;
     }
 }
+
+/* Keep role-restricted network controls hidden when requested by JavaScript. */
+#openDirectoryButton[hidden],
+#registerOrganizationButton[hidden] {
+    display: none !important;
+}

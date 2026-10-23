@@ -576,3 +576,114 @@ body.shell-ready .page::-webkit-scrollbar {
     text-align: center;
     overflow-wrap: anywhere;
 }
+
+/* Branch profile tab with organisation logo */
+.shell-primary-row .shell-tab-profile {
+    margin-left: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.shell-profile-tab-avatar {
+    display: inline-flex;
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.shell-profile-tab-avatar-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.shell-profile-tab-avatar-fallback {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.shell-tab-profile-label {
+    white-space: nowrap;
+}
+/* Fixed Nexora session footer */
+/* Fixed Nexora session footer */
+.shell-status-footer {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 40px;
+    padding: 7px var(--gutter);
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    background: #0b3f4a;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: var(--text-small);
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+    box-sizing: border-box;
+}
+
+.shell-status-identity {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.shell-status-indicator {
+    flex: 0 0 7px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #69d6a0;
+}
+
+.shell-status-label {
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+}
+
+.shell-status-details {
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.shell-status-system {
+    flex: 0 0 auto;
+    color: rgba(255, 255, 255, 0.65);
+    white-space: nowrap;
+}
+
+body.shell-ready .page {
+    padding-bottom: 76px;
+}
+
+@media (max-width: 600px) {
+    .shell-status-system {
+        display: none;
+    }
+
+    .shell-status-identity {
+        gap: 6px;
+    }
+}

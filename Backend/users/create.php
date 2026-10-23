@@ -10,11 +10,19 @@ require_once __DIR__ . '/user-rules.php';
 require_post();
 
 try {
-    $actor = require_admin($pdo);
+    $actor = require_login($pdo);
+
+    if (!in_array($actor['role'], ['ADMIN', 'BRANCH_ADMIN'], true)) {
+        respond_error(403, 'User management access is required.');
+    }
+
+    if ($actor['role'] === 'BRANCH_ADMIN') {
+        $actor = require_branch_admin($pdo);
+    }
+
     $input = clean_user_input(read_json_body());
 
-    $error = first_user_error($pdo, $actor, $input , true);
-
+    $error = first_user_error($pdo, $actor, $input, true);
 
     if ($error !== null) {
         respond_field_error(400, $error);
@@ -57,6 +65,5 @@ try {
     }
 
     log_error('users create', $e);
-
     respond_error(500, 'Unable to create the user.');
 }

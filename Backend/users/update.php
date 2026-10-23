@@ -10,13 +10,22 @@ require_once __DIR__ . '/user-rules.php';
 require_post();
 
 try {
-    $actor = require_admin($pdo);
+    $actor = require_login($pdo);
+
+    if (!in_array($actor['role'], ['ADMIN', 'BRANCH_ADMIN'], true)) {
+        respond_error(403, 'User management access is required.');
+    }
+
+    if ($actor['role'] === 'BRANCH_ADMIN') {
+        $actor = require_branch_admin($pdo);
+    }
+
     $input = clean_user_input(read_json_body());
 
     $existing = find_user($pdo, $actor, $input['userId']);
 
     if ($existing === false) {
-        respond_error(404, 'User not found.');
+        respond_error(404, 'User not found in your permitted scope.');
     }
 
     $error = first_user_error($pdo, $actor, $input, false);
@@ -30,7 +39,10 @@ try {
     }
 
     $changes = describe_changes([
-        'name' => ["{$existing['first_name']} {$existing['last_name']}", "{$input['firstName']} {$input['lastName']}"],
+        'name' => [
+            "{$existing['first_name']} {$existing['last_name']}",
+            "{$input['firstName']} {$input['lastName']}"
+        ],
         'role' => [$existing['role'], $input['role']],
         'status' => [$existing['status'], $input['status']],
         'branch' => [(int)$existing['branch_id'], (int)$input['branchId']]
@@ -44,7 +56,14 @@ try {
 
     update_user($pdo, $actor, $input);
 
-    record_audit($pdo, $actor, 'USER_UPDATED', 'USER', $input['userId'], "Updated {$existing['email']}: $changes");
+    record_audit(
+        $pdo,
+        $actor,
+        'USER_UPDATED',
+        'USER',
+        $input['userId'],
+        "Updated {$existing['email']}: $changes"
+    );
 
     $pdo->commit();
 
@@ -59,6 +78,5 @@ try {
     }
 
     log_error('users update', $e);
-
     respond_error(500, 'Unable to update the user.');
 }

@@ -315,3 +315,15 @@ body.branch-modal-open {
         padding: 15px 18px;
     }
 }
+.branch-admin-fields {
+    margin: 18px 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-light);
+}
+
+.branch-admin-fields h3 {
+    margin: 0 0 14px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+}

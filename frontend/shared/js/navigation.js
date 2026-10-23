@@ -14,6 +14,7 @@ const BUILT_PATHS = [
     "modules/products/management/management.html",
     "modules/messages/announcements/announcements.html",
     "modules/messages/notifications/notifications.html",
+    "modules/messages/branch-communications/branch-communications.html",
     "modules/admin/users/users.html",
     "modules/admin/branches/branches.html",
     "modules/admin/organisation-profile/organisation-profile.html",
@@ -76,10 +77,18 @@ const TABS = [
         sections: [
             { label: "Announcements", path: page("messages", "announcements") },
             { label: "Notifications", path: page("messages", "notifications") },
+            { label: "Branch communications", path: page("messages", "branch-communications") },
             { label: "Conversations", path: page("messages", "conversations") }
         ]
     },
     {
+        id: "team",
+        label: "Team",
+        roles: ["BRANCH_ADMIN"],
+        sections: [
+            { label: "Staff", path: page("admin", "users") }
+        ]
+    },    {
         id: "settings",
         label: "Settings",
         path: "modules/settings/settings/settings.html"
@@ -99,7 +108,9 @@ const TABS = [
 
 function isVisible(item, account) {
     const typeAllowed = !item.types || item.types.includes(account.organization.organization_type);
-    const roleAllowed = !item.adminOnly || account.user.role === "ADMIN";
+    const roleAllowed =
+        (!item.adminOnly || account.user.role === "ADMIN") &&
+        (!item.roles || item.roles.includes(account.user.role));
 
     return typeAllowed && roleAllowed;
 }

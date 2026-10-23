@@ -14,6 +14,7 @@ const recordSelect = field("recordSelect");
 
 let users = [];
 let selectedUserId = null;
+let currentAccount = null;
 
 function makeElement(tag, className, text) {
     const node = document.createElement(tag);
@@ -156,11 +157,29 @@ async function loadUsers(preferredId = selectedUserId) {
 }
 
 function renderBranchSelect(branches) {
-    field("branchId").replaceChildren(
+    const select = field("branchId");
+    const activeBranches = branches.filter(branch => branch.status === "ACTIVE");
+
+    if (currentAccount?.user?.role === "BRANCH_ADMIN") {
+        const ownBranchId = String(currentAccount.user.branch_id ?? "");
+
+        select.replaceChildren(
+            ...activeBranches.map(branch =>
+                option(String(branch.branch_id), branch.branch_name)
+            )
+        );
+
+        select.value = ownBranchId;
+        select.disabled = true;
+        return;
+    }
+
+    select.disabled = false;
+    select.replaceChildren(
         option("", "No branch"),
-        ...branches
-            .filter(branch => branch.status === "ACTIVE")
-            .map(branch => option(String(branch.branch_id), branch.branch_name))
+        ...activeBranches.map(branch =>
+            option(String(branch.branch_id), branch.branch_name)
+        )
     );
 }
 
@@ -211,6 +230,16 @@ const editor = createRecordEditor({
             ? "Temporary password"
             : "New password (leave blank to keep the current one)";
         userEditorTitle.textContent = creating ? "Add user" : "Edit user";
+
+        if (currentAccount?.user?.role === "BRANCH_ADMIN") {
+            field("role").value = "STAFF";
+            field("role").disabled = true;
+            field("branchId").value = String(currentAccount.user.branch_id ?? "");
+            field("branchId").disabled = true;
+        } else {
+            field("role").disabled = false;
+            field("branchId").disabled = false;
+        }
     },
     onSaved: async data => {
         const savedId = recordSelect.value;
@@ -220,7 +249,18 @@ const editor = createRecordEditor({
     }
 });
 
-async function initialise() {
+async function initialise(account) {
+    currentAccount = account;
+
+    const roleField = field("role");
+
+    if (account.user.role === "BRANCH_ADMIN") {
+        roleField.replaceChildren(option("STAFF", "Staff"));
+        roleField.value = "STAFF";
+        roleField.disabled = true;
+    } else {
+        roleField.disabled = false;
+    }
     try {
         const { ok, data } = await getJson("branches/list.php");
 
@@ -267,6 +307,6 @@ document.addEventListener("keydown", event => {
 
 shellReady.then(account => {
     if (account) {
-        initialise();
+        initialise(account);
     }
 });

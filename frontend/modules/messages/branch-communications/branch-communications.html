@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <link rel="stylesheet" href="branch-communications.css">
+    <title>Branch communications | Nexora MSRC</title>
+</head>
+<body>
+    <div id="shell"></div>
+
+    <main class="page branch-communications-page">
+        <div class="branch-communications-toolbar">
+            <div class="branch-communications-search">
+                <label for="announcementSearch">Search</label>
+                <input id="announcementSearch" type="search" placeholder="Search announcements">
+            </div>
+
+            <div class="branch-communications-filter">
+                <label for="announcementFilter">Show</label>
+                <select id="announcementFilter">
+                    <option value="ALL">All announcements</option>
+                    <option value="UNREAD">Unread</option>
+                    <option value="READ">Read</option>
+                    <option value="ACKNOWLEDGED">Acknowledged</option>
+                </select>
+            </div>
+
+            <button type="button" class="secondary-button" id="refreshAnnouncementsButton">Refresh</button>
+            <button type="button" class="primary-button" id="composeAnnouncementButton" hidden>Compose</button>
+        </div>
+
+        <p id="announcementStatus" class="branch-communications-status" role="status" aria-live="polite">Loading announcements...</p>
+        <section id="announcementList" class="branch-announcement-list" aria-label="Branch announcements"></section>
+
+        <div id="composeModal" class="branch-communications-backdrop" hidden>
+            <section class="branch-communications-modal" role="dialog" aria-modal="true" aria-labelledby="composeTitle" tabindex="-1">
+                <header class="branch-communications-modal-header">
+                    <h2 id="composeTitle">New branch announcement</h2>
+                    <button type="button" class="secondary-button" id="closeComposeButton">Close</button>
+                </header>
+
+                <form id="composeForm" class="branch-compose-form">
+                    <div class="form-group">
+                        <label for="composeAnnouncementTitle">Subject</label>
+                        <input id="composeAnnouncementTitle" type="text" maxlength="200" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="composeAnnouncementMessage">Message</label>
+                        <textarea id="composeAnnouncementMessage" rows="5" maxlength="5000" required></textarea>
+                    </div>
+
+                    <label class="branch-all-toggle">
+                        <input type="checkbox" id="allBranchesToggle" checked>
+                        <span>Send to all active branches</span>
+                    </label>
+
+                    <fieldset id="branchTargetsGroup" class="branch-targets-group" hidden>
+                        <legend>Select branches</legend>
+                        <div id="branchTargetsList" class="branch-targets-list"></div>
+                    </fieldset>
+
+                    <div id="composeFormMessage" class="form-message" role="alert" aria-live="polite"></div>
+
+                    <div class="branch-communications-actions">
+                        <button type="button" class="secondary-button" id="cancelComposeButton">Cancel</button>
+                        <button type="submit" class="primary-button" id="sendAnnouncementButton">Send announcement</button>
+                    </div>
+                </form>
+            </section>
+        </div>
+
+        <div id="previewModal" class="branch-communications-backdrop" hidden>
+            <section class="branch-communications-modal branch-preview-modal" role="dialog" aria-modal="true" aria-labelledby="previewTitle" tabindex="-1">
+                <header class="branch-communications-modal-header">
+                    <h2 id="previewTitle">Announcement</h2>
+                    <button type="button" class="secondary-button" id="closePreviewButton">Close</button>
+                </header>
+
+                <div id="previewContent" class="branch-preview-content"></div>
+
+                <section id="recipientSection" class="branch-recipient-section" hidden>
+                    <h3>Branch responses</h3>
+                    <div id="recipientStatusList" class="branch-recipient-list"></div>
+                </section>
+
+                <section id="replyArea" class="branch-reply-area" hidden>
+                    <h3 id="replyHeading">Branch conversation</h3>
+                    <div id="replyList" class="branch-reply-list"></div>
+
+                    <form id="replyForm" class="branch-reply-form">
+                        <label for="replyText">Reply</label>
+                        <textarea id="replyText" rows="3" maxlength="2000" required placeholder="Write a reply"></textarea>
+                        <div id="replyFormMessage" class="form-message" role="alert" aria-live="polite"></div>
+                        <div class="branch-communications-actions">
+                            <button type="submit" class="primary-button" id="sendReplyButton">Send reply</button>
+                        </div>
+                    </form>
+                </section>
+
+                <div id="previewActions" class="branch-preview-actions"></div>
+            </section>
+        </div>
+    </main>
+
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/form-helpers.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="branch-communications.js"></script>
+</body>
+</html>

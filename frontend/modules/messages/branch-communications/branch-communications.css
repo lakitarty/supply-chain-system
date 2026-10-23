@@ -1,0 +1,452 @@
+.branch-communications-page {
+    width: calc(100% - 32px);
+    max-width: 1400px;
+    margin: 0;
+    padding: 12px 16px 28px;
+    box-sizing: border-box;
+    color: #182230;
+}
+
+.branch-communications-toolbar {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) 190px auto auto;
+    align-items: end;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: #fff;
+}
+
+.branch-communications-toolbar label,
+.branch-compose-form > .form-group label,
+.branch-reply-form > label {
+    display: block;
+    margin-bottom: 4px;
+    color: #475467;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.branch-communications-search,
+.branch-communications-filter {
+    min-width: 0;
+}
+
+.branch-communications-search input,
+.branch-communications-filter select,
+.branch-compose-form input[type="text"],
+.branch-compose-form textarea,
+.branch-reply-form textarea {
+    box-sizing: border-box;
+    width: 100%;
+    border: 1px solid #d0d7e0;
+    border-radius: 5px;
+    background: #fff;
+    color: #182230;
+    font: inherit;
+    font-size: 13px;
+}
+
+.branch-communications-search input,
+.branch-communications-filter select,
+.branch-compose-form input[type="text"] {
+    height: 34px;
+    padding: 0 9px;
+}
+
+.branch-compose-form textarea,
+.branch-reply-form textarea {
+    display: block;
+    padding: 9px 10px;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.branch-communications-toolbar button {
+    min-height: 34px;
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.branch-communications-status {
+    margin: 10px 0 8px;
+    color: #667085;
+    font-size: 12px;
+}
+
+.branch-announcement-list {
+    display: grid;
+    gap: 5px;
+}
+
+.branch-announcement-row {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    min-height: 60px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 9px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: #fff;
+    color: #182230;
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+}
+
+.branch-announcement-row:hover {
+    border-color: #b8c6d3;
+    background: #f8fafc;
+}
+
+.branch-announcement-row.unread {
+    border-left: 3px solid #0f9488;
+    background: #f8fdfc;
+}
+
+.branch-announcement-row:focus-visible {
+    outline: 3px solid rgb(15 118 110 / 20%);
+    outline-offset: 2px;
+}
+
+.branch-announcement-copy {
+    display: grid;
+    min-width: 0;
+    gap: 3px;
+}
+
+.branch-announcement-title {
+    overflow: hidden;
+    color: #101828;
+    font-size: 14px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.branch-announcement-message {
+    display: -webkit-box;
+    overflow: hidden;
+    color: #475467;
+    font-size: 12px;
+    line-height: 1.4;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+}
+
+.branch-announcement-meta {
+    margin-top: 1px;
+    color: #667085;
+    font-size: 11px;
+}
+
+.branch-announcement-open {
+    flex: 0 0 auto;
+    color: #0f766e;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.branch-communications-backdrop[hidden],
+.branch-targets-group[hidden],
+.branch-recipient-section[hidden],
+.branch-reply-area[hidden] {
+    display: none !important;
+}
+
+.branch-communications-backdrop {
+    position: fixed;
+    z-index: 10000;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+    overflow-y: auto;
+    background: rgb(16 24 40 / 55%);
+}
+
+body.branch-communications-modal-open {
+    overflow: hidden;
+}
+
+.branch-communications-modal {
+    width: min(100%, 620px);
+    max-height: min(90vh, 800px);
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 20px 22px;
+    border: 1px solid #eaecf0;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 20px 60px rgb(16 24 40 / 22%);
+}
+
+.branch-preview-modal {
+    width: min(100%, 700px);
+}
+
+.branch-communications-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #eaecf0;
+}
+
+.branch-communications-modal-header h2 {
+    margin: 0;
+    color: #101828;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.branch-compose-form {
+    display: grid;
+    gap: 15px;
+    padding-top: 18px;
+}
+
+.branch-compose-form .form-group {
+    margin: 0;
+}
+
+.branch-all-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #344054;
+    font-size: 13px;
+}
+
+.branch-all-toggle input {
+    margin: 0;
+}
+
+.branch-targets-group {
+    min-width: 0;
+    margin: 0;
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+}
+
+.branch-targets-group legend {
+    padding: 0 5px;
+    color: #344054;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.branch-targets-list {
+    display: grid;
+    gap: 2px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.branch-target-option {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 4px;
+    border-bottom: 1px solid #f2f4f7;
+    color: #344054;
+    font-size: 13px;
+}
+
+.branch-target-option input {
+    margin: 0;
+}
+
+.branch-target-location {
+    margin-left: auto;
+    color: #667085;
+    font-size: 11px;
+}
+
+.branch-communications-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 4px;
+}
+
+.branch-compose-form .form-message,
+.branch-reply-form .form-message {
+    margin: 0;
+}
+
+.branch-preview-content {
+    padding-top: 14px;
+}
+
+.branch-preview-message {
+    margin: 0;
+    color: #344054;
+    font-size: 14px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.branch-preview-meta {
+    margin: 12px 0 0;
+    color: #667085;
+    font-size: 12px;
+}
+
+.branch-preview-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #eaecf0;
+}
+
+.branch-preview-actions:empty {
+    display: none;
+}
+
+.branch-recipient-section,
+.branch-reply-area {
+    margin-top: 20px;
+    padding-top: 14px;
+    border-top: 1px solid #eaecf0;
+}
+
+.branch-recipient-section h3,
+.branch-reply-area h3 {
+    margin: 0 0 10px;
+    color: #344054;
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.branch-recipient-list {
+    display: grid;
+}
+
+.branch-recipient-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid #f2f4f7;
+}
+
+.branch-recipient-name {
+    color: #182230;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.branch-recipient-status {
+    color: #667085;
+    font-size: 11px;
+}
+
+.branch-recipient-status.acknowledged {
+    color: #067647;
+}
+
+.branch-recipient-row button {
+    padding: 5px 8px;
+    font-size: 11px;
+}
+
+.branch-reply-list {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.branch-reply-item {
+    padding: 10px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: #fafbfc;
+}
+
+.branch-reply-item-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 5px 12px;
+    margin-bottom: 5px;
+}
+
+.branch-reply-sender {
+    color: #344054;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.branch-reply-date {
+    color: #667085;
+    font-size: 11px;
+}
+
+.branch-reply-text {
+    margin: 0;
+    color: #344054;
+    font-size: 13px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.branch-reply-form {
+    display: grid;
+    gap: 8px;
+}
+
+@media (max-width: 700px) {
+    .branch-communications-page {
+        width: 100%;
+        padding: 10px 14px 24px;
+    }
+
+    .branch-communications-toolbar {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .branch-announcement-row {
+        align-items: flex-start;
+        padding: 10px;
+    }
+
+    .branch-communications-backdrop {
+        padding: 10px;
+    }
+
+    .branch-communications-modal {
+        padding: 16px;
+    }
+
+    .branch-recipient-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .branch-recipient-status {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    .branch-recipient-row button {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+    }
+}

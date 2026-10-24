@@ -141,7 +141,7 @@
         }
         state.busy = true;
         byId("savePrice").disabled = true;
-        byId("savePrice").textContent = "Saving price...";
+        byId("savePrice").textContent = "Saving...";
         setStatus("Saving branch selling price...", "");
         try {
             const response = await postJson("stock/branch-price-save.php", {
@@ -162,7 +162,7 @@
         } finally {
             state.busy = false;
             byId("savePrice").disabled = false;
-            byId("savePrice").textContent = "Save selling price";
+            byId("savePrice").textContent = "Save";
         }
     }
 
@@ -197,14 +197,14 @@
             const allowed = type === "RETAILER" && ["ADMIN", "BRANCH_ADMIN"].includes(role);
             if (!allowed) {
                 byId("priceApp").hidden = true;
-                byId("refreshPrices").disabled = true;
++
                 setStatus("Branch selling prices are available only to retailer organisation administrators and branch administrators.", "error");
                 return;
             }
             byId("priceApp").hidden = false;
             byId("priceFrom").value = localToday();
             await loadData();
-            setStatus("Active branches, visible product versions, and selling-price history loaded.");
+            setStatus("", "");
         } catch (error) {
             setStatus(error.message || "Unable to initialise branch selling prices.", "error");
         }
@@ -216,14 +216,7 @@
     });
     byId("priceForm").addEventListener("submit", savePrice);
     byId("clearPrice").addEventListener("click", clearForm);
-    byId("refreshPrices").addEventListener("click", async () => {
-        try {
-            await loadData(byId("priceBranch").value, byId("priceVersion").value);
-            setStatus("Branch selling prices refreshed.", "success");
-        } catch (error) {
-            setStatus(error.message || "Unable to refresh branch selling prices.", "error");
-        }
-    });
+
     byId("priceRows").addEventListener("click", event => {
         const button = event.target.closest("[data-end-price]");
         if (button) endPrice(button);

@@ -129,7 +129,6 @@
     async function loadReport() {
         if (state.busy) return;
         state.busy = true;
-        byId("refreshSalesReport").disabled = true;
         setStatus("Loading sales report...", "");
         try {
             const selectedBranch = byId("salesReportBranch").value;
@@ -147,19 +146,18 @@
             renderMetrics(data.totals || {});
             renderRows();
             byId("salesReportRange").textContent = `${data.period_label || period} | ${data.start_date || "start date unavailable"} to ${data.end_date || "end date unavailable"}`;
-            const scope = state.allBranches ? "all active branches" : state.branch ? `${state.branch.branch_name}${state.branch.area_name ? ` | ${state.branch.area_name}` : ""}` : "selected branch";
-            setStatus(`Showing recorded daily summaries for ${scope}.`, "");
+
+            setStatus("", "");
         } catch (error) {
             setStatus(apiMessage(error), "error");
-            byId("salesReportRows").innerHTML = '<tr><td colspan="8" class="stock-sales-empty">Sales reports could not be loaded. Refresh to try again.</td></tr>';
+            byId("salesReportRows").innerHTML = '<tr><td colspan="8" class="stock-sales-empty">Sales reports could not be loaded. Reload the page to try again.</td></tr>';
             byId("salesReportMetrics").innerHTML = "";
         } finally {
             state.busy = false;
-            byId("refreshSalesReport").disabled = false;
         }
     }
 
-    byId("refreshSalesReport").addEventListener("click", loadReport);
+
     byId("salesReportBranch").addEventListener("change", loadReport);
     byId("salesReportPeriod").addEventListener("change", loadReport);
     loadReport();

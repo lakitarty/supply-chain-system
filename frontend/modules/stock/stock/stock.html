@@ -14,15 +14,9 @@
     <main class="page stock-page">
         <header class="stock-page-heading">
             <div>
-                <p class="stock-eyebrow">RETAIL OPERATIONS</p>
                 <h1>Stock</h1>
-                <p class="stock-subtitle">Track branch inventory, record sales, and review replenishment guidance.</p>
             </div>
-            <div class="stock-heading-actions">
-                <a class="secondary-button stock-link" href="../alerts/alerts.html">View alerts</a>
-                <a class="secondary-button stock-link" href="../sales/sales.html">Sales &amp; Reports</a>
-                <button id="refreshStock" class="secondary-button" type="button">Refresh</button>
-            </div>
+            
         </header>
 
         <section class="stock-toolbar" aria-label="Stock filters">
@@ -50,34 +44,43 @@
 
         <section id="stockMetrics" class="stock-metrics" aria-label="Stock summary"></section>
         <div class="stock-layout">
-            <section class="stock-table-section" aria-labelledby="stockTableTitle">
-                <div class="stock-section-heading">
-                    <div>
-                        <h2 id="stockTableTitle">Product inventory</h2>
-                        <p>Each packaging version is tracked separately.</p>
-                    </div>
-                    <span id="stockRowCount" class="stock-row-count">0 products</span>
+                    <section class="stock-product-panel" aria-labelledby="stockTableTitle">
+            <header class="stock-section-heading">
+                <div>
+                    <h2 id="stockTableTitle">Selected product</h2>
+                    <p>Search and choose one product package to view its inventory and supply guidance.</p>
                 </div>
-                <div class="stock-table-scroll">
-                    <table class="stock-table">
-                        <thead>
-                            <tr>
-                                <th scope="col">Product</th>
-                                <th scope="col">Package / barcode</th>
-                                <th scope="col" class="numeric">On hand</th>
-                                <th scope="col" class="numeric">Avg. per day</th>
-                                <th scope="col">Supplier guidance</th>
-                                <th scope="col" class="numeric">Suggested order</th>
-                                <th scope="col">Status</th>
-                                <th scope="col"><span class="sr-only">Manage</span></th>
-                            </tr>
-                        </thead>
-                        <tbody id="stockRows">
-                            <tr><td colspan="8" class="stock-empty-cell">Loading inventory...</td></tr>
-                        </tbody>
-                    </table>
+                <span id="stockRowCount" class="stock-row-count">0 matching packages</span>
+            </header>
+
+            <section id="stockInlineAlerts" class="stock-inline-alerts" aria-label="Stock alerts">
+                <header class="stock-inline-alert-heading">
+                    <div>
+                        <h3>Needs attention</h3>
+                        <p>Active stock alerts for this branch</p>
+                    </div>
+                    <span id="stockInlineAlertCount" class="stock-inline-alert-count">Loading</span>
+                </header>
+                <div id="stockInlineAlertSummary" class="stock-inline-alert-summary"></div>
+                <div id="stockInlineAlertList" class="stock-inline-alert-list" aria-live="polite">
+                    <p class="stock-inline-alert-empty">Loading active alerts...</p>
                 </div>
             </section>
+            <div class="stock-product-selector">
+                <label for="stockProductSelect">Product and package version</label>
+                <select id="stockProductSelect" aria-describedby="stockProductSelectHint">
+                    <option value="">Choose a product package</option>
+                </select>
+                <p id="stockProductSelectHint">Use the search and status filters above to narrow the choices.</p>
+            </div>
+
+            <div id="stockProductSummary" class="stock-product-summary" aria-live="polite">
+                <div class="stock-product-empty">
+                    <strong>Choose a product to begin</strong>
+                    <p>Its stock count, demand, supplier guidance, and status will appear here.</p>
+                </div>
+            </div>
+        </section>
 
             <aside class="stock-editor" aria-labelledby="stockEditorTitle">
                 <div class="stock-section-heading stock-editor-heading">
@@ -136,8 +139,7 @@
                 <p id="stockEditorStatus" class="stock-editor-status" role="status" aria-live="polite"></p>
             </aside>
         </div>
-        <section id="stockIntegrity" class="stock-integrity" aria-label="Inventory data review" hidden></section>
-    </main>
+</main>
 
     <script src="../../../shared/js/api.js"></script>
     <script src="../../../shared/js/navigation.js"></script>

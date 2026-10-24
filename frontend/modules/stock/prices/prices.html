@@ -13,18 +13,15 @@
     <main class="page pricing-page branch-prices-page">
         <header class="pricing-heading">
             <div>
-                <p class="pricing-eyebrow">RETAIL OPERATIONS</p>
                 <h1>Branch selling prices</h1>
-                <p class="pricing-subtitle">Set and retain selling-price periods for each branch and product package version.</p>
             </div>
-            <button id="refreshPrices" class="secondary-button" type="button">Refresh</button>
         </header>
 
         <p class="pricing-status" id="pricesStatus" role="status" aria-live="polite">Loading branch selling prices...</p>
 
-        <section class="pricing-section" id="priceApp" hidden>
+        <div class="pricing-workspace">
+        <section class="pricing-section pricing-form-section" id="priceApp" hidden>
             <h2>Set a selling price</h2>
-            <p class="pricing-explainer">Prices are separate for each branch and package version. Choose whether the entered selling price includes VAT. A price record does not establish acquisition cost or profit.</p>
             <form id="priceForm" novalidate>
                 <div class="pricing-grid">
                     <div class="pricing-field">
@@ -56,17 +53,16 @@
                     </div>
                 </div>
                 <div class="pricing-actions">
-                    <button id="savePrice" class="primary-button" type="submit">Save selling price</button>
+                    <button id="savePrice" class="primary-button" type="submit">Save</button>
                     <button id="clearPrice" class="secondary-button" type="button">Clear form</button>
                 </div>
             </form>
         </section>
 
-        <section class="pricing-section">
+        <section class="pricing-section pricing-history-section">
             <div class="pricing-section-heading">
                 <div>
                     <h2>Selling-price history</h2>
-                    <p>Price periods are retained. End an open period before starting another period that would overlap it.</p>
                 </div>
             </div>
             <div class="pricing-table-wrap">
@@ -76,7 +72,7 @@
                 </table>
             </div>
         </section>
-        <p class="pricing-footnote">These records do not rewrite the legacy retailer_products.selling_price field or assign values to historical sales. Costs and margins require actual receiving-cost records.</p>
+        </div>
     </main>
     <script src="../../../shared/js/api.js"></script>
     <script src="../../../shared/js/navigation.js"></script>

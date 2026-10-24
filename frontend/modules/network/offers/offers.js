@@ -215,6 +215,10 @@
         byId("offerTo").min = byId("offerFrom").value;
         if (byId("offerTo").value && byId("offerTo").value < byId("offerFrom").value) byId("offerTo").value = "";
     });
+    byId("saveOffer").addEventListener("click", event => {
+        event.preventDefault();
+        saveOffer({ preventDefault() {} });
+    });
     byId("offerForm").addEventListener("submit", saveOffer);
     byId("clearOffer").addEventListener("click", clearForm);
     byId("refreshOffers").addEventListener("click", async () => {

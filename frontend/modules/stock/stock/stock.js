@@ -6,7 +6,8 @@
         branch: null,
         branches: [],
         rows: [],
-        dataIssues: null,
+        alerts: [],
+        alertRequest: 0,
         selectedKey: null,
         busy: false,
         salesContext: null,
@@ -119,52 +120,6 @@
         ).join("");
     }
 
-    function issueDescription(issue) {
-        const product = escapeHtml(issue.product_name || "Product");
-        if (issue.issue_code === "PRODUCT_VERSION_MISMATCH") {
-            return `${product}: stock record #${escapeHtml(issue.retailer_stock_id)} points to a version belonging to ${escapeHtml(issue.version_product_name || "another product")}. It is excluded from branch stock calculations until reconciled.`;
-        }
-        if (issue.issue_code === "BRANCH_UNALLOCATED") {
-            return `${product}: stock record #${escapeHtml(issue.retailer_stock_id)} has no branch assigned. Its physical location must be confirmed before it can be used for branch inventory.`;
-        }
-        if (issue.issue_code === "MISSING_PRODUCT_VERSION") {
-            return `${product}: stock record #${escapeHtml(issue.retailer_stock_id)} references a missing product version. Reconciliation is required.`;
-        }
-        return `${product}: stock record #${escapeHtml(issue.retailer_stock_id)} needs review.`;
-    }
-
-    function renderIntegrity() {
-        const node = byId("stockIntegrity");
-        const issues = state.dataIssues || {};
-        const records = Array.isArray(issues.stock_records_needing_review) ? issues.stock_records_needing_review : [];
-        const unversionedSales = Number(issues.unallocated_or_unversioned_sales_count || 0);
-        const legacyAlerts = Array.isArray(issues.active_legacy_alerts) ? issues.active_legacy_alerts : [];
-        const messages = [];
-
-        records.forEach(issue => messages.push(issueDescription(issue)));
-        if (unversionedSales > 0) {
-            messages.push(`${unversionedSales} historical sale record(s) have no branch or product version assigned. They have been retained and are excluded from version-specific demand calculations.`);
-        }
-        legacyAlerts.forEach(alert => {
-            const reason = alert.issue_code === "PRODUCT_VERSION_MISMATCH"
-                ? `version belongs to ${alert.version_product_name || "another product"}`
-                : alert.issue_code === "BRANCH_UNALLOCATED"
-                    ? "has no branch assigned"
-                    : "has no verified product-version assignment";
-            messages.push(`${alert.product_name}: active legacy alert #${alert.stock_alert_id} ${reason}. Review it before resolving or reassigning it.`);
-        });
-
-        node.hidden = messages.length === 0;
-        if (messages.length === 0) {
-            node.innerHTML = "";
-            return;
-        }
-
-        node.innerHTML = `<h2>Inventory records needing review</h2>
-            <p>Legacy data is preserved. These records are not automatically assigned to a branch or product version.</p>
-            <ul>${messages.map(message => `<li>${message}</li>`).join("")}</ul>`;
-    }
-
     function filteredRows() {
         const query = byId("stockSearch").value.trim().toLowerCase();
         const filter = byId("stockStatusFilter").value;
@@ -175,45 +130,98 @@
         });
     }
 
+    function clearSelectedProductForm() {
+        state.salesContext = null;
+        state.contextKey = null;
+        state.contextBranchId = null;
+        state.contextRequest += 1;
+
+        byId("selectedProductLabel").textContent = "No product package selected.";
+        ["countOnHand", "countReorderLevel", "unitsSold", "salesAmount", "salesAmountBasis"].forEach(id => {
+            byId(id).value = "";
+        });
+        updateFormAvailability(null);
+        setEditorStatus("Choose a product package to manage its stock.", "");
+        byId("salesTaxContext").textContent = "Select a product version, branch, and sale date to check its effective branch price and manufacturer tax declaration.";
+        renderSalesAmountHint();
+    }
+
     function renderRows() {
         const rows = filteredRows();
-        byId("stockRowCount").textContent = `${rows.length} version${rows.length === 1 ? "" : "s"}`;
+        const previousKey = state.selectedKey;
 
-        if (rows.length === 0) {
-            byId("stockRows").innerHTML = `<tr><td colspan="8" class="stock-empty-cell">No products match these filters.</td></tr>`;
+        if (previousKey && !rows.some(row => `${row.product_id}:${row.product_version_id}` === previousKey)) {
+            state.selectedKey = null;
+            clearSelectedProductForm();
+        }
+
+        const select = byId("stockProductSelect");
+        const options = rows.map(row => {
+            const key = `${row.product_id}:${row.product_version_id}`;
+            const packageName = row.pack_size || row.packaging_description || "Package not specified";
+            const status = stockStatusLabels[row.status] || row.status || "Unknown";
+            const label = `${row.product_name} | ${packageName} | Version ${row.version_number} | ${status}`;
+            return `<option value="${escapeHtml(key)}">${escapeHtml(label)}</option>`;
+        });
+        select.innerHTML = `<option value="">Choose a product package</option>${options.join("")}`;
+        select.value = state.selectedKey && rows.some(row => `${row.product_id}:${row.product_version_id}` === state.selectedKey)
+            ? state.selectedKey
+            : "";
+        byId("stockRowCount").textContent = `${rows.length} matching package${rows.length === 1 ? "" : "s"}`;
+
+        const summary = byId("stockProductSummary");
+        const row = selectedRow();
+        if (!row) {
+            summary.innerHTML = `<div class="stock-product-empty">
+                <strong>Choose a product to begin</strong>
+                <p>Select a product and package version above. Its stock count, demand, supplier guidance, and status will appear here.</p>
+                <small>${rows.length.toLocaleString("en-KE")} matching product package${rows.length === 1 ? "" : "s"} available.</small>
+            </div>`;
             return;
         }
 
-        byId("stockRows").innerHTML = rows.map(row => {
-            const key = `${row.product_id}:${row.product_version_id}`;
-            const selected = key === state.selectedKey ? " is-selected" : "";
-            const onHand = row.stock_recorded ? Number(row.on_hand).toLocaleString() : "Not counted";
-            const average = Number(row.average_daily_sales || 0).toFixed(2);
-            const days = row.days_left === null || row.days_left === undefined ? "Not available" : `${Number(row.days_left).toFixed(1)} days`;
-            const packageName = row.pack_size || row.packaging_description || "Package not specified";
-            const supplier = row.supplier_name
-                ? `${escapeHtml(row.supplier_name)}<small>${Number(row.lead_time_days)} day lead time${row.lead_time_is_estimate ? " (estimate)" : ""}</small>`
-                : `No applicable regional supplier<small>Default lead time: ${Number(row.lead_time_days)} days</small>`;
-            const suggestion = Number(row.recommended_quantity || 0) > 0
-                ? `${Number(row.recommended_quantity).toLocaleString()} units<small>MOQ ${Number(row.minimum_order_quantity)} | Multiple ${Number(row.order_multiple)}</small>`
-                : `None<small>${row.status === "NORMAL" ? "No reorder indicated" : row.status === "NOT_TRACKED" ? "Count stock to enable analysis" : "Review supply availability"}</small>`;
-            return `<tr class="${selected.trim()}" data-row-key="${escapeHtml(key)}">
-                <td><strong>${escapeHtml(row.product_name)}</strong><small>${escapeHtml(row.manufacturer_name || "Manufacturer not recorded")}</small></td>
-                <td><strong>${escapeHtml(packageName)}</strong><small>Version ${escapeHtml(row.version_number)} | ${escapeHtml(row.barcode || "No barcode")}</small></td>
-                <td class="numeric"><strong>${escapeHtml(onHand)}</strong><small>Reorder at ${Number(row.reorder_level).toLocaleString()}</small></td>
-                <td class="numeric">${average}<small>${escapeHtml(days)} left</small></td>
-                <td>${supplier}</td>
-                <td class="numeric">${suggestion}</td>
-                <td>${statusChip(row.status)}</td>
-                <td><button type="button" class="secondary-button stock-manage-button" data-manage-key="${escapeHtml(key)}">Manage</button></td>
-            </tr>`;
-        }).join("");
+        const packageName = row.pack_size || row.packaging_description || "Package not specified";
+        const onHand = row.stock_recorded ? Number(row.on_hand).toLocaleString("en-KE") : "Not counted";
+        const reorder = Number(row.reorder_level || 0).toLocaleString("en-KE");
+        const average = Number(row.average_daily_sales || 0).toFixed(2);
+        const days = row.days_left === null || row.days_left === undefined
+            ? "Not available"
+            : `${Number(row.days_left).toFixed(1)} days`;
+        const supplier = row.supplier_name || "No applicable regional supplier";
+        const leadTime = `${Number(row.lead_time_days || 0)} day lead time${row.lead_time_is_estimate ? " (estimate)" : ""}`;
+        const suggested = Number(row.recommended_quantity || 0);
+        const suggestion = suggested > 0
+            ? `${suggested.toLocaleString("en-KE")} units`
+            : "No order suggested";
+        const suggestionDetail = suggested > 0
+            ? `MOQ ${Number(row.minimum_order_quantity || 0)} | Order multiple ${Number(row.order_multiple || 0)}`
+            : row.status === "NOT_TRACKED"
+                ? "Count stock to enable analysis"
+                : row.status === "NORMAL"
+                    ? "No reorder indicated"
+                    : "Review stock and supplier availability";
 
-        byId("stockRows").querySelectorAll("[data-manage-key]").forEach(button => {
-            button.addEventListener("click", () => selectRow(button.getAttribute("data-manage-key")));
-        });
+        summary.innerHTML = `<div class="stock-product-overview">
+            <div class="stock-product-overview-heading">
+                <div class="stock-product-overview-copy">
+                    <p class="stock-product-kicker">PRODUCT OVERVIEW</p>
+                    <h3>${escapeHtml(row.product_name)}</h3>
+                    <p>${escapeHtml(row.manufacturer_name || "Manufacturer not recorded")}</p>
+                </div>
+                ${statusChip(row.status)}
+            </div>
+            <dl class="stock-product-details">
+                <div><dt>Package</dt><dd>${escapeHtml(packageName)}</dd></div>
+                <div><dt>Version / barcode</dt><dd>Version ${escapeHtml(row.version_number)}<small>${escapeHtml(row.barcode || "No barcode")}</small></dd></div>
+                <div><dt>Units on hand</dt><dd>${escapeHtml(onHand)}<small>Reorder level: ${escapeHtml(reorder)}</small></dd></div>
+                <div><dt>Average daily sales</dt><dd>${escapeHtml(average)}<small>${escapeHtml(days)} remaining</small></dd></div>
+            </dl>
+            <div class="stock-product-guidance">
+                <div><span>Regional supplier</span><strong>${escapeHtml(supplier)}</strong><small>${escapeHtml(leadTime)}</small></div>
+                <div><span>Suggested order</span><strong>${escapeHtml(suggestion)}</strong><small>${escapeHtml(suggestionDetail)}</small></div>
+            </div>
+        </div>`;
     }
-
     function updateFormAvailability(row) {
         const hasSelection = Boolean(row);
         byId("saveStockButton").disabled = !hasSelection || state.busy;
@@ -357,9 +365,109 @@
         return payload;
     }
 
+    function renderInlineAlerts() {
+        const alerts = state.alerts;
+        const low = alerts.filter(alert => alert.alert_type === "LOW_STOCK").length;
+        const out = alerts.filter(alert => alert.alert_type === "OUT_OF_STOCK").length;
+        const suggested = alerts.reduce(
+            (total, alert) => total + Number(alert.recommended_order_quantity || 0),
+            0
+        );
+
+        byId("stockInlineAlertCount").textContent =
+            `${alerts.length} active alert${alerts.length === 1 ? "" : "s"}`;
+
+        byId("stockInlineAlertSummary").innerHTML = [
+            ["Low stock", low],
+            ["Out of stock", out],
+            ["Suggested units", suggested.toLocaleString()]
+        ].map(([label, value]) =>
+            `<div class="stock-inline-alert-stat">
+                <span>${escapeHtml(label)}</span>
+                <strong>${escapeHtml(value)}</strong>
+            </div>`
+        ).join("");
+
+        if (!alerts.length) {
+            byId("stockInlineAlertList").innerHTML =
+                `<p class="stock-inline-alert-empty">No active stock alerts for this branch.</p>`;
+            return;
+        }
+
+        byId("stockInlineAlertList").innerHTML = alerts.map(alert => {
+            const isOut = alert.alert_type === "OUT_OF_STOCK";
+            const kind = isOut ? "out-of-stock" : "low-stock";
+            const label = isOut ? "Out of stock" : "Low stock";
+            const key = `${alert.product_id}:${alert.product_version_id}`;
+            const canOpen = state.rows.some(row =>
+                `${row.product_id}:${row.product_version_id}` === key
+            );
+
+            const packageText = [
+                alert.pack_size || `Version ${alert.version_number || "unknown"}`,
+                alert.barcode ? `Barcode ${alert.barcode}` : ""
+            ].filter(Boolean).join(" | ");
+
+            return `<article class="stock-inline-alert-item">
+                <div class="stock-inline-alert-title">
+                    <div>
+                        <h4>${escapeHtml(alert.product_name || "Product")}</h4>
+                        <p>${escapeHtml(packageText)}</p>
+                    </div>
+                    <span class="stock-inline-alert-badge ${kind}">${label}</span>
+                </div>
+                <div class="stock-inline-alert-details">
+                    <div><span>On hand</span>
+                        <strong>${Number(alert.current_stock || 0).toLocaleString()}</strong></div>
+                    <div><span>Reorder level</span>
+                        <strong>${Number(alert.reorder_level || 0).toLocaleString()}</strong></div>
+                    <div><span>Suggested order</span>
+                        <strong>${Number(alert.recommended_order_quantity || 0).toLocaleString()} units</strong></div>
+                </div>
+                <button class="stock-inline-alert-open" type="button"
+                    data-stock-alert-key="${escapeHtml(key)}"
+                    ${canOpen ? "" : "disabled"}>
+                    ${canOpen ? "View product" : "Product unavailable"}
+                </button>
+            </article>`;
+        }).join("");
+    }
+
+    async function loadInlineAlerts(branchId) {
+        const requestId = ++state.alertRequest;
+        const list = byId("stockInlineAlertList");
+
+        if (!branchId) {
+            state.alerts = [];
+            renderInlineAlerts();
+            return;
+        }
+
+        list.innerHTML =
+            `<p class="stock-inline-alert-empty">Loading active alerts...</p>`;
+
+        try {
+            const response = await getJson(
+                `stock/alerts.php?branchId=${encodeURIComponent(branchId)}`
+            );
+            const data = unwrapApiResponse(response, "Unable to load stock alerts.");
+
+            if (requestId !== state.alertRequest) return;
+
+            state.alerts = Array.isArray(data.alerts) ? data.alerts : [];
+            renderInlineAlerts();
+        } catch (error) {
+            if (requestId !== state.alertRequest) return;
+
+            byId("stockInlineAlertCount").textContent = "Unavailable";
+            byId("stockInlineAlertSummary").innerHTML = "";
+            list.innerHTML = `<p class="stock-inline-alert-empty">
+                Alerts could not be retrieved. Use Refresh to try again.
+            </p>`;
+        }
+    }
     async function loadStock() {
         setStatus("Loading stock...", "");
-        byId("refreshStock").disabled = true;
         try {
             const selectedBranchId = byId("stockBranch").value;
             const path = "stock/list.php" + (selectedBranchId ? `?branchId=${encodeURIComponent(selectedBranchId)}` : "");
@@ -368,29 +476,18 @@
             state.branch = data.branch || null;
             state.branches = Array.isArray(data.branches) ? data.branches : [];
             state.rows = Array.isArray(data.stock) ? data.stock : [];
-            state.dataIssues = data.data_issues || null;
+            void loadInlineAlerts(state.branch ? state.branch.branch_id : selectedBranchId);
             renderBranches();
             renderMetrics(state.rows);
-            renderIntegrity();
-
-            if (!selectedRow()) {
-                const preferred = state.rows.find(row => row.is_current === 1 && row.status !== "NOT_TRACKED") || state.rows.find(row => row.is_current === 1) || state.rows[0];
-                state.selectedKey = preferred ? `${preferred.product_id}:${preferred.product_version_id}` : null;
-            }
+            if (!selectedRow()) state.selectedKey = null;
             renderRows();
             if (state.selectedKey) selectRow(state.selectedKey);
-            else {
-                byId("selectedProductLabel").textContent = "No product version is available for this branch.";
-                updateFormAvailability(null);
-            }
-            setStatus(state.branch
-                ? `Showing inventory for ${state.branch.branch_name}${state.branch.area_name ? ` | ${state.branch.area_name}` : " | County not assigned"}.`
-                : "No active branch is available.", "");
+            else clearSelectedProductForm();
+            setStatus("", "");
         } catch (error) {
             setStatus(apiMessage(error), "error");
-            byId("stockRows").innerHTML = `<tr><td colspan="8" class="stock-empty-cell">Stock could not be loaded. Refresh to try again.</td></tr>`;
+            byId("stockProductSummary").innerHTML = '<div class="stock-product-empty"><strong>Stock could not be loaded</strong><p>Refresh to try again.</p></div>';
         } finally {
-            byId("refreshStock").disabled = false;
         }
     }
 
@@ -494,10 +591,48 @@
         }
     }
 
-    byId("refreshStock").addEventListener("click", loadStock);
     byId("stockBranch").addEventListener("change", () => {
         state.selectedKey = null;
         loadStock();
+    });
+    byId("stockProductSelect").addEventListener("change", () => {
+        const key = byId("stockProductSelect").value;
+        if (key) {
+            selectRow(key);
+        } else {
+            state.selectedKey = null;
+            clearSelectedProductForm();
+            renderRows();
+        }
+    });
+    byId("stockInlineAlertList").addEventListener("click", event => {
+        const target = event.target instanceof Element
+            ? event.target.closest("[data-stock-alert-key]")
+            : null;
+
+        if (!target || target.disabled) return;
+
+        const key = target.getAttribute("data-stock-alert-key");
+        const row = state.rows.find(item =>
+            `${item.product_id}:${item.product_version_id}` === key
+        );
+
+        if (!row) {
+            setStatus("That product package is unavailable in the current branch stock list.", "error");
+            return;
+        }
+
+        byId("stockSearch").value = "";
+        byId("stockStatusFilter").value = "ALL";
+        state.selectedKey = key;
+        renderRows();
+        selectRow(key);
+        byId("stockProductSelect").value = key;
+
+        byId("stockProductSelect").scrollIntoView({
+            behavior: "smooth",
+            block: "center"
+        });
     });
     byId("stockSearch").addEventListener("input", renderRows);
     byId("stockStatusFilter").addEventListener("change", renderRows);

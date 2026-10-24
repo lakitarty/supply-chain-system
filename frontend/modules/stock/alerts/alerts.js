@@ -2,7 +2,7 @@
     "use strict";
 
     const byId = id => document.getElementById(id);
-    const state = { branches: [], branch: null, alerts: [], dataIssues: null, busy: false };
+    const state = { branches: [], branch: null, alerts: [], busy: false };
 
     function escapeHtml(value) {
         return String(value === null || value === undefined ? "" : value)
@@ -58,43 +58,6 @@
         byId("activeAlertCount").textContent = `${state.alerts.length} alert${state.alerts.length === 1 ? "" : "s"} | ${low} low stock`;
     }
 
-    function alertReviewMessage(issue) {
-        const productName = escapeHtml(issue.product_name || "Product");
-        if (issue.issue_code === "PRODUCT_VERSION_MISMATCH") {
-            return `${productName}: active alert #${escapeHtml(issue.stock_alert_id)} refers to a version of ${escapeHtml(issue.version_product_name || "another product")}. It is retained for reconciliation.`;
-        }
-        if (issue.issue_code === "BRANCH_UNALLOCATED") {
-            return `${productName}: active alert #${escapeHtml(issue.stock_alert_id)} has no branch assigned and is excluded from branch alert counts.`;
-        }
-        return `${productName}: active alert #${escapeHtml(issue.stock_alert_id)} has no verified matching product version and needs review.`;
-    }
-
-    function renderLegacyIssues() {
-        const node = byId("legacyAlertReview");
-        const issues = state.dataIssues || {};
-        const stockIssues = Array.isArray(issues.stock_records_needing_review) ? issues.stock_records_needing_review : [];
-        const salesCount = Number(issues.unallocated_or_unversioned_sales_count || 0);
-        const legacyAlerts = Array.isArray(issues.active_legacy_alerts) ? issues.active_legacy_alerts : [];
-        const messages = [];
-
-        stockIssues.forEach(issue => {
-            if (issue.issue_code === "PRODUCT_VERSION_MISMATCH") {
-                messages.push(`${escapeHtml(issue.product_name)} stock record #${escapeHtml(issue.retailer_stock_id)} references a version belonging to ${escapeHtml(issue.version_product_name || "another product")}.`);
-            } else if (issue.issue_code === "BRANCH_UNALLOCATED") {
-                messages.push(`${escapeHtml(issue.product_name)} stock record #${escapeHtml(issue.retailer_stock_id)} has no branch assigned.`);
-            } else {
-                messages.push(`${escapeHtml(issue.product_name)} stock record #${escapeHtml(issue.retailer_stock_id)} needs review.`);
-            }
-        });
-        legacyAlerts.forEach(issue => messages.push(alertReviewMessage(issue)));
-        if (salesCount > 0) messages.push(`${salesCount} historical sale record(s) have no branch or product-version assignment. They remain preserved but are excluded from version-specific demand analysis.`);
-
-        node.hidden = messages.length === 0;
-        node.innerHTML = messages.length
-            ? `<h2>Legacy records need review</h2><p>These records are preserved. They are not automatically assigned to a branch or product version.</p><ul>${messages.map(message => `<li>${message}</li>`).join("")}</ul>`
-            : "";
-    }
-
     function renderAlerts() {
         byId("activeAlertCount").textContent = `${state.alerts.length} active alert${state.alerts.length === 1 ? "" : "s"}`;
         if (state.alerts.length === 0) {
@@ -142,10 +105,8 @@
             state.branch = data.branch || null;
             state.branches = Array.isArray(data.branches) ? data.branches : [];
             state.alerts = Array.isArray(data.alerts) ? data.alerts : [];
-            state.dataIssues = data.data_issues || null;
             renderBranches();
             renderMetrics();
-            renderLegacyIssues();
             renderAlerts();
             setStatus(state.branch
                 ? `Showing active alerts for ${state.branch.branch_name}${state.branch.area_name ? ` | ${state.branch.area_name}` : " | County not assigned"}.`

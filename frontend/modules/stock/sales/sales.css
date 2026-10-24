@@ -214,3 +214,355 @@
         min-width: 100%;
     }
 }
+
+/* Nexora Sales report workspace */
+
+main.page.stock-sales-page {
+    --sales-brand: var(--brand, #9C1248);
+    --sales-brand-dark: var(--brand-dark, #6A1B9A);
+
+    display: block;
+    width: calc(100% - 36px);
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 20px 0 30px;
+    color: var(--text, #263238);
+    font-size: 12px;
+}
+
+.stock-sales-page .stock-sales-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin: 0 0 14px;
+    padding: 0;
+    border: 0 !important;
+}
+
+.stock-sales-page .stock-sales-heading h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 650;
+    letter-spacing: -0.4px;
+}
+
+.stock-sales-page .stock-sales-eyebrow,
+.stock-sales-page .stock-sales-subtitle,
+.stock-sales-page .stock-sales-footnote {
+    display: none !important;
+}
+
+.stock-sales-page .stock-sales-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.stock-sales-page .stock-sales-actions a {
+    padding: 7px 11px;
+    border: 0 !important;
+    border-radius: 5px;
+    background: #F0F2F4;
+    color: var(--text, #263238);
+    font-size: 11px;
+    text-decoration: none;
+}
+
+.stock-sales-page .stock-sales-actions a:hover {
+    background: #E5E8EB;
+}
+
+/* One enclosure for all report controls, summaries and results. */
+.stock-sales-page .sales-report-workspace {
+    width: 100%;
+    padding: 17px;
+    border: 0 !important;
+    border-radius: 8px;
+    background: #FFFFFF;
+    box-shadow: none !important;
+}
+
+/* Compact vertical filters. */
+.stock-sales-page .stock-sales-toolbar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 11px;
+    margin: 0 0 12px;
+    padding: 0;
+    border: 0 !important;
+    border-radius: 0;
+    background: transparent;
+}
+
+.stock-sales-page .stock-sales-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 100%;
+    max-width: 560px;
+    min-width: 0;
+}
+
+.stock-sales-page .stock-sales-field label {
+    color: #435064;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.stock-sales-page .stock-sales-field select {
+    width: 100%;
+    min-width: 0;
+    height: 36px;
+    min-height: 36px;
+    padding: 0 9px;
+    border: 1px solid #D7DDE3;
+    border-radius: 5px;
+    background: #FFFFFF;
+    color: #263238;
+    font: inherit;
+    font-size: 12px;
+}
+
+.stock-sales-page .stock-sales-field select:focus {
+    border-color: var(--sales-brand);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(156, 18, 72, 0.10);
+}
+
+/* Hide empty status space after loading; preserve errors. */
+.stock-sales-page .stock-sales-status {
+    margin: 0;
+    padding: 0;
+    border: 0 !important;
+    background: transparent;
+    color: #64757A;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.stock-sales-page .stock-sales-status:empty,
+.stock-sales-page .stock-sales-status:not(.is-error):not(.is-success) {
+    display: none !important;
+}
+
+.stock-sales-page .stock-sales-status.is-error {
+    display: block;
+    padding: 8px 0;
+    color: #A32E2E;
+}
+
+.stock-sales-page .stock-sales-status.is-success {
+    display: block;
+    padding: 8px 0;
+    color: #176B45;
+}
+
+/* Compact summary metrics with no separate bordered cards. */
+.stock-sales-page .stock-sales-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin: 14px 0;
+}
+
+.stock-sales-page .stock-sales-metric {
+    min-width: 0;
+    padding: 12px;
+    border: 0 !important;
+    border-radius: 6px;
+    background: #F3F5F6;
+    box-shadow: none !important;
+}
+
+.stock-sales-page .stock-sales-metric-label {
+    color: #647386;
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+.stock-sales-page .stock-sales-metric-value {
+    margin-top: 5px;
+    color: var(--sales-brand);
+    font-size: clamp(15px, 1.5vw, 20px);
+    font-weight: 650;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Keep dynamic data-quality warnings readable. */
+.stock-sales-page .stock-sales-notice {
+    margin: 12px 0;
+    padding: 10px 12px;
+    border: 0 !important;
+    border-radius: 6px;
+    background: #F5F3ED;
+    color: #62553A;
+    font-size: 11px;
+    line-height: 1.6;
+    box-shadow: none !important;
+}
+
+.stock-sales-page .stock-sales-notice[hidden] {
+    display: none !important;
+}
+
+/* Report history sits directly below the summary inside the same enclosure. */
+.stock-sales-page .stock-sales-table-section {
+    width: 100%;
+    margin: 14px 0 0;
+    padding: 0;
+    border: 0 !important;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none !important;
+}
+
+.stock-sales-page .stock-sales-section-heading {
+    margin: 0 0 10px;
+    padding: 0;
+    border: 0 !important;
+}
+
+.stock-sales-page .stock-sales-section-heading h2 {
+    margin: 0;
+    color: var(--text, #263238);
+    font-size: 15px;
+    font-weight: 650;
+}
+
+.stock-sales-page .stock-sales-section-heading p {
+    margin: 5px 0 0;
+    color: #647386;
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+.stock-sales-page .stock-sales-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    border: 0 !important;
+    border-radius: 0;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.stock-sales-page .stock-sales-table-wrap::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+.stock-sales-page .stock-sales-table {
+    width: 100%;
+    min-width: 1050px;
+    border-collapse: separate;
+    border-spacing: 0 5px;
+    font-size: 11px;
+}
+
+.stock-sales-page .stock-sales-table th {
+    padding: 8px 9px;
+    border: 0 !important;
+    background: transparent;
+    color: #667386;
+    font-size: 9px;
+    font-weight: 650;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.stock-sales-page .stock-sales-table td {
+    padding: 10px 9px;
+    border: 0 !important;
+    background: #F3F5F6;
+    color: #435064;
+    font-size: 11px;
+    line-height: 1.5;
+    vertical-align: middle;
+}
+
+.stock-sales-page .stock-sales-table tbody tr:hover td {
+    background: #E9EDEF;
+}
+
+.stock-sales-page .stock-sales-table tbody tr td:first-child {
+    border-radius: 5px 0 0 5px;
+}
+
+.stock-sales-page .stock-sales-table tbody tr td:last-child {
+    border-radius: 0 5px 5px 0;
+}
+
+.stock-sales-page .stock-sales-table td strong {
+    color: #263238;
+    font-weight: 600;
+}
+
+.stock-sales-page .stock-sales-table td small {
+    display: block;
+    margin-top: 3px;
+    color: #748092;
+    font-size: 10px;
+    line-height: 1.45;
+}
+
+.stock-sales-page .stock-sales-table .numeric {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.stock-sales-page .stock-sales-empty {
+    padding: 22px 12px !important;
+    border-radius: 5px;
+    background: #F3F5F6 !important;
+    color: #748092 !important;
+    text-align: center !important;
+}
+
+/* Remove decorative pseudo-element lines and separators on this page. */
+main.page.stock-sales-page *::before,
+main.page.stock-sales-page *::after {
+    box-shadow: none !important;
+}
+
+main.page.stock-sales-page hr {
+    display: none !important;
+}
+
+@media (max-width: 850px) {
+    main.page.stock-sales-page {
+        width: calc(100% - 28px);
+        padding-top: 16px;
+    }
+
+    .stock-sales-page .stock-sales-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 520px) {
+    main.page.stock-sales-page {
+        width: calc(100% - 20px);
+    }
+
+    .stock-sales-page .sales-report-workspace {
+        padding: 12px;
+    }
+
+    .stock-sales-page .stock-sales-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .stock-sales-page .stock-sales-actions {
+        width: 100%;
+    }
+
+    .stock-sales-page .stock-sales-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}

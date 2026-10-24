@@ -25,7 +25,6 @@ const BUILT_PATHS = [
     "modules/network/coverage/coverage.html",
     "modules/network/distribution/distribution.html",
     "modules/stock/stock/stock.html",
-    "modules/stock/alerts/alerts.html",
     "modules/stock/sales/sales.html",
     "modules/network/offers/offers.html",
     "modules/stock/prices/prices.html",
@@ -82,7 +81,6 @@ const TABS = [
         types: ["RETAILER"],
         sections: [
             { label: "Stock", path: page("stock", "stock") },
-            { label: "Alerts", path: page("stock", "alerts") },
             { label: "Selling prices", path: page("stock", "prices"), roles: ["ADMIN", "BRANCH_ADMIN"] },
             { label: "Sales & Reports", path: page("stock", "sales") }
         ]

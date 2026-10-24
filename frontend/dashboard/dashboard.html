@@ -6,38 +6,19 @@
     <link rel="stylesheet" href="../shared/css/base.css">
     <link rel="stylesheet" href="../shared/css/shell.css">
     <link rel="stylesheet" href="dashboard.css">
-    <title>Nexora MSRC</title>
+    <title>ChainBridge</title>
 </head>
 <body>
     <div id="shell"></div>
 
-    <main class="page dashboard-page">
-        <div id="dashboardMessage" class="form-message" role="alert" aria-live="polite"></div>
+    <main class="page dashboard-page" aria-label="Dashboard">
+        <div id="dashboardMessage" class="form-message"
+             role="alert" aria-live="polite"></div>
 
-        <section id="notificationNotice" class="dashboard-notification" aria-live="polite" hidden>
-            <div>
-                <h2 id="notificationTitle"></h2>
-                <p id="notificationText"></p>
-            </div>
-            <a id="notificationsLink" href="../modules/messages/notifications/notifications.html">View notifications</a>
-        </section>
-
-        <section class="dashboard-section" aria-labelledby="attentionHeading">
-            <div class="dashboard-section-heading">
-                <h2 id="attentionHeading">Needs your attention</h2>
-            </div>
-            <div id="attentionGroups" aria-live="polite">
-                <p class="dashboard-empty">Loading...</p>
-            </div>
-        </section>
-
-        <section class="dashboard-section" aria-labelledby="activityHeading">
-            <div class="dashboard-section-heading dashboard-activity-heading">
-                <h2 id="activityHeading">Recent updates</h2>
-                <button type="button" id="activityToggle" class="dashboard-toggle" aria-expanded="false" aria-controls="activityList">Show recent updates</button>
-            </div>
-            <div id="activityList" class="dashboard-activity-list" hidden></div>
-        </section>
+        <div id="dashboardCardGrid" class="dashboard-card-grid"
+             aria-live="polite" aria-busy="true">
+            <p class="dashboard-empty">Loading dashboard...</p>
+        </div>
     </main>
 
     <script src="../shared/js/api.js"></script>

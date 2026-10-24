@@ -94,7 +94,11 @@ function renderBranchOptions() {
 
         identity.append(
             makeElement("span", "branch-name", branch.branch_name),
-            makeElement("span", "branch-option-location", branch.location || "Location not provided")
+            makeElement(
+                "span",
+                "branch-option-location",
+                `${branch.location || "Location not provided"} | ${branch.area_name || "County not mapped"}`
+            )
         );
 
         button.append(identity);
@@ -148,11 +152,25 @@ function renderBranchDetails() {
     const details = makeElement("dl", "branch-detail-list");
 
     addDetail(details, "Branch type", isMainBranch(branch) ? "Main branch" : "Additional branch");
+    addDetail(details, "County", branch.area_name || "County not mapped");
     addDetail(details, "Status", readableStatus(branch.status));
 
     branchDetails.append(heading, details);
 }
 
+async function loadDistributionAreas() {
+    const select = field("areaId");
+    const { ok, data } = await getJson("distribution-areas/list.php");
+
+    if (!ok || !Array.isArray(data.areas) || data.areas.length === 0) {
+        throw new Error(data.error || "Unable to load the county list.");
+    }
+
+    select.replaceChildren(
+        option("", "Select county"),
+        ...data.areas.map(area => option(String(area.area_id), area.area_name))
+    );
+}
 async function loadBranches(preferredId = selectedBranchId) {
     const { ok, data } = await getJson("branches/list.php");
 
@@ -193,6 +211,7 @@ function openEditor(branch = null) {
 
     field("branchName").value = branch?.branch_name ?? "";
     field("location").value = branch?.location ?? "";
+    field("areaId").value = branch?.area_id ? String(branch.area_id) : "";
     field("status").value = branch?.status ?? "ACTIVE";
 
     field("statusGroup").hidden = !branch;
@@ -245,7 +264,16 @@ async function saveBranch(event) {
         return;
     }
 
-    const payload = { branchName, location };
+    
+    const areaId = fieldValue("areaId");
+
+    if (!areaId) {
+        showMessage(message, "Choose the branch county.", "error");
+        field("areaId").focus();
+        return;
+    }
+
+    const payload = { branchName, location, areaId: Number(areaId) };
 
     if (isCreating) {
         const firstName = fieldValue("firstName");
@@ -339,6 +367,7 @@ async function saveBranch(event) {
 
 async function initialiseBranches() {
     try {
+        await loadDistributionAreas();
         await loadBranches();
     } catch (error) {
         showMessage(

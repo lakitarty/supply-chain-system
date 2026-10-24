@@ -12,6 +12,7 @@ const REQUIRED_FIELDS = [
     ["organizationType", "Choose an organization type."],
     ["branchName", "Enter the branch name."],
     ["branchLocation", "Enter the branch location."],
+    ["branchAreaId", "Choose the main branch county."],
     ["firstName", "Enter the first name."],
     ["lastName", "Enter the last name."],
     ["adminEmail", "Enter the administrator email."],
@@ -28,12 +29,36 @@ const PAYLOAD_FIELDS = [
     "organizationAddress",
     "branchName",
     "branchLocation",
+    "branchAreaId",
     "firstName",
     "lastName",
     "adminEmail"
 ];
  
 
+async function loadDistributionAreas() {
+    const select = field("branchAreaId");
+
+    try {
+        const { ok, data } = await getJson("distribution-areas/list.php");
+
+        if (!ok || !Array.isArray(data.areas) || data.areas.length === 0) {
+            throw new Error(data?.error || "County list is unavailable.");
+        }
+
+        select.replaceChildren(
+            new Option("Select county", ""),
+            ...data.areas.map(area => new Option(area.area_name, String(area.area_id)))
+        );
+    } catch (error) {
+        select.replaceChildren(new Option("Unable to load counties", ""));
+        showMessage(
+            formMessage,
+            "Unable to load the county list. Check the server and reload this page.",
+            "error"
+        );
+    }
+}
 function isStrongPassword(value) {
     return value.length >= 8 && /[A-Za-z]/.test(value) && /[0-9]/.test(value);
 }
@@ -139,3 +164,4 @@ field("kraPin").addEventListener("input", event => {
 
 clearErrorOnInput(registerForm);
 registerForm.addEventListener("submit", submitRegistration);
+loadDistributionAreas();

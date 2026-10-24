@@ -31,6 +31,7 @@ const REGISTRATION_REQUIRED_FIELDS = [
            'organizationType' => $text('organizationType'),
            'branchName' => $text('branchName'),
            'branchLocation' => $text('branchLocation'),
+           'branchAreaId' => (int)($data['branchAreaId'] ?? 0),
            'firstName' => $text('firstName'),
            'lastName' => $text('lastName'),
            'adminEmail' => strtolower($text('adminEmail')),
@@ -72,7 +73,22 @@ const REGISTRATION_REQUIRED_FIELDS = [
 
        return $passwordMessage !== null ? field_error('password', $passwordMessage) : null;
    }
-   function find_registration_conflict(PDO $pdo, array $input): ?array
+   function registration_area_error(PDO $pdo, array $input): ?array
+{
+    if (($input['branchAreaId'] ?? 0) < 1) {
+        return field_error('branchAreaId', 'Choose an active county.');
+    }
+
+    $statement = $pdo->prepare(
+        "SELECT 1 FROM distribution_areas WHERE area_id = ? AND status = 'ACTIVE' LIMIT 1"
+    );
+    $statement->execute([$input['branchAreaId']]);
+
+    return $statement->fetchColumn()
+        ? null
+        : field_error('branchAreaId', 'Choose an active county.');
+}
+function find_registration_conflict(PDO $pdo, array $input): ?array
    {
        if (record_exists($pdo, 'SELECT 1 FROM users WHERE email = ? LIMIT 1', [$input['adminEmail']])) {
            return field_error('adminEmail', 'This email is already registered.');
@@ -103,10 +119,15 @@ function create_registration(PDO $pdo, array $input): int
 
         $branch = $pdo->prepare(
             "INSERT INTO branches
-                (organization_id, branch_name, location, is_main_branch, status)
-             VALUES (?, ?, ?, 1, 'ACTIVE')"
+                (organization_id, branch_name, location, area_id, is_main_branch, status)
+             VALUES (?, ?, ?, ?, 1, 'ACTIVE')"
         );
-        $branch->execute([$organizationId, $input['branchName'], $input['branchLocation']]);
+        $branch->execute([
+            $organizationId,
+            $input['branchName'],
+            $input['branchLocation'],
+            $input['branchAreaId']
+        ]);
         $branchId = (int)$pdo->lastInsertId();
 
         $user = $pdo->prepare(

@@ -271,7 +271,20 @@ function fetch_directory(PDO $pdo, array $actor): array
     $organizationId = $actor['organization_id'];
 
     $statement = $pdo->prepare(
-        "SELECT o.organization_id, o.organization_name, o.organization_type, o.logo_path
+        "SELECT o.organization_id, o.organization_name, o.organization_type, o.logo_path,
+                CASE
+                    WHEN o.organization_type IN ('SUPPLIER', 'MANUFACTURER_SUPPLIER') THEN (
+                        SELECT GROUP_CONCAT(DISTINCT da.area_name ORDER BY da.area_name SEPARATOR ', ')
+                        FROM supplier_distribution_areas sda
+                        INNER JOIN distribution_areas da ON da.area_id = sda.area_id
+                        WHERE sda.supplier_id = o.organization_id
+                          AND sda.status = 'ACTIVE'
+                          AND sda.start_date <= CURDATE()
+                          AND (sda.end_date IS NULL OR sda.end_date >= CURDATE())
+                          AND da.status = 'ACTIVE'
+                    )
+                    ELSE NULL
+                END AS declared_service_areas
          FROM organizations o
          WHERE o.status = 'ACTIVE'
            AND o.organization_id <> ?

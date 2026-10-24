@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <link rel="stylesheet" href="distribution.css">
+    <title>Manufacturer Distribution | Nexora MSRC</title>
+</head>
+<body>
+    <div id="shell"></div>
+
+    <main class="page regional-distribution-page">
+        <header class="distribution-heading">
+            <div>
+                <h1 class="page-title">Manufacturer distribution</h1>
+                <p class="distribution-intro">Appoint approved suppliers to distribute your products in specific counties, with clear effective dates and retained history.</p>
+            </div>
+        </header>
+
+        <div id="distributionMessage" class="form-message" role="alert" aria-live="polite"></div>
+
+        <section class="distribution-section" id="appointmentFormSection">
+            <h2 class="section-title">Create a regional appointment</h2>
+            <p class="section-help">Only suppliers with an active, approved supply relationship are available. A county appointment does not change your overall relationship with that supplier.</p>
+
+            <form id="distributionForm" novalidate>
+                <div class="distribution-form-grid">
+                    <div class="form-group">
+                        <label for="distributionProduct">Product</label>
+                        <select id="distributionProduct" required>
+                            <option value="">Select your product</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="distributionSupplier">Approved supplier</label>
+                        <select id="distributionSupplier" required>
+                            <option value="">Select a supplier</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="distributionArea">County</label>
+                        <select id="distributionArea" required>
+                            <option value="">Select a county</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="distributionStartDate">Effective from</label>
+                        <input type="date" id="distributionStartDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="distributionEndDate">Effective until <span class="optional">(optional)</span></label>
+                        <input type="date" id="distributionEndDate">
+                    </div>
+                    <div class="form-group distribution-exclusive-field">
+                        <label class="distribution-checkbox-label" for="distributionExclusive">
+                            <input type="checkbox" id="distributionExclusive">
+                            Exclusive appointment
+                        </label>
+                        <p class="field-hint">Prevents another supplier's overlapping appointment for this product and county.</p>
+                    </div>
+                </div>
+
+                <div class="distribution-form-actions">
+                    <button type="submit" class="primary-button" id="saveAppointmentButton">Create appointment</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="distribution-section">
+            <div class="distribution-table-heading">
+                <div>
+                    <h2 class="section-title">Appointments and history</h2>
+                    <p class="section-help">County-unassigned legacy records are labelled and do not count as regional authorisation.</p>
+                </div>
+                <button type="button" class="secondary-button" id="refreshDistributionButton">Refresh</button>
+            </div>
+
+            <div class="distribution-table-wrap">
+                <table class="distribution-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Supplier</th>
+                            <th>County</th>
+                            <th>Effective dates</th>
+                            <th>Appointment</th>
+                            <th>Type</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="distributionAppointmentsBody">
+                        <tr><td colspan="7" class="distribution-empty">Loading appointmentsâ€¦</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/form-helpers.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="../../../shared/js/page-router.js"></script>
+    <script src="distribution.js"></script>
+</body>
+</html>

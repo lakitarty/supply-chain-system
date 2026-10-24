@@ -1,0 +1,170 @@
+#chainbridge-window-controls {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: stretch;
+    justify-content: flex-end;
+    gap: 0;
+    height: 48px;
+    margin-left: auto;
+    -webkit-app-region: no-drag;
+}
+
+.chainbridge-window-button {
+    display: flex;
+    flex: 0 0 46px;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #ffffff;
+    cursor: pointer;
+}
+
+.chainbridge-window-button:hover {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.chainbridge-window-button:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: -4px;
+}
+
+.chainbridge-window-close:hover {
+    background: #c42b35;
+}
+
+.chainbridge-icon-minimize {
+    display: block;
+    width: 11px;
+    height: 1px;
+    background: currentColor;
+}
+
+.chainbridge-icon-maximize {
+    display: block;
+    width: 10px;
+    height: 10px;
+    border: 1px solid currentColor;
+    box-sizing: border-box;
+}
+
+.chainbridge-icon-maximize.is-maximized {
+    width: 9px;
+    height: 9px;
+    box-shadow: 2px -2px 0 -1px #0b3f4a, 2px -2px 0 0 currentColor;
+}
+
+.chainbridge-icon-close {
+    position: relative;
+    display: block;
+    width: 12px;
+    height: 12px;
+}
+
+.chainbridge-icon-close::before,
+.chainbridge-icon-close::after {
+    position: absolute;
+    top: 5px;
+    left: -1px;
+    width: 14px;
+    height: 1px;
+    background: currentColor;
+    content: "";
+}
+
+.chainbridge-icon-close::before {
+    transform: rotate(45deg);
+}
+
+.chainbridge-icon-close::after {
+    transform: rotate(-45deg);
+}
+
+.shell-main-row.chainbridge-drag-region {
+    -webkit-app-region: drag;
+    user-select: none;
+}
+
+.chainbridge-drag-region .shell-user,
+.chainbridge-drag-region .shell-user *,
+#chainbridge-window-controls,
+#chainbridge-window-controls * {
+    -webkit-app-region: no-drag;
+}
+
+#chainbridge-login-titlebar {
+    display: flex;
+    align-items: center;
+    height: 48px;
+    flex: 0 0 48px;
+    padding-left: 16px;
+    box-sizing: border-box;
+    background: #0b3f4a;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    -webkit-app-region: drag;
+    user-select: none;
+}
+
+.chainbridge-login-title {
+    white-space: nowrap;
+}
+
+#chainbridge-login-titlebar #chainbridge-window-controls {
+    height: 48px;
+}
+/* Window controls on the compact white header */
+/* Window controls on the compact white header */
+.shell-main-row #chainbridge-window-controls {
+    height: 42px !important;
+    margin-left: 12px;
+}
+
+.shell-main-row .chainbridge-window-button {
+    height: 42px !important;
+    color: #24454a !important;
+}
+
+.shell-main-row .chainbridge-window-button:hover {
+    background: #eaf0f1 !important;
+}
+
+.shell-main-row .chainbridge-window-close:hover {
+    background: #c42b35 !important;
+    color: #ffffff !important;
+}
+/* Restore original teal window-control colours */
+.shell-main-row .chainbridge-window-button {
+    color: #ffffff !important;
+}
+
+.shell-main-row .chainbridge-window-button:hover {
+    background: rgba(255, 255, 255, 0.16) !important;
+}
+
+.shell-main-row .chainbridge-window-close:hover {
+    background: #c42b35 !important;
+    color: #ffffff !important;
+}
+/* Match integrated window controls to navigation */
+.shell-main-row #chainbridge-window-controls {
+    background: #0b3f4a !important;
+}
+
+.shell-main-row .chainbridge-window-button {
+    color: #ffffff !important;
+}
+
+.shell-main-row .chainbridge-window-button:hover {
+    background: rgba(255, 255, 255, 0.14) !important;
+}
+
+.shell-main-row .chainbridge-window-close:hover {
+    background: #c42b35 !important;
+    color: #ffffff !important;
+}

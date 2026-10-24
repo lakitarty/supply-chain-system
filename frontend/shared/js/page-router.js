@@ -262,7 +262,8 @@
     }
 
     async function renderRoute(value, addHistory) {
-        const targetUrl = new URL(value, window.location.href);
+        const previousUrl = window.location.href;
+        const targetUrl = new URL(value, previousUrl);
 
         if (!builtPathFor(targetUrl.href)) {
             return false;
@@ -354,9 +355,16 @@
                 setupPasswordToggles();
             }
 
+            if (addHistory) {
+                history.pushState({ nexoraPage: true }, "", targetUrl.href);
+            }
+
             await runPageScripts(resources.pageScripts, routeId);
 
             if (routeId !== navigationSequence) {
+                if (addHistory && window.location.href === targetUrl.href) {
+                    history.replaceState(history.state, "", previousUrl);
+                }
                 return false;
             }
 
@@ -370,20 +378,23 @@
                 activePageStylesheet.dataset.nexoraPageStylesheet = "active";
             }
 
-            if (addHistory) {
-                history.pushState({ nexoraPage: true }, "", targetUrl.href);
-            }
-
             syncNavigation(targetUrl);
             window.scrollTo(0, 0);
 
             return true;
         } catch (error) {
             if (routeId !== navigationSequence) {
+                if (addHistory && window.location.href === targetUrl.href) {
+                    history.replaceState(history.state, "", previousUrl);
+                }
                 if (incomingStylesheet && incomingStylesheet !== oldStylesheet) {
                     incomingStylesheet.remove();
                 }
                 return false;
+            }
+
+            if (addHistory && window.location.href === targetUrl.href) {
+                history.replaceState(history.state, "", previousUrl);
             }
 
             if (contentChanged) {

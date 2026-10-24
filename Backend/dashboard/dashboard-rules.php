@@ -8,6 +8,7 @@ require_once __DIR__ . '/../changes/change-rules.php';
 const UPDATES_PAGE = 'modules/products/updates/updates.html';
 const ANNOUNCEMENTS_PAGE = 'modules/messages/announcements/announcements.html';
 const NETWORK_PAGE = 'modules/network/relationships/relationships.html';
+const NOTIFICATIONS_PAGE = 'modules/messages/notifications/notifications.html';
 const ATTENTION_GROUP = 'Needs your attention';
 const WAITING_GROUP = 'Waiting on others';
 
@@ -240,6 +241,50 @@ function dashboard_activity_item(
     ];
 }
 
+function dashboard_recent_messages(PDO $pdo, array $actor): array
+{
+    $organizationId = (int)$actor['organization_id'];
+
+    $rows = dashboard_rows(
+        $pdo,
+        "SELECT p.product_name, m.message_text, m.sent_at,
+                CONCAT(u.first_name, ' ', u.last_name) AS sender_name,
+                o.organization_name AS sender_organization
+         FROM messages m
+         INNER JOIN conversations v
+            ON v.conversation_id = m.conversation_id
+           AND v.context_type = 'PRODUCT_CHANGE'
+         INNER JOIN product_changes c
+            ON c.product_change_id = v.context_id
+         INNER JOIN products p ON p.product_id = c.product_id
+         INNER JOIN users u ON u.user_id = m.sender_user_id
+         INNER JOIN organizations o ON o.organization_id = u.organization_id
+         WHERE c.status = 'PUBLISHED'
+           AND (
+               p.manufacturer_id = ?
+               OR EXISTS (
+                   SELECT 1
+                   FROM change_recipients r
+                   WHERE r.product_change_id = c.product_change_id
+                     AND r.organization_id = ?
+               )
+           )
+         ORDER BY m.sent_at DESC
+         LIMIT 10",
+        [$organizationId, $organizationId]
+    );
+
+    return array_map(
+        fn(array $row) => dashboard_activity_item(
+            "Conversation about {$row['product_name']}",
+            "{$row['sender_organization']} - {$row['sender_name']}: " .
+                mb_substr(trim((string)$row['message_text']), 0, 180),
+            (string)$row['sent_at'],
+            UPDATES_PAGE
+        ),
+        $rows
+    );
+}
 function dashboard_recent_activity(PDO $pdo, array $actor): array
 {
     $organizationId = (int)$actor['organization_id'];
@@ -330,6 +375,8 @@ function dashboard_recent_activity(PDO $pdo, array $actor): array
         );
     }
 
+    $activity = array_merge($activity, dashboard_recent_messages($pdo, $actor));
+
     usort(
         $activity,
         fn(array $a, array $b) =>
@@ -339,15 +386,179 @@ function dashboard_recent_activity(PDO $pdo, array $actor): array
     return array_slice($activity, 0, 8);
 }
 
+function dashboard_make_card(
+    string $category,
+    string $kind,
+    string $title,
+    string $detail,
+    string $path,
+    string $action,
+    string $date = ''
+): array {
+    return [
+        'category' => $category,
+        'kind' => $kind,
+        'title' => $title,
+        'detail' => $detail,
+        'path' => $path,
+        'action' => $action,
+        'date' => $date
+    ];
+}
+
+function dashboard_build_cards(
+    array $summary,
+    array $items,
+    array $activity
+): array {
+    $cards = [];
+    $requests = [];
+    $attention = [];
+
+    foreach ($items as $item) {
+        if (stripos((string)($item['title'] ?? ''), 'supply request') !== false) {
+            $requests[] = $item;
+        } else {
+            $attention[] = $item;
+        }
+    }
+
+    foreach (array_slice($requests, 0, 3) as $item) {
+        $cards[] = dashboard_make_card(
+            'Connection request',
+            'connection',
+            (string)$item['title'],
+            (string)$item['detail'],
+            (string)$item['path'],
+            'Review request'
+        );
+    }
+
+    foreach ($summary as $metric) {
+        if (
+            ($metric['label'] ?? '') === 'Unread notifications'
+            && (int)($metric['value'] ?? 0) > 0
+        ) {
+            $count = (int)$metric['value'];
+
+            $cards[] = dashboard_make_card(
+                'Notifications',
+                'notification',
+                "{$count} unread notification" . ($count === 1 ? '' : 's'),
+                'You have notifications to review.',
+                NOTIFICATIONS_PAGE,
+                'View notifications'
+            );
+
+            break;
+        }
+    }
+
+    foreach (array_slice($attention, 0, 3) as $item) {
+        $title = (string)$item['title'];
+        $lowerTitle = strtolower($title);
+
+        if (str_contains($lowerTitle, 'announcement')) {
+            $category = 'Announcement';
+            $kind = 'announcement';
+        } elseif (str_contains($lowerTitle, 'product change') ||
+                  str_contains($lowerTitle, 'changes not yet acknowledged')) {
+            $category = 'Product update';
+            $kind = 'product';
+        } else {
+            $category = 'Requires attention';
+            $kind = 'attention';
+        }
+
+        if (str_contains($lowerTitle, 'acknowledge')) {
+            $action = 'Review update';
+        } elseif (str_contains($lowerTitle, 'publish')) {
+            $action = 'Review change';
+        } else {
+            $action = 'Open details';
+        }
+
+        $cards[] = dashboard_make_card(
+            $category,
+            $kind,
+            $title,
+            (string)$item['detail'],
+            (string)$item['path'],
+            $action
+        );
+    }
+
+    foreach ($activity as $item) {
+        if (count($cards) >= 9) {
+            break;
+        }
+
+        $title = (string)($item['title'] ?? '');
+        $detail = (string)($item['detail'] ?? '');
+
+        if (
+            stripos($title, 'Supply network relationship') !== false
+            && stripos($detail, 'Pending') !== false
+        ) {
+            continue;
+        }
+
+        if (stripos($title, 'Conversation about') === 0) {
+            $category = 'Communication';
+            $kind = 'communication';
+            $action = 'Open conversation';
+        } elseif (stripos($title, 'Supply network relationship') !== false) {
+            $category = 'Connection activity';
+            $kind = 'connection';
+            $action = 'View connection';
+        } elseif (stripos($title, 'announcement') !== false) {
+            $category = 'Announcement';
+            $kind = 'announcement';
+            $action = 'View announcement';
+        } else {
+            $category = 'Product update';
+            $kind = 'product';
+            $action = 'View update';
+        }
+
+        $duplicate = false;
+
+        foreach ($cards as $existing) {
+            if (
+                $existing['title'] === $title
+                && $existing['detail'] === $detail
+            ) {
+                $duplicate = true;
+                break;
+            }
+        }
+
+        if ($duplicate) {
+            continue;
+        }
+
+        $cards[] = dashboard_make_card(
+            $category,
+            $kind,
+            $title,
+            $detail,
+            (string)($item['path'] ?? ''),
+            $action,
+            (string)($item['date'] ?? '')
+        );
+    }
+
+    return array_slice($cards, 0, 9);
+}
 function fetch_dashboard(PDO $pdo, array $actor): array
 {
     $isAdmin = $actor['role'] === 'ADMIN';
     $manufactures = can_manufacture($actor);
 
     $items = array_merge(
+        $isAdmin ? relationship_requests($pdo, $actor) : [],
         changes_to_acknowledge($pdo, $actor),
         announcements_to_acknowledge($pdo, $actor),
-        $isAdmin ? relationship_requests($pdo, $actor) : [],
         $isAdmin && $manufactures ? changes_to_publish($pdo, $actor) : [],
         $manufactures ? changes_waiting_on_others($pdo, $actor) : []
     );
@@ -357,9 +568,13 @@ function fetch_dashboard(PDO $pdo, array $actor): array
         fn(array $item) => $item['group'] === ATTENTION_GROUP
     ));
 
+    $summary = dashboard_summary($pdo, $actor, $attentionCount);
+    $activity = dashboard_recent_activity($pdo, $actor);
+
     return [
-        'summary' => dashboard_summary($pdo, $actor, $attentionCount),
+        'summary' => $summary,
         'items' => $items,
-        'activity' => dashboard_recent_activity($pdo, $actor)
+        'activity' => $activity,
+        'cards' => dashboard_build_cards($summary, $items, $activity)
     ];
 }

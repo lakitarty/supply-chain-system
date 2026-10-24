@@ -40,6 +40,7 @@ const relationshipActions = field("relationshipActions");
 const acceptButton = field("acceptButton");
 const declineButton = field("declineButton");
 const endButton = field("endButton");
+
 const registerOrganizationButton = field("registerOrganizationButton");
 const registerOrganisationNote = field("registerOrganisationNote");
 const closeDirectoryButton = field("closeDirectoryButton");
@@ -225,11 +226,13 @@ function groupOf(entry) {
 }
 
 function directionText(entry) {
-    const text = Number(entry.i_supply) === 1
-        ? "You supply them"
-        : "They supply you";
+    const iSupply = Number(entry.i_supply) === 1;
 
-    return isDirect(entry) ? text : `${text}, through ${entry.via}`;
+    if (isDirect(entry)) {
+        return iSupply ? "My customer" : "My supplier";
+    }
+
+    return `Supplies through ${entry.via}`;
 }
 
 function statusText(entry) {
@@ -277,6 +280,7 @@ function detailRows(entry) {
 
 function renderActions(entry) {
     const answering = Boolean(canManageNetwork && entry && awaitingMe(entry));
+
     const endable = Boolean(
         canManageNetwork &&
         entry &&
@@ -290,6 +294,8 @@ function renderActions(entry) {
     acceptButton.hidden = !answering;
     declineButton.hidden = !answering;
     endButton.hidden = !endable;
+
+
     endButton.textContent = entry?.status === "PENDING"
         ? "Withdraw request"
         : "End relationship";
@@ -477,6 +483,16 @@ async function loadNetwork(selectedKey) {
     renderNetwork(selectedKey);
 }
 
+function declaredCoverageText(organization) {
+    if (!organization || !["SUPPLIER", "MANUFACTURER_SUPPLIER"].includes(organization.organization_type)) {
+        return "";
+    }
+
+    const areas = String(organization.declared_service_areas || "").trim();
+    return areas
+        ? `Declared service counties: ${areas}`
+        : "Declared service counties: none currently declared";
+}
 function renderSelectedOrganization(partner) {
     selectedOrganization.replaceChildren();
 
@@ -503,6 +519,11 @@ function renderSelectedOrganization(partner) {
         makeElement("strong", "", partner.organization_name),
         makeElement("small", "", organizationTypeLabel(partner.organization_type))
     );
+
+    const coverageText = declaredCoverageText(partner);
+    if (coverageText) {
+        copy.append(makeElement("small", "selected-organization-coverage", coverageText));
+    }
 
     card.append(makeAvatar(partner.organization_name, false, partner.logo_path), copy);
     selectedOrganization.append(card);
@@ -659,6 +680,11 @@ function renderDirectory() {
                 makeElement("span", "directory-result-name", organization.organization_name),
                 makeElement("span", "directory-result-type", organizationTypeLabel(organization.organization_type))
             );
+
+            const coverageText = declaredCoverageText(organization);
+            if (coverageText) {
+                copy.append(makeElement("span", "directory-result-coverage", coverageText));
+            }
 
             const eligibility = makeElement(
                 "span",
@@ -834,6 +860,7 @@ document.querySelectorAll("[data-network-filter]").forEach(button => {
 
 connectForm.addEventListener("submit", submitRequest);
 clearErrorOnInput(connectForm);
+
 
 shellReady.then(async account => {
     if (account) {

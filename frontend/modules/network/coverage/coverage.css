@@ -1,0 +1,228 @@
+.supplier-coverage-page {
+    width: min(100% - 40px, 1320px);
+    margin: 0 auto;
+    padding: 28px 0 44px;
+    color: #202b38;
+}
+
+.coverage-page-header,
+.coverage-section-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.coverage-page-header .page-title {
+    margin: 0;
+    color: #263b49;
+    font-size: 27px;
+    font-weight: 650;
+}
+
+.coverage-intro {
+    max-width: 820px;
+    margin: 9px 0 0;
+    color: #657480;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.coverage-count {
+    flex: 0 0 auto;
+    padding: 5px 9px;
+    border: 1px solid #dbe2e5;
+    color: #53646f;
+    font-size: 12px;
+}
+
+.supplier-coverage-page > .form-message {
+    margin-top: 14px;
+}
+
+.coverage-panel {
+    margin-top: 22px;
+    padding: 22px;
+    border: 1px solid #dfe5e8;
+    background: #ffffff;
+}
+
+.coverage-panel h2 {
+    margin: 0;
+    color: #263b49;
+    font-size: 16px;
+    font-weight: 650;
+}
+
+.coverage-form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: 18px;
+    margin-top: 18px;
+}
+
+.coverage-form-grid .form-group {
+    min-width: 0;
+}
+
+.coverage-form-grid label {
+    display: block;
+    margin-bottom: 7px;
+    color: #354956;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.coverage-form-grid input,
+.coverage-form-grid select {
+    width: 100%;
+    min-height: 41px;
+    padding: 8px 10px;
+    border: 1px solid #c9d3d6;
+    border-radius: 4px;
+    background: #ffffff;
+    color: #202b38;
+    font: inherit;
+    font-size: 13px;
+}
+
+.coverage-form-grid input:focus,
+.coverage-form-grid select:focus {
+    outline: none;
+    border-color: #176b61;
+    box-shadow: 0 0 0 3px rgba(23, 107, 97, 0.12);
+}
+
+.coverage-form-grid .field-hint {
+    margin: 6px 0 0;
+    color: #657480;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.coverage-form-actions {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 20px;
+    padding-top: 17px;
+    border-top: 1px solid #e6ebed;
+}
+
+.coverage-form-actions .primary-button {
+    width: auto;
+    min-width: 150px;
+    min-height: 40px;
+    padding: 0 16px;
+    border-radius: 4px;
+    background: #176b61;
+    font-size: 13px;
+}
+
+.coverage-form-actions .primary-button:hover {
+    background: #12564e;
+}
+
+.coverage-section-header {
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.coverage-section-header p {
+    margin: 6px 0 0;
+    color: #657480;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.coverage-section-header .secondary-button {
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1px solid #cbd5d9;
+    border-radius: 4px;
+    background: #ffffff;
+    color: #344955;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.coverage-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.coverage-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    text-align: left;
+}
+
+.coverage-table th,
+.coverage-table td {
+    padding: 12px 11px;
+    border-bottom: 1px solid #e5eaec;
+    vertical-align: middle;
+}
+
+.coverage-table th {
+    background: #f6f8f8;
+    color: #53646f;
+    font-size: 11px;
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+.coverage-table td {
+    color: #344955;
+}
+
+.coverage-county-cell {
+    font-weight: 650;
+}
+
+.coverage-action-cell {
+    white-space: nowrap;
+}
+
+.coverage-end-button {
+    padding: 6px 9px;
+    border: 1px solid #d6b7b7;
+    border-radius: 4px;
+    background: #ffffff;
+    color: #8b3333;
+    font: inherit;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.coverage-end-button:hover {
+    background: #fff6f6;
+}
+
+.coverage-empty {
+    margin: 0;
+    padding: 18px 0 2px;
+    color: #657480;
+    font-size: 12px;
+}
+
+.supplier-coverage-page [hidden] {
+    display: none !important;
+}
+
+@media (max-width: 800px) {
+    .supplier-coverage-page {
+        width: min(100% - 28px, 1320px);
+        padding-top: 20px;
+    }
+
+    .coverage-form-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 14px;
+    }
+
+    .coverage-panel {
+        padding: 16px;
+    }
+}

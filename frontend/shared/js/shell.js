@@ -71,28 +71,9 @@ function navItem(baseClass, label, path, active) {
 
 async function signOut() {
     try {
-        const result = await postJson("auth/logout.php");
-
-        if (
-            result?.ok === false ||
-            result?.success === false ||
-            result?.data?.success === false
-        ) {
-            throw new Error(
-                result?.data?.error ||
-                result?.error ||
-                "Unable to sign out. Please try again."
-            );
-        }
-
-        if (window.nexoraDesktop?.exitAfterSignOut) {
-            window.nexoraDesktop.exitAfterSignOut();
-            return;
-        }
-
+        await postJson("auth/logout.php");
+    } finally {
         goTo(LOGIN_PATH);
-    } catch (error) {
-        window.alert(error?.message || "Unable to sign out. Please try again.");
     }
 }
 
@@ -151,30 +132,58 @@ function buildUserArea(account) {
     }
 
     const area = element("div", "shell-user");
-    area.append(...(profileLink ? [profileLink] : []));
+    // Organisation profile icon removed from top navigation.
 
     return area;
 }
 
 function buildSessionFooter(account) {
     const { user, organization } = account;
-    const name = `${user.first_name || ""} ${user.last_name || ""}`.trim();
-    const context = user.branch_name || organization.organization_name || "Organisation";
+    const name = `${user.first_name || ""} ${user.last_name || ""}`.trim() || "User";
+    const organisation = organization.organization_name || "Organisation";
 
     const footer = element("footer", "shell-status-footer");
     footer.setAttribute("aria-label", "Current signed-in session");
 
     const identity = element("div", "shell-status-identity");
-    const indicator = element("span", "shell-status-indicator");
-    indicator.setAttribute("aria-hidden", "true");
-
     identity.append(
-        indicator,
-        element("span", "shell-status-label", "Signed in as"),
-        element("span", "shell-status-details", name + " | " + readable(user.role) + " | " + context)
+        element("span", "shell-status-details", `Signed in as ${name} at ${organisation}`)
     );
 
-    footer.append(identity);
+    const clock = element("div", "shell-status-time");
+    clock.style.cssText = "display:flex;flex-direction:column;align-items:flex-end;gap:2px;line-height:1.25;";
+
+    const date = element("span", "shell-status-date");
+    date.style.fontSize = "11px";
+
+    const time = element("time", "shell-status-clock");
+    time.style.fontSize = "13px";
+
+    function updateClock() {
+        const now = new Date();
+
+        date.textContent = new Intl.DateTimeFormat("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            timeZone: "Africa/Nairobi"
+        }).format(now);
+
+        time.dateTime = now.toISOString();
+        time.textContent = new Intl.DateTimeFormat("en-GB", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+            timeZone: "Africa/Nairobi"
+        }).format(now);
+    }
+
+    updateClock();
+    window.setInterval(updateClock, 1000);
+
+    clock.append(date, time);
+    footer.append(identity, clock);
 
     return footer;
 }

@@ -240,7 +240,7 @@
     border-bottom: 2px solid transparent;
     border-radius: 0;
     background: transparent;
-    color: var(--muted);
+    color: #111111;
     cursor: pointer;
     font: inherit;
     font-size: 11px;
@@ -248,13 +248,13 @@
 }
 
 .network-filter-tab:hover {
-    color: var(--text);
+    color: #111111;
 }
 
 .network-filter-tab.is-active {
     border-bottom-color: var(--brand);
     background: transparent;
-    color: var(--brand-dark);
+    color: #111111;
     font-weight: 600;
 }
 
@@ -265,22 +265,24 @@
     gap: 11px;
     padding: 13px 8px;
     border: 0;
-    border-bottom: 1px solid var(--border-light);
-    border-left: 2px solid transparent;
+border-left: 2px solid transparent;
     border-radius: 0;
     background: transparent;
     color: var(--text);
     cursor: pointer;
     text-align: left;
+    border-bottom: none !important;
 }
 
 .network-item:hover {
     background: rgba(15, 118, 110, 0.035);
+    border-bottom: none !important;
 }
 
 .network-item.is-selected {
     border-left-color: var(--brand);
     background: var(--brand-soft);
+    border-bottom: none !important;
 }
 
 .partner-avatar {
@@ -301,6 +303,7 @@
 .network-item-copy {
     flex: 1;
     min-width: 0;
+    border-bottom: none !important;
 }
 
 .network-item-name {
@@ -308,6 +311,7 @@
     overflow-wrap: anywhere;
     font-size: 12px;
     font-weight: 600;
+    border-bottom: none !important;
 }
 
 .network-item-meta {
@@ -317,6 +321,7 @@
     color: var(--muted);
     font-size: 10px;
     line-height: 1.4;
+    border-bottom: none !important;
 }
 
 .relationship-status {
@@ -1010,11 +1015,13 @@
     .network-item {
         flex-wrap: wrap;
         padding: 12px 5px;
-    }
+    border-bottom: none !important;
+}
 
     .network-item .relationship-status {
         margin-left: 45px;
-    }
+    border-bottom: none !important;
+}
 
     .directory-search-controls {
         grid-template-columns: minmax(0, 1fr);
@@ -1119,10 +1126,12 @@ button:disabled {
     gap: 13px;
     width: 100%;
     padding: 15px 12px;
+    border-bottom: none !important;
 }
 
 .network-item-copy {
     min-width: 0;
+    border-bottom: none !important;
 }
 
 .network-item-name,
@@ -1130,6 +1139,7 @@ button:disabled {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    border-bottom: none !important;
 }
 
 .detail-overlay {
@@ -1245,13 +1255,15 @@ body.detail-panel-open {
         grid-template-columns: 34px minmax(0, 1fr);
         gap: 10px;
         padding: 13px 5px;
-    }
+    border-bottom: none !important;
+}
 
     .network-item .relationship-status {
         grid-column: 2;
         justify-self: start;
         margin: -4px 0 0;
-    }
+    border-bottom: none !important;
+}
 
     .detail-drawer {
         width: 100%;
@@ -1828,4 +1840,21 @@ body.directory-modal-open {
 #openDirectoryButton[hidden],
 #registerOrganizationButton[hidden] {
     display: none !important;
+}
+.directory-result-coverage,
+.selected-organization-coverage {
+    display: block;
+    margin-top: 4px;
+    color: #50646e;
+    font-size: 10px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+.directory-coverage-note {
+    margin: 8px 0 0;
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1.5;
 }

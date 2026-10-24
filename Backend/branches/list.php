@@ -10,10 +10,12 @@ try {
 
     if ($actor['role'] === 'ADMIN') {
         $statement = $pdo->prepare(
-            'SELECT branch_id, branch_name, location, is_main_branch, status
-             FROM branches
-             WHERE organization_id = ?
-             ORDER BY is_main_branch DESC, branch_name'
+            'SELECT b.branch_id, b.branch_name, b.location, b.area_id,
+                    da.area_name, b.is_main_branch, b.status
+             FROM branches b
+             LEFT JOIN distribution_areas da ON da.area_id = b.area_id
+             WHERE b.organization_id = ?
+             ORDER BY b.is_main_branch DESC, b.branch_name'
         );
 
         $statement->execute([$actor['organization_id']]);
@@ -21,11 +23,13 @@ try {
         $actor = require_branch_admin($pdo);
 
         $statement = $pdo->prepare(
-            "SELECT branch_id, branch_name, location, is_main_branch, status
-             FROM branches
-             WHERE organization_id = ?
-               AND branch_id = ?
-               AND status = 'ACTIVE'
+            "SELECT b.branch_id, b.branch_name, b.location, b.area_id,
+                    da.area_name, b.is_main_branch, b.status
+             FROM branches b
+             LEFT JOIN distribution_areas da ON da.area_id = b.area_id
+             WHERE b.organization_id = ?
+               AND b.branch_id = ?
+               AND b.status = 'ACTIVE'
              LIMIT 1"
         );
 

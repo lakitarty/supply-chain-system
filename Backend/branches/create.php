@@ -21,7 +21,13 @@ try {
         respond_field_error(400, $error);
     }
 
-    $conflict = find_branch_name_conflict($pdo, $actor, $input);
+    
+    $areaError = branch_area_error($pdo, $input);
+
+    if ($areaError !== null) {
+        respond_field_error(400, $areaError);
+    }
+$conflict = find_branch_name_conflict($pdo, $actor, $input);
 
     if ($conflict !== null) {
         respond_field_error(409, $conflict);

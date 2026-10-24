@@ -1,0 +1,261 @@
+.regional-distribution-page {
+    width: min(100% - 48px, 1440px);
+    margin: 0 auto;
+    padding: 28px 0 48px;
+    color: #182230;
+}
+
+.distribution-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 18px;
+}
+
+.regional-distribution-page .page-title {
+    margin: 0;
+    color: #182230;
+    font-size: 28px;
+    font-weight: 650;
+    letter-spacing: -0.5px;
+}
+
+.distribution-intro,
+.distribution-section .section-help {
+    margin: 7px 0 0;
+    max-width: 900px;
+    color: #667085;
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.distribution-section {
+    margin-top: 18px;
+    padding: 20px 22px;
+    border: 1px solid #e1e7ed;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.distribution-section .section-title {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    color: #182230;
+    font-size: 17px;
+    font-weight: 650;
+}
+
+.distribution-form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px 20px;
+    margin-top: 20px;
+}
+
+.regional-distribution-page .form-group {
+    min-width: 0;
+    margin: 0;
+}
+
+.regional-distribution-page .form-group label {
+    display: block;
+    margin-bottom: 7px;
+    color: #344054;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.regional-distribution-page .form-group input:not([type="checkbox"]),
+.regional-distribution-page .form-group select {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    height: 42px;
+    padding: 0 11px;
+    border: 1px solid #cfd7e1;
+    border-radius: 5px;
+    background: #fff;
+    color: #182230;
+    font: inherit;
+    font-size: 14px;
+}
+
+.regional-distribution-page .form-group input:focus,
+.regional-distribution-page .form-group select:focus {
+    border-color: #0f766e;
+    outline: 2px solid rgba(15, 118, 110, 0.12);
+}
+
+.distribution-exclusive-field {
+    align-self: start;
+    padding-top: 2px;
+}
+
+.regional-distribution-page .distribution-checkbox-label {
+    display: flex !important;
+    align-items: center;
+    gap: 9px;
+    min-height: 40px;
+    margin: 0 !important;
+}
+
+.distribution-checkbox-label input {
+    width: 16px;
+    height: 16px;
+    accent-color: #0f766e;
+}
+
+.regional-distribution-page .field-hint {
+    margin: 4px 0 0;
+    color: #667085;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.distribution-form-actions {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #edf0f3;
+}
+
+.distribution-form-actions .primary-button {
+    width: auto;
+    min-width: 176px;
+    min-height: 40px;
+    padding: 0 16px;
+    border-radius: 5px;
+    background: #0f766e;
+}
+
+.distribution-form-actions .primary-button:hover {
+    background: #115e59;
+}
+
+.distribution-table-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.distribution-table-heading .section-help {
+    margin-top: 5px;
+}
+
+.distribution-table-heading .secondary-button {
+    flex: 0 0 auto;
+    min-height: 36px;
+}
+
+.distribution-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.distribution-table {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.distribution-table th {
+    padding: 11px 12px;
+    border-top: 1px solid #e5eaf0;
+    border-bottom: 1px solid #dbe2e9;
+    background: #f7f9fb;
+    color: #475467;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 0.35px;
+    white-space: nowrap;
+}
+
+.distribution-table td {
+    padding: 12px;
+    border-bottom: 1px solid #e8edf2;
+    color: #344054;
+    vertical-align: middle;
+}
+
+.distribution-table tbody tr:hover {
+    background: #fafcfd;
+}
+
+.distribution-table .distribution-product-cell {
+    color: #182230;
+    font-weight: 600;
+}
+
+.distribution-table .distribution-dates {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.distribution-table .distribution-legacy-area {
+    color: #8a4b12;
+}
+
+.distribution-table .distribution-empty {
+    padding: 26px 12px;
+    color: #667085;
+    text-align: center;
+}
+
+.distribution-end-button {
+    border: 1px solid #d7dee7;
+    border-radius: 5px;
+    background: #fff;
+    color: #344054;
+    padding: 7px 10px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.distribution-end-button:hover {
+    border-color: #b42318;
+    color: #b42318;
+    background: #fff8f7;
+}
+
+.distribution-no-action {
+    color: #98a2b3;
+}
+
+.regional-distribution-page [hidden] {
+    display: none !important;
+}
+
+@media (max-width: 950px) {
+    .distribution-form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 620px) {
+    .regional-distribution-page {
+        width: min(100% - 28px, 1440px);
+        padding-top: 20px;
+    }
+
+    .distribution-section {
+        padding: 16px;
+    }
+
+    .distribution-form-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .distribution-table-heading {
+        align-items: flex-start;
+    }
+}

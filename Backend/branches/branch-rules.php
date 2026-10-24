@@ -19,6 +19,7 @@ function clean_branch_input(array $data): array
         'branchId' => (int)($data['branchId'] ?? 0),
         'branchName' => $text('branchName'),
         'location' => $text('location'),
+        'areaId' => (int)($data['areaId'] ?? 0),
         'status' => $text('status')
     ];
 }
@@ -42,6 +43,21 @@ function first_branch_error(array $input, bool $creating): ?array
     return null;
 }
 
+function branch_area_error(PDO $pdo, array $input): ?array
+{
+    if (($input['areaId'] ?? 0) < 1) {
+        return field_error('areaId', 'Choose an active county.');
+    }
+
+    $statement = $pdo->prepare(
+        "SELECT 1 FROM distribution_areas WHERE area_id = ? AND status = 'ACTIVE' LIMIT 1"
+    );
+    $statement->execute([$input['areaId']]);
+
+    return $statement->fetchColumn()
+        ? null
+        : field_error('areaId', 'Choose an active county.');
+}
 function find_branch_name_conflict(PDO $pdo, array $actor, array $input): ?array
 {
     return record_exists(
@@ -56,9 +72,11 @@ function find_branch_name_conflict(PDO $pdo, array $actor, array $input): ?array
 function find_branch(PDO $pdo, array $actor, int $branchId): array|false
 {
     $statement = $pdo->prepare(
-        'SELECT branch_id, branch_name, location, is_main_branch, status
-         FROM branches
-         WHERE branch_id = ? AND organization_id = ?
+        'SELECT b.branch_id, b.branch_name, b.location, b.area_id,
+                da.area_name, b.is_main_branch, b.status
+         FROM branches b
+         LEFT JOIN distribution_areas da ON da.area_id = b.area_id
+         WHERE b.branch_id = ? AND b.organization_id = ?
          LIMIT 1'
     );
 
@@ -89,11 +107,16 @@ function deactivation_block(PDO $pdo, array $actor, array $existing, array $inpu
 function insert_branch(PDO $pdo, array $actor, array $input): int
 {
     $statement = $pdo->prepare(
-        "INSERT INTO branches (organization_id, branch_name, location, is_main_branch, status)
-         VALUES (?, ?, ?, 0, 'ACTIVE')"
+        "INSERT INTO branches (organization_id, branch_name, location, area_id, is_main_branch, status)
+         VALUES (?, ?, ?, ?, 0, 'ACTIVE')"
     );
 
-    $statement->execute([$actor['organization_id'], $input['branchName'], $input['location']]);
+    $statement->execute([
+        $actor['organization_id'],
+        $input['branchName'],
+        $input['location'],
+        $input['areaId']
+    ]);
 
     return (int)$pdo->lastInsertId();
 }
@@ -102,13 +125,14 @@ function update_branch(PDO $pdo, array $actor, array $input): void
 {
     $statement = $pdo->prepare(
         'UPDATE branches
-         SET branch_name = ?, location = ?, status = ?
+         SET branch_name = ?, location = ?, area_id = ?, status = ?
          WHERE branch_id = ? AND organization_id = ?'
     );
 
     $statement->execute([
         $input['branchName'],
         $input['location'],
+        $input['areaId'],
         $input['status'],
         $input['branchId'],
         $actor['organization_id']

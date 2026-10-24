@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <link rel="stylesheet" href="workspace.css">
+    <title>Workspace | ChainBridge</title>
+</head>
+<body>
+    <div id="shell"></div>
+
+    <main class="page relationship-workspace">
+        <div id="workspaceMessage" class="form-message" role="alert" aria-live="polite"></div>
+
+        <div class="workspace-layout">
+            <aside class="workspace-partners-panel" aria-label="Active trading relationships">
+                <header class="workspace-partners-header">
+                    <div>
+                        <h1 class="workspace-partners-title">Workspace</h1>
+                        <p class="workspace-partners-subtitle">Your trading relationships</p>
+                    </div>
+                    <span id="workspacePartnerCount" class="workspace-count">0</span>
+                </header>
+
+                <label class="workspace-partner-search" for="workspacePartnerSearch">
+                    <span>Search organisations</span>
+                    <input
+                        type="search"
+                        id="workspacePartnerSearch"
+                        placeholder="Enter an organisation name"
+                        autocomplete="off"
+                    >
+                </label>
+
+                <div
+                    id="workspacePartnerList"
+                    class="workspace-partner-list"
+                    aria-label="Active relationships"
+                ></div>
+            </aside>
+
+            <section class="workspace-detail-column" aria-label="Selected relationship">
+                <div class="workspace-context">
+                    <div class="workspace-context-control">
+                        <label for="workspaceBranchSelect">Viewing branch</label>
+                        <select id="workspaceBranchSelect" aria-describedby="workspaceBranchCounty"></select>
+                    </div>
+                    <p id="workspaceBranchCounty" class="workspace-context-note">Loading branch county...</p>
+                </div>
+                <p id="workspaceSelectionPrompt" class="workspace-selection-prompt">
+                    Select an active relationship to view the organisation's information.
+                </p>
+
+                <div id="workspaceContent" hidden>
+                    <section class="workspace-profile" aria-label="Relationship profile">
+                        <div class="workspace-profile-main">
+                            <div id="workspacePartnerName" class="workspace-title"></div>
+                            <div id="workspacePartnerType" class="workspace-subtitle"></div>
+                            <div id="workspaceSupplyDirection" class="workspace-direction"></div>
+                        </div>
+                        <span id="workspaceStatus" class="workspace-status">Active</span>
+                    </section>
+
+                    <div class="workspace-meta" id="workspaceMeta"></div>
+
+                    <section class="workspace-section" aria-label="Products supplied">
+                        <div class="workspace-section-header">
+                            <h2 class="workspace-section-title">Products in this supply relationship</h2>
+                            <span class="workspace-count" id="productsCount">0</span>
+                        </div>
+                        <div id="workspaceProducts" class="workspace-record-list"></div>
+                    </section>
+
+                    <section class="workspace-section" aria-label="Supply orders and deliveries">
+                        <div class="workspace-section-header">
+                            <h2 class="workspace-section-title">Orders and deliveries</h2>
+                            <span class="workspace-count" id="ordersCount">0</span>
+                        </div>
+                        <div id="workspaceOrders" class="workspace-record-list"></div>
+                    </section>
+
+                    <section class="workspace-section" aria-label="Promotions">
+                        <div class="workspace-section-header">
+                            <h2 class="workspace-section-title">Relevant promotions</h2>
+                            <span class="workspace-count" id="promotionsCount">0</span>
+                        </div>
+                        <div id="workspacePromotions" class="workspace-record-list"></div>
+                    </section>
+
+                    <div class="workspace-note">
+                        Invoice and payment tracking is not yet connected to this workspace.
+                        No invoice or payment records are being inferred from orders.
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/form-helpers.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="../../../shared/js/page-router.js"></script>
+    <script src="workspace.js"></script>
+</body>
+</html>

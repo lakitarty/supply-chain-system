@@ -234,3 +234,8 @@ button {
 .detail-list + .form-actions {
     margin-top: var(--space-m);
 }
+
+/* ChainBridge: hide all headings */
+h1, h2, h3, h4, h5, h6 {
+    display: none !important;
+}

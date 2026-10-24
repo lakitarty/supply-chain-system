@@ -20,6 +20,9 @@ const BUILT_PATHS = [
     "modules/admin/organisation-profile/organisation-profile.html",
     "modules/admin/activity-log/activity-log.html",
     "modules/network/relationships/relationships.html",
+    "modules/network/workspace/workspace.html",
+    "modules/network/coverage/coverage.html",
+    "modules/network/distribution/distribution.html",
 ];
 function page(module, name) {
     return `modules/${module}/${name}/${name}.html`;
@@ -52,6 +55,9 @@ const TABS = [
         roles: ["ADMIN", "BRANCH_ADMIN"],
         sections: [
             { label: "Relationships", path: page("network", "relationships") },
+            { label: "Workspace", path: page("network", "workspace") },
+            { label: "Supplier coverage", path: page("network", "coverage"), types: ["SUPPLIER", "MANUFACTURER_SUPPLIER"], roles: ["ADMIN"] },
+            { label: "Distribution", path: page("network", "distribution"), types: ["MANUFACTURER", "MANUFACTURER_SUPPLIER"], roles: ["ADMIN"] },
         ]
     },
     {

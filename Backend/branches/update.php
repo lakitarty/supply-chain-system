@@ -25,7 +25,13 @@ try {
         respond_field_error(400, $error);
     }
 
-    $conflict = find_branch_name_conflict($pdo, $actor, $input);
+    
+    $areaError = branch_area_error($pdo, $input);
+
+    if ($areaError !== null) {
+        respond_field_error(400, $areaError);
+    }
+$conflict = find_branch_name_conflict($pdo, $actor, $input);
 
     if ($conflict !== null) {
         respond_field_error(409, $conflict);
@@ -40,6 +46,7 @@ try {
     $changes = describe_changes([
         'name' => [$existing['branch_name'], $input['branchName']],
         'location' => [$existing['location'], $input['location']],
+        'county' => [$existing['area_name'] ?? 'Not mapped', (string)$pdo->query("SELECT area_name FROM distribution_areas WHERE area_id = " . (int)$input['areaId'])->fetchColumn()],
         'status' => [$existing['status'], $input['status']]
     ]);
 

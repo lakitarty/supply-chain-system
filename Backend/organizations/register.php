@@ -17,6 +17,12 @@ if ($error !== null) {
 }
 
 try {
+    $areaError = registration_area_error($pdo, $input);
+
+    if ($areaError !== null) {
+        respond_field_error(400, $areaError);
+    }
+
     $conflict = find_registration_conflict($pdo, $input);
 
     if ($conflict !== null) {

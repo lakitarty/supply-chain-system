@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <link rel="stylesheet" href="prices.css">
+    <title>Branch Selling Prices | Nexora MSRC</title>
+</head>
+<body>
+    <div id="shell"></div>
+    <main class="page pricing-page branch-prices-page">
+        <header class="pricing-heading">
+            <div>
+                <p class="pricing-eyebrow">RETAIL OPERATIONS</p>
+                <h1>Branch selling prices</h1>
+                <p class="pricing-subtitle">Set and retain selling-price periods for each branch and product package version.</p>
+            </div>
+            <button id="refreshPrices" class="secondary-button" type="button">Refresh</button>
+        </header>
+
+        <p class="pricing-status" id="pricesStatus" role="status" aria-live="polite">Loading branch selling prices...</p>
+
+        <section class="pricing-section" id="priceApp" hidden>
+            <h2>Set a selling price</h2>
+            <p class="pricing-explainer">Prices are separate for each branch and package version. Choose whether the entered selling price includes VAT. A price record does not establish acquisition cost or profit.</p>
+            <form id="priceForm" novalidate>
+                <div class="pricing-grid">
+                    <div class="pricing-field">
+                        <label for="priceBranch">Branch</label>
+                        <select id="priceBranch" required><option value="">Loading branches...</option></select>
+                    </div>
+                    <div class="pricing-field">
+                        <label for="priceVersion">Product package version</label>
+                        <select id="priceVersion" required><option value="">Loading catalogue...</option></select>
+                    </div>
+                    <div class="pricing-field">
+                        <label for="priceAmount">Selling price (KSh)</label>
+                        <input id="priceAmount" type="number" min="0" max="9999999999.99" step="0.01" inputmode="decimal" required>
+                    </div>
+                    <div class="pricing-field">
+                        <label for="priceBasis">VAT price basis</label>
+                        <select id="priceBasis" required>
+                            <option value="VAT_INCLUSIVE">Price includes VAT</option>
+                            <option value="VAT_EXCLUSIVE">Price excludes VAT</option>
+                        </select>
+                    </div>
+                    <div class="pricing-field">
+                        <label for="priceFrom">Effective from</label>
+                        <input id="priceFrom" type="date" required>
+                    </div>
+                    <div class="pricing-field">
+                        <label for="priceTo">Effective to <span>(optional)</span></label>
+                        <input id="priceTo" type="date">
+                    </div>
+                </div>
+                <div class="pricing-actions">
+                    <button id="savePrice" class="primary-button" type="submit">Save selling price</button>
+                    <button id="clearPrice" class="secondary-button" type="button">Clear form</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="pricing-section">
+            <div class="pricing-section-heading">
+                <div>
+                    <h2>Selling-price history</h2>
+                    <p>Price periods are retained. End an open period before starting another period that would overlap it.</p>
+                </div>
+            </div>
+            <div class="pricing-table-wrap">
+                <table class="pricing-table">
+                    <thead><tr><th>Branch</th><th>Product package</th><th>Selling price</th><th>Effective period</th><th>Status</th><th>End open price</th></tr></thead>
+                    <tbody id="priceRows"><tr><td colspan="6" class="pricing-empty">Loading price history...</td></tr></tbody>
+                </table>
+            </div>
+        </section>
+        <p class="pricing-footnote">These records do not rewrite the legacy retailer_products.selling_price field or assign values to historical sales. Costs and margins require actual receiving-cost records.</p>
+    </main>
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="../../../shared/js/page-router.js"></script>
+    <script src="prices.js"></script>
+</body>
+</html>

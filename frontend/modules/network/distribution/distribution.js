@@ -152,7 +152,7 @@ async function endAppointment(appointment) {
 
     if (!window.confirm(`${question}\n\nThe record will be retained in history.`)) return;
 
-    showDistributionMessage('Updating appointmentâ€¦', '');
+    showDistributionMessage('Updating appointment...', '');
     try {
         const result = await postJson('network/distribution-end.php', {
             appointmentId: Number(appointment.product_supplier_id)
@@ -185,17 +185,44 @@ async function saveAppointment(event) {
     }
 
     saveAppointmentButton.disabled = true;
-    saveAppointmentButton.textContent = 'Creating appointmentâ€¦';
+    saveAppointmentButton.textContent = 'Creating appointment...';
 
     try {
-        const result = await postJson('network/distribution-save.php', {
+        const payload = {
             productId: Number(productSelect.value),
             supplierId: Number(supplierSelect.value),
             areaId: Number(areaSelect.value),
             startDate: startDateInput.value,
             endDate: endDateInput.value || null,
             isExclusive: exclusiveInput.checked
-        });
+        };
+
+        let result = await postJson('network/distribution-save.php', payload);
+
+        if (!result.ok && result.data?.code === 'SUPPLIER_COVERAGE_WARNING') {
+            const warning = result.data;
+            const period = `${warning.start_date}${warning.end_date ? ` to ${warning.end_date}` : ' onward'}`;
+            const details = [
+                warning.warning,
+                '',
+                `Product: ${warning.product_name}`,
+                `Supplier: ${warning.supplier_name}`,
+                `County: ${warning.area_name}`,
+                `Appointment period: ${period}`,
+                '',
+                'Create this appointment anyway? The warning will be recorded in the audit log.'
+            ].join('\n');
+
+            if (!window.confirm(details)) {
+                showDistributionMessage('Appointment not created. Supplier coverage was not confirmed.', '');
+                return;
+            }
+
+            result = await postJson('network/distribution-save.php', {
+                ...payload,
+                confirmMissingCoverage: true
+            });
+        }
 
         if (!result.ok || result.data.success !== true) {
             throw new Error(result.data.error || 'Unable to create the appointment.');

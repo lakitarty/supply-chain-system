@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../core/bootstrap.php';
 require_once __DIR__ . '/../core/guard.php';
 require_once __DIR__ . '/../core/audit.php';
+require_once __DIR__ . '/../core/notifications.php';
 
 require_post();
 
@@ -29,6 +30,7 @@ try {
                 ps.status,
                 ps.start_date,
                 ps.end_date,
+                ps.supplier_id,
                 p.product_name,
                 supplier.organization_name AS supplier_name,
                 area.area_name
@@ -69,6 +71,26 @@ try {
         'PRODUCT_SUPPLIER',
         (int)$appointmentId,
         "Ended/cancelled appointment of {$appointment['supplier_name']} for {$appointment['product_name']} in {$county}."
+    );
+
+    $county = $appointment['area_name'] ?: 'county not assigned (legacy appointment)';
+    $appointmentEndMessage = "The regional appointment for {$appointment['product_name']} with {$appointment['supplier_name']} in {$county} is no longer active. Its history has been retained.";
+
+    create_organization_notification(
+        $pdo,
+        (int)$actor['organization_id'],
+        'SUPPLY_CHANGE',
+        (int)$appointmentId,
+        'Regional product appointment ended',
+        $appointmentEndMessage
+    );
+    create_organization_notification(
+        $pdo,
+        (int)$appointment['supplier_id'],
+        'SUPPLY_CHANGE',
+        (int)$appointmentId,
+        'Regional product appointment ended',
+        $appointmentEndMessage
     );
 
     $pdo->commit();

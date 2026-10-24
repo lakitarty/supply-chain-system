@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <link rel="stylesheet" href="offers.css">
+    <title>Supplier Offers | Nexora MSRC</title>
+</head>
+<body>
+    <div id="shell"></div>
+    <main class="page pricing-page supplier-offers-page">
+        <header class="pricing-heading">
+            <div>
+                <p class="pricing-eyebrow">SUPPLY NETWORK</p>
+                <h1>Supplier offers</h1>
+                <p class="pricing-subtitle">Publish effective-dated product prices for counties covered by your regional product appointments.</p>
+            </div>
+            <button id="refreshOffers" class="secondary-button" type="button">Refresh</button>
+        </header>
+
+        <p class="pricing-status" id="offersStatus" role="status" aria-live="polite">Loading supplier offers...</p>
+
+        <section class="pricing-section" id="offerApp" hidden>
+            <h2>Publish an offer</h2>
+            <p class="pricing-explainer">An offer is a quoted supply price, not proof of the retailer's actual purchase cost. The full offer period must fit inside an active product appointment for the selected county.</p>
+            <form id="offerForm" novalidate>
+                <div class="pricing-grid">
+                    <div class="pricing-field">
+                        <label for="offerVersion">Product package version</label>
+                        <select id="offerVersion" required><option value="">Loading eligible products...</option></select>
+                    </div>
+                    <div class="pricing-field">
+                        <label for="offerArea">Authorised county</label>
+                        <select id="offerArea" required><option value="">Select a product version first</option></select>
+                    </div>
+                    <div class="pricing-field">
+                        <label for="offerPrice">Unit offer price (KSh)</label>
+                        <input id="offerPrice" type="number" min="0" max="9999999999.99" step="0.01" inputmode="decimal" required>
+                    </div>
+                    <div class="pricing-field">
+                        <label for="offerBasis">VAT price basis</label>
+                        <select id="offerBasis" required>
+                            <option value="VAT_INCLUSIVE">Price includes VAT</option>
+                            <option value="VAT_EXCLUSIVE">Price excludes VAT</option>
+                        </select>
+                    </div>
+                    <div class="pricing-field">
+                        <label for="offerFrom">Effective from</label>
+                        <input id="offerFrom" type="date" required>
+                    </div>
+                    <div class="pricing-field">
+                        <label for="offerTo">Effective to <span>(optional)</span></label>
+                        <input id="offerTo" type="date">
+                        <p class="pricing-hint">Leave blank only if the authorising appointment has no planned end date.</p>
+                    </div>
+                    <div class="pricing-field pricing-note-field">
+                        <label for="offerNote">Offer note <span>(optional)</span></label>
+                        <textarea id="offerNote" rows="2" maxlength="500" placeholder="Terms or conditions relevant to this offer"></textarea>
+                    </div>
+                </div>
+                <div class="pricing-actions">
+                    <button id="saveOffer" class="primary-button" type="submit">Publish offer</button>
+                    <button id="clearOffer" class="secondary-button" type="button">Clear form</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="pricing-section">
+            <div class="pricing-section-heading">
+                <div>
+                    <h2>Offer history</h2>
+                    <p>Price periods are retained for reference. End an open offer before creating a replacement period that overlaps it.</p>
+                </div>
+            </div>
+            <div class="pricing-table-wrap">
+                <table class="pricing-table">
+                    <thead><tr><th>Product and county</th><th>Offer price</th><th>Effective period</th><th>Status</th><th>End open offer</th></tr></thead>
+                    <tbody id="offerRows"><tr><td colspan="5" class="pricing-empty">Loading offer history...</td></tr></tbody>
+                </table>
+            </div>
+        </section>
+        <p class="pricing-footnote">Supplier offers are not automatically copied into supply-order purchase costs. Historical offers and their dates are not overwritten when a new price is introduced.</p>
+    </main>
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="../../../shared/js/page-router.js"></script>
+    <script src="offers.js"></script>
+</body>
+</html>

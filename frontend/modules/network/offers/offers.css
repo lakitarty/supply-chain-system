@@ -1,0 +1,448 @@
+:root {
+    --nx-ink: #172334;
+    --nx-muted: #667386;
+    --nx-line: #e2e7ee;
+    --nx-soft: #f6f8fb;
+    --nx-white: #ffffff;
+    --nx-accent: #ed7d22;
+    --nx-accent-dark: #c85d0b;
+    --nx-accent-soft: #fff3e8;
+    --nx-green: #16734a;
+    --nx-red: #b42318;
+    --nx-shadow: 0 10px 28px rgba(23, 35, 52, 0.045);
+}
+
+.supplier-offers-page,
+.supplier-offers-page * {
+    box-sizing: border-box;
+}
+
+.supplier-offers-page {
+    width: min(100% - 56px, 1440px);
+    margin: 0 auto;
+    padding: 30px 0 52px;
+    color: var(--nx-ink);
+}
+
+.supplier-offers-page .pricing-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 0 0 24px;
+    border-bottom: 1px solid var(--nx-line);
+}
+
+.supplier-offers-page .pricing-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0 0 10px;
+    color: var(--nx-accent-dark);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.35px;
+    text-transform: uppercase;
+}
+
+.supplier-offers-page .pricing-eyebrow::before {
+    width: 23px;
+    height: 3px;
+    border-radius: 4px;
+    background: var(--nx-accent);
+    content: "";
+}
+
+.supplier-offers-page .pricing-heading h1 {
+    margin: 0;
+    color: var(--nx-ink);
+    font-size: clamp(27px, 3vw, 35px);
+    font-weight: 750;
+    letter-spacing: -1.1px;
+    line-height: 1.15;
+}
+
+.supplier-offers-page .pricing-subtitle {
+    max-width: 780px;
+    margin: 11px 0 0;
+    color: var(--nx-muted);
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.supplier-offers-page #refreshOffers,
+.supplier-offers-page .pricing-actions button {
+    min-height: 42px;
+    padding: 0 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.supplier-offers-page #refreshOffers {
+    flex: 0 0 auto;
+    border: 1px solid #d5dce5;
+    background: #fff;
+    color: var(--nx-ink);
+}
+
+.supplier-offers-page #refreshOffers:hover,
+.supplier-offers-page .pricing-actions .secondary-button:hover {
+    border-color: #bac4d1;
+    background: #f8fafc;
+}
+
+.supplier-offers-page .pricing-status {
+    margin: 18px 0 0;
+    padding: 12px 15px;
+    border: 1px solid #e4e9ef;
+    border-left: 3px solid #9aa6b5;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #475467;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.supplier-offers-page .pricing-status.is-success {
+    border-color: #b8e6cd;
+    border-left-color: var(--nx-green);
+    background: #f0fbf5;
+    color: #166342;
+}
+
+.supplier-offers-page .pricing-status.is-error {
+    border-color: #f5c2c0;
+    border-left-color: var(--nx-red);
+    background: #fff6f5;
+    color: #a32119;
+}
+
+.supplier-offers-page .pricing-section {
+    margin-top: 22px;
+    padding: 25px 26px;
+    border: 1px solid var(--nx-line);
+    border-radius: 13px;
+    background: var(--nx-white);
+    box-shadow: var(--nx-shadow);
+}
+
+.supplier-offers-page .pricing-section > h2,
+.supplier-offers-page .pricing-section-heading h2 {
+    margin: 0;
+    color: var(--nx-ink);
+    font-size: 18px;
+    font-weight: 750;
+    letter-spacing: -0.25px;
+}
+
+.supplier-offers-page .pricing-section > h2::before,
+.supplier-offers-page .pricing-section-heading h2::before {
+    display: inline-block;
+    width: 4px;
+    height: 17px;
+    margin: 0 10px -3px 0;
+    border-radius: 4px;
+    background: var(--nx-accent);
+    content: "";
+}
+
+.supplier-offers-page .pricing-explainer,
+.supplier-offers-page .pricing-section-heading p {
+    max-width: 950px;
+    margin: 10px 0 20px;
+    color: var(--nx-muted);
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.supplier-offers-page #offerApp {
+    border-top: 3px solid var(--nx-accent);
+}
+
+.supplier-offers-page .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 24px;
+}
+
+.supplier-offers-page .pricing-field {
+    min-width: 0;
+}
+
+.supplier-offers-page .pricing-field label {
+    display: block;
+    margin-bottom: 7px;
+    color: #344154;
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.supplier-offers-page .pricing-field label span {
+    color: #7b8796;
+    font-weight: 500;
+}
+
+.supplier-offers-page .pricing-field input,
+.supplier-offers-page .pricing-field select,
+.supplier-offers-page .pricing-field textarea,
+.supplier-offers-page .pricing-end-date {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid #d4dce6;
+    border-radius: 8px;
+    background: #fff;
+    color: var(--nx-ink);
+    font-family: inherit;
+    font-size: 14px;
+    transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+.supplier-offers-page .pricing-field input,
+.supplier-offers-page .pricing-field select {
+    height: 44px;
+    padding: 0 12px;
+}
+
+.supplier-offers-page .pricing-field textarea {
+    min-height: 88px;
+    padding: 11px 12px;
+    resize: vertical;
+    line-height: 1.55;
+}
+
+.supplier-offers-page .pricing-field input:focus,
+.supplier-offers-page .pricing-field select:focus,
+.supplier-offers-page .pricing-field textarea:focus,
+.supplier-offers-page .pricing-end-date:focus {
+    border-color: var(--nx-accent);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(237, 125, 34, 0.15);
+}
+
+.supplier-offers-page .pricing-field input:disabled,
+.supplier-offers-page .pricing-field select:disabled {
+    background: #f3f5f8;
+    color: #8792a0;
+    cursor: not-allowed;
+}
+
+.supplier-offers-page .pricing-hint {
+    margin: 7px 0 0;
+    color: #778496;
+    font-size: 11px;
+    line-height: 1.55;
+}
+
+.supplier-offers-page .pricing-note-field {
+    grid-column: 1 / -1;
+}
+
+.supplier-offers-page .pricing-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 23px;
+    padding-top: 20px;
+    border-top: 1px solid #edf0f4;
+}
+
+.supplier-offers-page .pricing-actions .primary-button {
+    border: 1px solid var(--nx-accent);
+    background: var(--nx-accent);
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(237, 125, 34, 0.15);
+}
+
+.supplier-offers-page .pricing-actions .primary-button:hover {
+    border-color: var(--nx-accent-dark);
+    background: var(--nx-accent-dark);
+    transform: translateY(-1px);
+}
+
+.supplier-offers-page .pricing-actions .secondary-button {
+    border: 1px solid #d5dce5;
+    background: #fff;
+    color: #344154;
+}
+
+.supplier-offers-page button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.supplier-offers-page .pricing-table-wrap {
+    width: 100%;
+    overflow: auto;
+    border: 1px solid #e4e8ee;
+    border-radius: 9px;
+}
+
+.supplier-offers-page .pricing-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+}
+
+.supplier-offers-page .pricing-table th,
+.supplier-offers-page .pricing-table td {
+    padding: 14px 14px;
+    border-bottom: 1px solid #edf0f4;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.supplier-offers-page .pricing-table th {
+    background: #f4f6f9;
+    color: #536174;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.supplier-offers-page .pricing-table td {
+    color: #435064;
+    line-height: 1.55;
+    background: #fff;
+}
+
+.supplier-offers-page .pricing-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.supplier-offers-page .pricing-table tbody tr:hover td {
+    background: #fffaf5;
+}
+
+.supplier-offers-page .pricing-table td strong {
+    display: block;
+    color: var(--nx-ink);
+    font-size: 13px;
+    font-weight: 750;
+}
+
+.supplier-offers-page .pricing-table td small {
+    display: block;
+    margin-top: 4px;
+    color: #7a8696;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.supplier-offers-page .pricing-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 25px;
+    padding: 4px 9px;
+    border: 1px solid #e2e7ee;
+    border-radius: 999px;
+    background: #f5f7fa;
+    color: #475467;
+    font-size: 11px;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.supplier-offers-page .pricing-period {
+    white-space: nowrap;
+}
+
+.supplier-offers-page .pricing-end-controls {
+    display: grid;
+    min-width: 150px;
+    gap: 7px;
+}
+
+.supplier-offers-page .pricing-end-date {
+    min-height: 36px;
+    padding: 0 9px;
+    font-size: 12px;
+}
+
+.supplier-offers-page .pricing-end-button {
+    min-height: 34px;
+    padding: 0 10px;
+    border: 1px solid #d4dce6;
+    border-radius: 7px;
+    background: #fff;
+    color: #354357;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+.supplier-offers-page .pricing-end-button:hover {
+    border-color: var(--nx-accent);
+    background: var(--nx-accent-soft);
+    color: var(--nx-accent-dark);
+}
+
+.supplier-offers-page .pricing-empty {
+    padding: 34px 18px !important;
+    color: #7b8796 !important;
+    text-align: center !important;
+}
+
+.supplier-offers-page .pricing-footnote {
+    margin: 15px 2px 0;
+    color: #778496;
+    font-size: 12px;
+    line-height: 1.65;
+}
+
+.supplier-offers-page [hidden] {
+    display: none !important;
+}
+
+@media (max-width: 820px) {
+    .supplier-offers-page {
+        width: min(100% - 32px, 1440px);
+        padding-top: 22px;
+    }
+
+    .supplier-offers-page .pricing-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .supplier-offers-page .pricing-heading h1 {
+        font-size: 28px;
+    }
+
+    .supplier-offers-page #refreshOffers {
+        align-self: flex-start;
+    }
+
+    .supplier-offers-page .pricing-section {
+        padding: 21px 18px;
+    }
+}
+
+@media (max-width: 600px) {
+    .supplier-offers-page {
+        width: min(100% - 24px, 1440px);
+    }
+
+    .supplier-offers-page .pricing-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .supplier-offers-page .pricing-note-field {
+        grid-column: auto;
+    }
+
+    .supplier-offers-page .pricing-table {
+        min-width: 790px;
+    }
+
+    .supplier-offers-page .pricing-section {
+        padding: 18px 13px;
+    }
+}

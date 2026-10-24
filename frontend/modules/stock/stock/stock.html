@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <link rel="stylesheet" href="stock.css">
+    <title>Stock | Nexora MSRC</title>
+</head>
+<body>
+    <div id="shell"></div>
+
+    <main class="page stock-page">
+        <header class="stock-page-heading">
+            <div>
+                <p class="stock-eyebrow">RETAIL OPERATIONS</p>
+                <h1>Stock</h1>
+                <p class="stock-subtitle">Track branch inventory, record sales, and review replenishment guidance.</p>
+            </div>
+            <div class="stock-heading-actions">
+                <a class="secondary-button stock-link" href="../alerts/alerts.html">View alerts</a>
+                <a class="secondary-button stock-link" href="../sales/sales.html">Sales &amp; Reports</a>
+                <button id="refreshStock" class="secondary-button" type="button">Refresh</button>
+            </div>
+        </header>
+
+        <section class="stock-toolbar" aria-label="Stock filters">
+            <div class="stock-field stock-branch-field">
+                <label for="stockBranch">Branch</label>
+                <select id="stockBranch" name="branchId"></select>
+            </div>
+            <div class="stock-field stock-search-field">
+                <label for="stockSearch">Find product</label>
+                <input id="stockSearch" type="search" placeholder="Product, barcode, manufacturer">
+            </div>
+            <div class="stock-field stock-filter-field">
+                <label for="stockStatusFilter">Status</label>
+                <select id="stockStatusFilter">
+                    <option value="ALL">All stock</option>
+                    <option value="NOT_TRACKED">Not tracked</option>
+                    <option value="NORMAL">Normal</option>
+                    <option value="LOW_STOCK">Low stock</option>
+                    <option value="OUT_OF_STOCK">Out of stock</option>
+                </select>
+            </div>
+        </section>
+
+        <p id="stockStatus" class="stock-status-message" role="status" aria-live="polite">Loading stock...</p>
+
+        <section id="stockMetrics" class="stock-metrics" aria-label="Stock summary"></section>
+        <section id="stockIntegrity" class="stock-integrity" aria-label="Inventory data review" hidden></section>
+
+        <div class="stock-layout">
+            <section class="stock-table-section" aria-labelledby="stockTableTitle">
+                <div class="stock-section-heading">
+                    <div>
+                        <h2 id="stockTableTitle">Product inventory</h2>
+                        <p>Each packaging version is tracked separately.</p>
+                    </div>
+                    <span id="stockRowCount" class="stock-row-count">0 products</span>
+                </div>
+                <div class="stock-table-scroll">
+                    <table class="stock-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Product</th>
+                                <th scope="col">Package / barcode</th>
+                                <th scope="col" class="numeric">On hand</th>
+                                <th scope="col" class="numeric">Avg. per day</th>
+                                <th scope="col">Supplier guidance</th>
+                                <th scope="col" class="numeric">Suggested order</th>
+                                <th scope="col">Status</th>
+                                <th scope="col"><span class="sr-only">Manage</span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="stockRows">
+                            <tr><td colspan="8" class="stock-empty-cell">Loading inventory...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <aside class="stock-editor" aria-labelledby="stockEditorTitle">
+                <div class="stock-section-heading stock-editor-heading">
+                    <div>
+                        <h2 id="stockEditorTitle">Manage selected product</h2>
+                        <p id="selectedProductLabel">Choose a product version from the table.</p>
+                    </div>
+                </div>
+
+                <form id="stockCountForm" class="stock-form">
+                    <h3>Count stock</h3>
+                    <p class="stock-form-help">Enter a physical count and the level that should trigger a reorder.</p>
+                    <div class="stock-form-grid">
+                        <div class="stock-field">
+                            <label for="countOnHand">Units on hand</label>
+                            <input id="countOnHand" name="onHand" type="number" min="0" max="999999999" step="1" inputmode="numeric" required>
+                        </div>
+                        <div class="stock-field">
+                            <label for="countReorderLevel">Reorder level</label>
+                            <input id="countReorderLevel" name="reorderLevel" type="number" min="0" max="999999999" step="1" inputmode="numeric" required>
+                        </div>
+                    </div>
+                    <button id="saveStockButton" class="primary-button" type="submit" disabled>Save stock count</button>
+                </form>
+
+                <div class="stock-form-divider"></div>
+
+                <form id="stockSaleForm" class="stock-form">
+                    <h3>Daily sales summary</h3>
+                    <p class="stock-form-help">Enter one daily total for this branch, product version, and date. Saving the same date again corrects the existing summary rather than duplicating it.</p>
+                    <div class="stock-field">
+                        <label for="unitsSold">Units sold</label>
+                        <input id="unitsSold" name="unitsSold" type="number" min="0" max="999999999" step="1" inputmode="numeric" required>
+                    </div>
+                    <div class="stock-field">
+                        <label for="salesAmount">Total sales amount (KSh)</label>
+                        <input id="salesAmount" name="salesAmount" type="number" min="0" max="9999999999.99" step="0.01" inputmode="decimal" required>
+                        <p id="salesAmountHint" class="stock-form-help">Enter the actual total for the selected day, including any promotions or discounts.</p>
+                    </div>
+                    <div class="stock-field">
+                        <label for="salesAmountBasis">Amount basis</label>
+                        <select id="salesAmountBasis" name="salesAmountBasis" required>
+                            <option value="">Choose amount basis</option>
+                            <option value="VAT_INCLUSIVE">Amount includes VAT</option>
+                            <option value="VAT_EXCLUSIVE">Amount excludes VAT</option>
+                        </select>
+                        <p class="stock-form-help">Choose how the entered total is recorded. Nexora will not guess this.</p>
+                    </div>
+                    <div id="salesTaxContext" class="stock-sales-tax-context" role="status" aria-live="polite">Select a product version and sale date to check its effective branch price and manufacturer tax declaration.</div>
+                    <div class="stock-field">
+                        <label for="saleDate">Sale date</label>
+                        <input id="saleDate" name="saleDate" type="date" required>
+                    </div>
+                    <button id="recordSaleButton" class="secondary-button stock-full-button" type="submit" disabled>Record sale</button>
+                </form>
+                <p id="stockEditorStatus" class="stock-editor-status" role="status" aria-live="polite"></p>
+            </aside>
+        </div>
+    </main>
+
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="../../../shared/js/page-router.js"></script>
+    <script src="stock.js"></script>
+</body>
+</html>

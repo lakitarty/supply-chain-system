@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../core/bootstrap.php';
 require_once __DIR__ . '/../core/guard.php';
 require_once __DIR__ . '/../core/audit.php';
+require_once __DIR__ . '/../core/notifications.php';
 require_once __DIR__ . '/../core/validation.php';
 
 require_post();
@@ -24,6 +25,7 @@ try {
     $endDateText = trim((string)($body['endDate'] ?? ''));
     $endDate = $endDateText === '' ? null : $endDateText;
     $isExclusive = in_array($body['isExclusive'] ?? false, [true, 1, '1', 'true'], true) ? 1 : 0;
+    $confirmMissingCoverage = in_array($body['confirmMissingCoverage'] ?? false, [true, 1, '1', 'true'], true);
 
     if ($productId === false || $productId === null) {
         respond_field_error(400, field_error('productId', 'Select one of your products.'));
@@ -80,15 +82,60 @@ try {
     }
 
     $statement = $pdo->prepare(
-        "SELECT area_id
+        "SELECT area_id, area_name
          FROM distribution_areas
          WHERE area_id = ? AND status = 'ACTIVE'
          LIMIT 1"
     );
     $statement->execute([(int)$areaId]);
-    if (!$statement->fetchColumn()) {
+    $area = $statement->fetch(PDO::FETCH_ASSOC);
+    if (!$area) {
         $pdo->rollBack();
         respond_field_error(400, field_error('areaId', 'Select an active county.'));
+    }
+    $areaName = (string)$area['area_name'];
+
+    if ($endDate === null) {
+        $coverageStatement = $pdo->prepare(
+            "SELECT supplier_area_id
+             FROM supplier_distribution_areas
+             WHERE supplier_id = ?
+               AND area_id = ?
+               AND status = 'ACTIVE'
+               AND start_date <= ?
+               AND end_date IS NULL
+             LIMIT 1"
+        );
+        $coverageStatement->execute([(int)$supplierId, (int)$areaId, $startDate]);
+    } else {
+        $coverageStatement = $pdo->prepare(
+            "SELECT supplier_area_id
+             FROM supplier_distribution_areas
+             WHERE supplier_id = ?
+               AND area_id = ?
+               AND status = 'ACTIVE'
+               AND start_date <= ?
+               AND (end_date IS NULL OR end_date >= ?)
+             LIMIT 1"
+        );
+        $coverageStatement->execute([(int)$supplierId, (int)$areaId, $startDate, $endDate]);
+    }
+
+    $hasDeclaredCoverage = $coverageStatement->fetchColumn() !== false;
+    $coverageWarningAccepted = !$hasDeclaredCoverage && $confirmMissingCoverage;
+
+    if (!$hasDeclaredCoverage && !$confirmMissingCoverage) {
+        $pdo->rollBack();
+        respond(409, [
+            'success' => false,
+            'code' => 'SUPPLIER_COVERAGE_WARNING',
+            'warning' => 'The supplier has no active declared coverage in this county for the entire selected appointment period.',
+            'product_name' => $product['product_name'],
+            'supplier_name' => $supplier['organization_name'],
+            'area_name' => $areaName,
+            'start_date' => $startDate,
+            'end_date' => $endDate
+        ]);
     }
 
     $overlapEnd = $endDate ?? '9999-12-31';
@@ -144,14 +191,42 @@ try {
         'PRODUCT_DISTRIBUTION_APPOINTED',
         'PRODUCT_SUPPLIER',
         $appointmentId,
-        "Appointed {$supplier['organization_name']} for {$product['product_name']} in area ID {$areaId} from {$startDate}" . ($endDate !== null ? " to {$endDate}" : ' with no planned end date') . ($isExclusive ? ' (exclusive).' : ' (non-exclusive).')
+        "Appointed {$supplier['organization_name']} for {$product['product_name']} in {$areaName} from {$startDate}" . ($endDate !== null ? " to {$endDate}" : ' with no planned end date') . ($isExclusive ? ' (exclusive).' : ' (non-exclusive).') . ($coverageWarningAccepted ? ' Supplier coverage warning acknowledged by manufacturer.' : '')
+    );
+
+    $appointmentPeriod = $endDate !== null ? "through {$endDate}" : 'with no planned end date';
+    $notificationMessage = "Regional appointment for {$product['product_name']} in {$areaName}: {$supplier['organization_name']} was appointed from {$startDate} {$appointmentPeriod}.";
+    if ($coverageWarningAccepted) {
+        $notificationMessage .= ' The manufacturer acknowledged that the supplier has not declared coverage for the full appointment period.';
+    }
+
+    create_organization_notification(
+        $pdo,
+        $organizationId,
+        'SUPPLY_CHANGE',
+        $appointmentId,
+        'Regional product appointment created',
+        $notificationMessage
+    );
+    create_organization_notification(
+        $pdo,
+        (int)$supplier['organization_id'],
+        'SUPPLY_CHANGE',
+        $appointmentId,
+        'New regional product appointment',
+        $notificationMessage
     );
 
     $pdo->commit();
 
+    $appointmentMessage = 'Regional distribution appointment created.';
+    if ($coverageWarningAccepted) {
+        $appointmentMessage .= ' Supplier coverage warning acknowledged; the supplier has no declared coverage for the full appointment period.';
+    }
+
     respond(201, [
         'success' => true,
-        'message' => 'Regional distribution appointment created.',
+        'message' => $appointmentMessage,
         'appointment_id' => $appointmentId
     ]);
 

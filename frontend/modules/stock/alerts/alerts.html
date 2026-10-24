@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <link rel="stylesheet" href="alerts.css">
+    <title>Stock Alerts | Nexora MSRC</title>
+</head>
+<body>
+    <div id="shell"></div>
+
+    <main class="page stock-alerts-page">
+        <header class="stock-alerts-heading">
+            <div>
+                <p class="stock-alerts-eyebrow">RETAIL OPERATIONS</p>
+                <h1>Stock alerts</h1>
+                <p class="stock-alerts-subtitle">Review low-stock and out-of-stock conditions for the selected branch.</p>
+            </div>
+            <div class="stock-alerts-actions">
+                <a class="secondary-button" href="../stock/stock.html">Manage stock</a>
+                <button id="refreshStockAlerts" class="secondary-button" type="button">Refresh</button>
+            </div>
+        </header>
+
+        <section class="stock-alerts-toolbar" aria-label="Stock alert controls">
+            <div class="stock-alerts-field">
+                <label for="alertsBranch">Branch</label>
+                <select id="alertsBranch"></select>
+            </div>
+        </section>
+
+        <p id="stockAlertsStatus" class="stock-alerts-status" role="status" aria-live="polite">Loading stock alerts...</p>
+        <section id="stockAlertsMetrics" class="stock-alerts-metrics" aria-label="Alert summary"></section>
+        <section id="legacyAlertReview" class="legacy-alert-review" aria-label="Legacy records needing review" hidden></section>
+
+        <section class="stock-alerts-list-section" aria-labelledby="activeAlertsTitle">
+            <header class="stock-alerts-section-heading">
+                <div>
+                    <h2 id="activeAlertsTitle">Active alerts</h2>
+                    <p>Alerts are refreshed when stock counts and sales are recorded.</p>
+                </div>
+                <span id="activeAlertCount" class="stock-alert-count">0 alerts</span>
+            </header>
+            <div id="stockAlertList" class="stock-alert-list">
+                <p class="stock-alert-empty">Loading alerts...</p>
+            </div>
+        </section>
+    </main>
+
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="../../../shared/js/page-router.js"></script>
+    <script src="alerts.js"></script>
+</body>
+</html>

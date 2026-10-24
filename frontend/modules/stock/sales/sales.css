@@ -1,0 +1,216 @@
+.stock-sales-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.stock-sales-heading,
+.stock-sales-section-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.stock-sales-heading h1 {
+    margin: 0;
+}
+
+.stock-sales-eyebrow {
+    margin: 0 0 6px;
+    color: #56716f;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+}
+
+.stock-sales-subtitle,
+.stock-sales-section-heading p,
+.stock-sales-footnote {
+    color: #5e6f70;
+    line-height: 1.5;
+}
+
+.stock-sales-subtitle {
+    margin: 8px 0 0;
+}
+
+.stock-sales-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.stock-sales-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 16px;
+    background: #fff;
+    border: 1px solid #dfe7e5;
+    border-radius: 10px;
+}
+
+.stock-sales-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 220px;
+}
+
+.stock-sales-field label {
+    color: #354b4a;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.stock-sales-field select {
+    min-height: 40px;
+    padding: 8px 10px;
+    border: 1px solid #cbd8d6;
+    border-radius: 6px;
+    background: #fff;
+    color: #173b39;
+}
+
+.stock-sales-status {
+    margin: 0;
+    color: #566968;
+    font-size: 0.9rem;
+}
+
+.stock-sales-status.is-error {
+    color: #a12626;
+}
+
+.stock-sales-status.is-success {
+    color: #166b4b;
+}
+
+.stock-sales-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.stock-sales-metric {
+    min-width: 0;
+    padding: 18px;
+    border: 1px solid #dfe7e5;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.stock-sales-metric-label {
+    color: #607271;
+    font-size: 0.84rem;
+}
+
+.stock-sales-metric-value {
+    margin-top: 8px;
+    color: #123d3a;
+    font-size: clamp(1.25rem, 2.3vw, 1.8rem);
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.stock-sales-notice {
+    padding: 13px 15px;
+    border: 1px solid #e8d5a4;
+    border-radius: 8px;
+    background: #fff9e9;
+    color: #72521a;
+    line-height: 1.5;
+}
+
+.stock-sales-table-section {
+    padding: 18px;
+    border: 1px solid #dfe7e5;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.stock-sales-section-heading {
+    margin-bottom: 14px;
+}
+
+.stock-sales-section-heading h2 {
+    margin: 0;
+    color: #173b39;
+    font-size: 1.15rem;
+}
+
+.stock-sales-section-heading p {
+    margin: 6px 0 0;
+    font-size: 0.88rem;
+}
+
+.stock-sales-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.stock-sales-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1120px;
+}
+
+.stock-sales-table th,
+.stock-sales-table td {
+    padding: 12px 10px;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid #e8eeec;
+}
+
+.stock-sales-table th {
+    color: #526765;
+    font-size: 0.78rem;
+    font-weight: 700;
+    background: #f7faf9;
+}
+
+.stock-sales-table td {
+    color: #263f3d;
+    font-size: 0.88rem;
+}
+
+.stock-sales-table td small {
+    display: block;
+    margin-top: 4px;
+    color: #697b79;
+    line-height: 1.4;
+}
+
+.stock-sales-table .numeric {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.stock-sales-empty {
+    padding: 28px !important;
+    color: #6b7d7b !important;
+    text-align: center !important;
+}
+
+.stock-sales-footnote {
+    margin: 0;
+    font-size: 0.82rem;
+}
+
+@media (max-width: 760px) {
+    .stock-sales-heading,
+    .stock-sales-section-heading {
+        flex-direction: column;
+    }
+
+    .stock-sales-metrics {
+        grid-template-columns: 1fr;
+    }
+
+    .stock-sales-field {
+        min-width: 100%;
+    }
+}

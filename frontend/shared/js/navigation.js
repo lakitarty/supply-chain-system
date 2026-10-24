@@ -12,6 +12,7 @@ const BUILT_PATHS = [
     "modules/products/updates/updates.html",
     "modules/products/history/history.html",
     "modules/products/management/management.html",
+    "modules/products/tax/tax.html",
     "modules/messages/announcements/announcements.html",
     "modules/messages/notifications/notifications.html",
     "modules/messages/branch-communications/branch-communications.html",
@@ -23,6 +24,11 @@ const BUILT_PATHS = [
     "modules/network/workspace/workspace.html",
     "modules/network/coverage/coverage.html",
     "modules/network/distribution/distribution.html",
+    "modules/stock/stock/stock.html",
+    "modules/stock/alerts/alerts.html",
+    "modules/stock/sales/sales.html",
+    "modules/network/offers/offers.html",
+    "modules/stock/prices/prices.html",
 ];
 function page(module, name) {
     return `modules/${module}/${name}/${name}.html`;
@@ -46,6 +52,7 @@ const TABS = [
                 path: page("products", "management"),
                 types: ["MANUFACTURER", "MANUFACTURER_SUPPLIER"]
             },
+            { label: "Tax classification", path: page("products", "tax"), types: ["MANUFACTURER", "MANUFACTURER_SUPPLIER"], roles: ["ADMIN"] },
             { label: "History", path: page("products", "history") }
         ]
     },
@@ -57,6 +64,7 @@ const TABS = [
             { label: "Relationships", path: page("network", "relationships") },
             { label: "Workspace", path: page("network", "workspace") },
             { label: "Supplier coverage", path: page("network", "coverage"), types: ["SUPPLIER", "MANUFACTURER_SUPPLIER"], roles: ["ADMIN"] },
+            { label: "Supplier offers", path: page("network", "offers"), types: ["SUPPLIER", "MANUFACTURER_SUPPLIER"], roles: ["ADMIN"] },
             { label: "Distribution", path: page("network", "distribution"), types: ["MANUFACTURER", "MANUFACTURER_SUPPLIER"], roles: ["ADMIN"] },
         ]
     },
@@ -74,7 +82,9 @@ const TABS = [
         types: ["RETAILER"],
         sections: [
             { label: "Stock", path: page("stock", "stock") },
-            { label: "Alerts", path: page("stock", "alerts") }
+            { label: "Alerts", path: page("stock", "alerts") },
+            { label: "Selling prices", path: page("stock", "prices"), roles: ["ADMIN", "BRANCH_ADMIN"] },
+            { label: "Sales & Reports", path: page("stock", "sales") }
         ]
     },
     {

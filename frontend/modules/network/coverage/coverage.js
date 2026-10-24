@@ -166,9 +166,35 @@
 
         refreshButton.disabled = true;
         try {
-            const result = await postJson('network/coverage-end.php', {
-                coverageId: Number(item.supplier_area_id)
-            });
+            const payload = { coverageId: Number(item.supplier_area_id) };
+            let result = await postJson('network/coverage-end.php', payload);
+
+            if (!result.ok && result.data?.code === 'ACTIVE_PRODUCT_APPOINTMENTS_WARNING') {
+                const warning = result.data;
+                const products = Array.isArray(warning.affected_products) && warning.affected_products.length
+                    ? warning.affected_products.join(', ')
+                    : 'Product names unavailable';
+                const details = [
+                    warning.warning,
+                    '',
+                    `County: ${warning.area_name || item.area_name}`,
+                    `Active or scheduled appointments: ${warning.affected_appointments}`,
+                    `Products: ${products}`,
+                    '',
+                    'End supplier coverage anyway? These product appointments will remain active and will not be changed automatically.'
+                ].join('\n');
+
+                if (!window.confirm(details)) {
+                    showMessage('Supplier coverage was not ended.', '');
+                    return;
+                }
+
+                result = await postJson('network/coverage-end.php', {
+                    ...payload,
+                    confirmAppointmentsAffected: true
+                });
+            }
+
             if (!result.ok || result.data?.success !== true) {
                 throw new Error(result.data?.error || 'Unable to end supplier coverage.');
             }

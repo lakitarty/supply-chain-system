@@ -1,0 +1,483 @@
+:root {
+    --nx-ink: #172334;
+    --nx-muted: #667386;
+    --nx-line: #e2e7ee;
+    --nx-soft: #f6f8fb;
+    --nx-white: #ffffff;
+    --nx-accent: #ed7d22;
+    --nx-accent-dark: #c85d0b;
+    --nx-accent-soft: #fff3e8;
+    --nx-green: #16734a;
+    --nx-blue: #245ca8;
+    --nx-shadow: 0 10px 28px rgba(23, 35, 52, 0.045);
+}
+
+.tax-page,
+.tax-page * {
+    box-sizing: border-box;
+}
+
+.tax-page {
+    width: min(100% - 56px, 1440px);
+    margin: 0 auto;
+    padding: 30px 0 52px;
+    color: var(--nx-ink);
+}
+
+.tax-page .tax-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 0 0 24px;
+    border-bottom: 1px solid var(--nx-line);
+}
+
+.tax-page .tax-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0 0 10px;
+    color: var(--nx-accent-dark);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.35px;
+    text-transform: uppercase;
+}
+
+.tax-page .tax-eyebrow::before {
+    width: 23px;
+    height: 3px;
+    border-radius: 4px;
+    background: var(--nx-accent);
+    content: "";
+}
+
+.tax-page .tax-heading h1 {
+    margin: 0;
+    color: var(--nx-ink);
+    font-size: clamp(27px, 3vw, 35px);
+    font-weight: 750;
+    letter-spacing: -1.1px;
+    line-height: 1.15;
+}
+
+.tax-page .tax-subtitle {
+    max-width: 800px;
+    margin: 11px 0 0;
+    color: var(--nx-muted);
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.tax-page #refreshTax,
+.tax-page .tax-form-actions button {
+    min-height: 42px;
+    padding: 0 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.tax-page #refreshTax {
+    flex: 0 0 auto;
+    border: 1px solid #d5dce5;
+    background: #fff;
+    color: var(--nx-ink);
+}
+
+.tax-page #refreshTax:hover,
+.tax-page .tax-form-actions .secondary-button:hover {
+    border-color: #bac4d1;
+    background: #f8fafc;
+}
+
+.tax-page .tax-status {
+    margin: 18px 0 0;
+    padding: 12px 15px;
+    border: 1px solid #e4e9ef;
+    border-left: 3px solid #9aa6b5;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #475467;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.tax-page .tax-status.is-success {
+    border-color: #b8e6cd;
+    border-left-color: var(--nx-green);
+    background: #f0fbf5;
+    color: #166342;
+}
+
+.tax-page .tax-status.is-error {
+    border-color: #f5c2c0;
+    border-left-color: #b42318;
+    background: #fff6f5;
+    color: #a32119;
+}
+
+.tax-page .tax-section {
+    margin-top: 22px;
+    padding: 25px 26px;
+    border: 1px solid var(--nx-line);
+    border-radius: 13px;
+    background: var(--nx-white);
+    box-shadow: var(--nx-shadow);
+}
+
+.tax-page .tax-section > h2,
+.tax-page .tax-section-heading h2 {
+    margin: 0;
+    color: var(--nx-ink);
+    font-size: 18px;
+    font-weight: 750;
+    letter-spacing: -0.25px;
+}
+
+.tax-page .tax-section > h2::before,
+.tax-page .tax-section-heading h2::before {
+    display: inline-block;
+    width: 4px;
+    height: 17px;
+    margin: 0 10px -3px 0;
+    border-radius: 4px;
+    background: var(--nx-accent);
+    content: "";
+}
+
+.tax-page .tax-explainer,
+.tax-page .tax-section-heading p {
+    max-width: 1000px;
+    margin: 10px 0 20px;
+    color: var(--nx-muted);
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.tax-page #taxApp {
+    border-top: 3px solid var(--nx-accent);
+}
+
+.tax-page .tax-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 24px;
+}
+
+.tax-page .tax-field {
+    min-width: 0;
+}
+
+.tax-page .tax-field label {
+    display: block;
+    margin-bottom: 7px;
+    color: #344154;
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.tax-page .tax-field label span {
+    color: #7b8796;
+    font-weight: 500;
+}
+
+.tax-page .tax-field input,
+.tax-page .tax-field select,
+.tax-page .tax-field textarea {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid #d4dce6;
+    border-radius: 8px;
+    background: #fff;
+    color: var(--nx-ink);
+    font-family: inherit;
+    font-size: 14px;
+    transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+.tax-page .tax-field input,
+.tax-page .tax-field select {
+    height: 44px;
+    padding: 0 12px;
+}
+
+.tax-page .tax-field textarea {
+    min-height: 90px;
+    padding: 11px 12px;
+    resize: vertical;
+    line-height: 1.55;
+}
+
+.tax-page .tax-field input:focus,
+.tax-page .tax-field select:focus,
+.tax-page .tax-field textarea:focus {
+    border-color: var(--nx-accent);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(237, 125, 34, 0.15);
+}
+
+.tax-page .tax-field input:disabled,
+.tax-page .tax-field select:disabled {
+    background: #f3f5f8;
+    color: #8792a0;
+    cursor: not-allowed;
+}
+
+.tax-page .tax-hint {
+    margin: 7px 0 0;
+    color: #778496;
+    font-size: 11px;
+    line-height: 1.55;
+}
+
+.tax-page #taxRateHint {
+    padding: 9px 11px;
+    border-left: 2px solid var(--nx-accent);
+    border-radius: 0 6px 6px 0;
+    background: var(--nx-accent-soft);
+    color: #85420c;
+}
+
+.tax-page .tax-note-field {
+    grid-column: 1 / -1;
+}
+
+.tax-page .tax-checkbox-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    margin-top: 20px;
+    padding: 13px 14px;
+    border: 1px solid #e8edf3;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #475467;
+    font-size: 12px;
+    line-height: 1.6;
+    cursor: pointer;
+}
+
+.tax-page .tax-checkbox-row input {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    margin: 2px 0 0;
+    accent-color: var(--nx-accent);
+}
+
+.tax-page .tax-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 23px;
+    padding-top: 20px;
+    border-top: 1px solid #edf0f4;
+}
+
+.tax-page .tax-form-actions .primary-button {
+    border: 1px solid var(--nx-accent);
+    background: var(--nx-accent);
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(237, 125, 34, 0.15);
+}
+
+.tax-page .tax-form-actions .primary-button:hover {
+    border-color: var(--nx-accent-dark);
+    background: var(--nx-accent-dark);
+    transform: translateY(-1px);
+}
+
+.tax-page .tax-form-actions .secondary-button {
+    border: 1px solid #d5dce5;
+    background: #fff;
+    color: #344154;
+}
+
+.tax-page button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.tax-page .tax-table-wrap {
+    width: 100%;
+    overflow: auto;
+    border: 1px solid #e4e8ee;
+    border-radius: 9px;
+}
+
+.tax-page .tax-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+}
+
+.tax-page .tax-table th,
+.tax-page .tax-table td {
+    padding: 14px 14px;
+    border-bottom: 1px solid #edf0f4;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.tax-page .tax-table th {
+    background: #f4f6f9;
+    color: #536174;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.tax-page .tax-table td {
+    background: #fff;
+    color: #435064;
+    line-height: 1.55;
+}
+
+.tax-page .tax-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.tax-page .tax-table tbody tr:hover td {
+    background: #fffaf5;
+}
+
+.tax-page .tax-table td strong {
+    display: block;
+    color: var(--nx-ink);
+    font-size: 13px;
+    font-weight: 750;
+}
+
+.tax-page .tax-table td small {
+    display: block;
+    margin-top: 4px;
+    color: #7a8696;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.tax-page .tax-category {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    padding: 4px 9px;
+    border: 1px solid #e2e7ee;
+    border-radius: 999px;
+    background: #f5f7fa;
+    color: #475467;
+    font-size: 11px;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.tax-page .tax-period-status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 25px;
+    padding: 4px 9px;
+    border: 1px solid #e2e7ee;
+    border-radius: 999px;
+    background: #f5f7fa;
+    color: #475467;
+    font-size: 11px;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.tax-page .tax-period-status.is-current {
+    border-color: #b8e6cd;
+    background: #effbf4;
+    color: #166342;
+}
+
+.tax-page .tax-period-status.is-scheduled {
+    border-color: #c7dcfb;
+    background: #f1f7ff;
+    color: #245ca8;
+}
+
+.tax-page .tax-period-status.is-ended {
+    border-color: #e2e7ee;
+    background: #f5f7fa;
+    color: #667386;
+}
+
+.tax-page .tax-empty {
+    padding: 36px 18px !important;
+    color: #7b8796 !important;
+    text-align: center !important;
+}
+
+.tax-page .tax-footnote {
+    margin: 15px 2px 0;
+    color: #778496;
+    font-size: 12px;
+    line-height: 1.65;
+}
+
+.tax-page .tax-rates-section {
+    border-top: 3px solid #a8b3c2;
+    box-shadow: none;
+}
+
+.tax-page .tax-rates-section .tax-explainer {
+    margin-bottom: 16px;
+}
+
+.tax-page [hidden] {
+    display: none !important;
+}
+
+@media (max-width: 820px) {
+    .tax-page {
+        width: min(100% - 32px, 1440px);
+        padding-top: 22px;
+    }
+
+    .tax-page .tax-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .tax-page .tax-heading h1 {
+        font-size: 28px;
+    }
+
+    .tax-page #refreshTax {
+        align-self: flex-start;
+    }
+
+    .tax-page .tax-section {
+        padding: 21px 18px;
+    }
+}
+
+@media (max-width: 600px) {
+    .tax-page {
+        width: min(100% - 24px, 1440px);
+    }
+
+    .tax-page .tax-form-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .tax-page .tax-note-field {
+        grid-column: auto;
+    }
+
+    .tax-page .tax-table {
+        min-width: 850px;
+    }
+
+    .tax-page .tax-section {
+        padding: 18px 13px;
+    }
+}

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <link rel="stylesheet" href="tax.css">
+    <title>Product Tax Classification | Nexora MSRC</title>
+</head>
+<body>
+    <div id="shell"></div>
+
+    <main class="page tax-page">
+        <header class="tax-heading">
+            <div>
+                <p class="tax-eyebrow">PRODUCT COMPLIANCE</p>
+                <h1>Product tax classification</h1>
+                <p class="tax-subtitle">Record the manufacturer’s tax-category declaration for a specific package version and effective period.</p>
+            </div>
+            <button id="refreshTax" class="secondary-button" type="button">Refresh</button>
+        </header>
+
+        <div id="taxStatus" class="tax-status" role="status" aria-live="polite">Loading product tax records...</div>
+
+        <section id="taxApp" class="tax-section" hidden>
+            <h2>Declare a classification</h2>
+            <p class="tax-explainer">Select the appropriate category based on verified tax guidance. Zero-rated and exempt supplies are different categories. This declaration is not a substitute for confirming legal eligibility.</p>
+
+            <form id="taxForm" novalidate>
+                <div class="tax-form-grid">
+                    <div class="tax-field">
+                        <label for="taxProduct">Product</label>
+                        <select id="taxProduct" required></select>
+                    </div>
+                    <div class="tax-field">
+                        <label for="taxVersion">Package / barcode version</label>
+                        <select id="taxVersion" required></select>
+                    </div>
+                    <div class="tax-field">
+                        <label for="taxCategory">Tax category</label>
+                        <select id="taxCategory" required>
+                            <option value="">Select a category</option>
+                            <option value="STANDARD_RATED">Standard-rated</option>
+                            <option value="ZERO_RATED">Zero-rated</option>
+                            <option value="EXEMPT">Exempt</option>
+                        </select>
+                        <p id="taxRateHint" class="tax-hint">Rates come from the configured effective-dated tax schedule.</p>
+                    </div>
+                    <div class="tax-field">
+                        <label for="effectiveFrom">Effective from</label>
+                        <input id="effectiveFrom" type="date" required>
+                    </div>
+                    <div class="tax-field">
+                        <label for="effectiveTo">Effective to <span>(optional)</span></label>
+                        <input id="effectiveTo" type="date">
+                        <p class="tax-hint">Leave blank only when the declaration has no planned end date.</p>
+                    </div>
+                    <div class="tax-field tax-note-field">
+                        <label for="declarationNote">Declaration note <span>(optional)</span></label>
+                        <textarea id="declarationNote" rows="3" maxlength="500" placeholder="Reference, clarification, or supporting note"></textarea>
+                    </div>
+                </div>
+
+                <label class="tax-checkbox-row" for="closePrevious">
+                    <input id="closePrevious" type="checkbox">
+                    <span>Close the previous open-ended declaration for this same version one day before the new start date, if one exists.</span>
+                </label>
+
+                <div class="tax-form-actions">
+                    <button id="saveTax" class="primary-button" type="submit">Save tax declaration</button>
+                    <button id="clearTax" class="secondary-button" type="button">Clear form</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="tax-section">
+            <div class="tax-section-heading">
+                <div>
+                    <h2>Declaration history</h2>
+                    <p>Periods are kept separately. Overlapping dates for the same package version are not allowed.</p>
+                </div>
+            </div>
+            <div class="tax-table-wrap">
+                <table class="tax-table">
+                    <thead>
+                        <tr>
+                            <th>Product / version</th>
+                            <th>Category</th>
+                            <th>Rate at start</th>
+                            <th>Effective period</th>
+                            <th>Status</th>
+                            <th>Declaration note</th>
+                        </tr>
+                    </thead>
+                    <tbody id="taxRows">
+                        <tr><td colspan="6" class="tax-empty">Loading declarations...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="tax-footnote">The displayed rate is the configured schedule rate at the declaration’s start date. A future rate change must be maintained in the tax-rate schedule. Existing sales history is not retroactively classified by this screen.</p>
+        </section>
+
+        <section class="tax-section tax-rates-section">
+            <h2>Configured tax-rate schedule</h2>
+            <p class="tax-explainer">Reference rates configured in this system. Verify rates and product eligibility against current official guidance before using them for tax reporting.</p>
+            <div class="tax-table-wrap">
+                <table class="tax-table">
+                    <thead>
+                        <tr><th>Category</th><th>Rate</th><th>Taxable supply</th><th>Effective from</th><th>Effective to</th></tr>
+                    </thead>
+                    <tbody id="taxRateRows">
+                        <tr><td colspan="5" class="tax-empty">Loading tax schedule...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="../../../shared/js/page-router.js"></script>
+    <script src="tax.js"></script>
+</body>
+</html>

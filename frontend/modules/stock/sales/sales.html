@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <link rel="stylesheet" href="sales.css">
+    <title>Sales &amp; Reports | Nexora MSRC</title>
+</head>
+<body>
+    <div id="shell"></div>
+
+    <main class="page stock-sales-page">
+        <header class="stock-sales-heading">
+            <div>
+                <p class="stock-sales-eyebrow">RETAIL OPERATIONS</p>
+                <h1>Sales &amp; Reports</h1>
+                <p class="stock-sales-subtitle">Review daily sales, calculated VAT, and net sales by branch, product, and package version.</p>
+            </div>
+            <div class="stock-sales-actions">
+                <a class="secondary-button" href="../stock/stock.html">Manage stock</a>
+                <button id="refreshSalesReport" class="secondary-button" type="button">Refresh</button>
+            </div>
+        </header>
+
+        <section class="stock-sales-toolbar" aria-label="Sales report filters">
+            <div class="stock-sales-field">
+                <label for="salesReportBranch">Branch</label>
+                <select id="salesReportBranch"></select>
+            </div>
+            <div class="stock-sales-field">
+                <label for="salesReportPeriod">Period</label>
+                <select id="salesReportPeriod">
+                    <option value="TODAY">Today</option>
+                    <option value="LAST_7_DAYS">Last 7 days</option>
+                    <option value="THIS_MONTH">This month</option>
+                </select>
+            </div>
+        </section>
+
+        <p id="salesReportStatus" class="stock-sales-status" role="status" aria-live="polite">Loading sales report...</p>
+        <section id="salesReportMetrics" class="stock-sales-metrics" aria-label="Sales summary"></section>
+        <section id="salesRevenueNotice" class="stock-sales-notice" hidden></section>
+
+        <section class="stock-sales-table-section" aria-labelledby="salesBreakdownTitle">
+            <header class="stock-sales-section-heading">
+                <div>
+                    <h2 id="salesBreakdownTitle">Sales breakdown</h2>
+                    <p id="salesReportRange">Daily summaries for the selected period.</p>
+                </div>
+            </header>
+            <div class="stock-sales-table-wrap">
+                <table class="stock-sales-table">
+                    <thead>
+                        <tr>
+                            <th>Branch</th>
+                            <th>Product / package</th>
+                            <th class="numeric">Units sold</th>
+                            <th class="numeric">Amount entered (KSh)</th>
+                            <th class="numeric">Tax calculated (KSh)</th>
+                            <th class="numeric">Net sales (KSh)</th>
+                            <th>Tax review</th>
+                            <th class="numeric">Amount missing</th>
+                        </tr>
+                    </thead>
+                    <tbody id="salesReportRows">
+                        <tr><td colspan="8" class="stock-sales-empty">Loading sales records...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <p class="stock-sales-footnote">Amount entered is the daily total submitted by the retailer. Customer total including VAT, tax and net sales are calculated only when the amount basis, manufacturer tax classification and effective rate are all known. These figures are not proof of cash received or profit. Historical entries are not assigned invented tax or cost values.</p>
+    </main>
+
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="../../../shared/js/page-router.js"></script>
+    <script src="sales.js"></script>
+</body>
+</html>

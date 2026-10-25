@@ -14,6 +14,8 @@
     const status = field("workspaceStatus");
     const meta = field("workspaceMeta");
 
+    const supplierCoverageList = field("workspaceSupplierCoverage");
+    const supplierCoverageCount = field("workspaceSupplierCoverageCount");
     const productsList = field("workspaceProducts");
     const ordersList = field("workspaceOrders");
     const promotionsList = field("workspacePromotions");
@@ -22,8 +24,13 @@
     const promotionsCount = field("promotionsCount");
     const branchSelect = field("workspaceBranchSelect");
     const branchCounty = field("workspaceBranchCounty");
+    const distributionAreaSelect = field("workspaceDistributionAreaSelect");
+    const distributionAreaNote = field("workspaceDistributionNote");
 
+    let currentAccount = null;
     let activeBranches = [];
+    let activeDistributionAreas = [];
+    let selectedDistributionAreaId = 0;
     let selectedBranchId = 0;
     let selectedBranch = null;
     let activeRelationships = [];
@@ -67,6 +74,12 @@
             dateStyle: "medium",
             timeZone: "Africa/Nairobi"
         }).format(date);
+    }
+
+    function localDateString() {
+        const date = new Date();
+        date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+        return date.toISOString().slice(0, 10);
     }
 
     function moneyText(value) {
@@ -206,6 +219,30 @@
         }
 
         return node;
+    }
+
+    function supplierCoverageStatus(item) {
+        if (item.status !== "ACTIVE") return "Inactive";
+
+        const today = localDateString();
+
+        if (String(item.start_date) > today) return "Scheduled";
+        if (item.end_date && String(item.end_date) < today) return "Expired";
+
+        return "Active";
+    }
+
+    function renderSupplierCoverage(item) {
+        const period = [
+            `Effective from: ${dateText(item.start_date)}`,
+            `Effective until: ${item.end_date ? dateText(item.end_date) : "No planned end date"}`
+        ].join(" | ");
+
+        return record(
+            item.area_name || "Unknown county",
+            period,
+            supplierCoverageStatus(item)
+        );
     }
 
     function renderOrder(item) {
@@ -371,6 +408,45 @@
         });
     }
 
+    function populateDistributionAreaSelect(areas) {
+        activeDistributionAreas = Array.isArray(areas) ? areas : [];
+
+        const requestedId = Number(selectedDistributionAreaId || 0);
+        const hasSelection = activeDistributionAreas.some(
+            area => Number(area.area_id) === requestedId
+        );
+
+        distributionAreaSelect.replaceChildren(
+            new Option("Choose a distribution county", "")
+        );
+
+        activeDistributionAreas.forEach(area => {
+            distributionAreaSelect.add(
+                new Option(area.area_name, String(area.area_id))
+            );
+        });
+
+        distributionAreaSelect.value = hasSelection ? String(requestedId) : "";
+
+        if (!hasSelection) {
+            selectedDistributionAreaId = 0;
+        }
+
+        const isBranchAdmin = currentAccount?.user?.role === "BRANCH_ADMIN";
+
+        distributionAreaSelect.disabled =
+            isBranchAdmin || activeDistributionAreas.length === 0;
+
+        if (isBranchAdmin) {
+            distributionAreaNote.textContent = selectedBranch?.area_name
+                ? "The distribution county is fixed to this branch for branch administrators."
+                : "This branch has no county assigned. Ask your organisation administrator to map the branch before viewing regional products.";
+        } else {
+            distributionAreaNote.textContent =
+                "Choose the county whose distribution appointments you want to view. This is independent of the branch location.";
+        }
+    }
+
     async function loadWorkspace(relationshipId) {
         const requestId = ++workspaceRequestSequence;
 
@@ -382,7 +458,7 @@
 
         try {
             const result = await getJson(
-                `network/workspace.php?relationshipId=${encodeURIComponent(relationshipId)}&branchId=${encodeURIComponent(selectedBranchId)}`
+                `network/workspace.php?relationshipId=${encodeURIComponent(relationshipId)}&branchId=${encodeURIComponent(selectedBranchId)}&areaId=${encodeURIComponent(selectedDistributionAreaId || "")}`
             );
 
             if (requestId !== workspaceRequestSequence) return;
@@ -401,15 +477,35 @@
 
             const data = result.data;
 
+            selectedDistributionAreaId =
+                data.distribution_area_id === null ||
+                data.distribution_area_id === undefined
+                    ? 0
+                    : Number(data.distribution_area_id);
+
+            populateDistributionAreaSelect(data.areas || []);
+
             renderRelationship(data.relationship);
+
+            renderRecords(
+                supplierCoverageList,
+                supplierCoverageCount,
+                Array.isArray(data.supplier_coverage) ? data.supplier_coverage : [],
+                data.supplier_coverage_visible
+                    ? "This supplier has not declared any county coverage."
+                    : "Supplier-declared coverage is not available for this relationship.",
+                renderSupplierCoverage
+            );
 
             renderRecords(
                 productsList,
                 productsCount,
                 Array.isArray(data.products) ? data.products : [],
-                selectedBranch && selectedBranch.area_id
-                    ? "No active product appointments are recorded for this county and supplier."
-                    : "This branch has no county assigned. Open Admin > Branches and assign its county before viewing regional products.",
+                selectedDistributionAreaId
+                    ? "No active product appointments are recorded for this distribution county and supplier."
+                    : currentAccount?.user?.role === "BRANCH_ADMIN"
+                        ? "This branch has no county assigned. Contact your organisation administrator before viewing regional products."
+                        : "Choose a distribution county to view active regional product appointments.",
                 renderProduct
             );
 
@@ -437,6 +533,7 @@
             const url = new URL(window.location.href);
             url.searchParams.set("relationshipId", String(relationshipId));
             url.searchParams.set("branchId", String(selectedBranchId));
+            url.searchParams.set("areaId", String(selectedDistributionAreaId || ""));
             window.history.replaceState(window.history.state, "", url.href);
         } catch (error) {
             if (requestId !== workspaceRequestSequence) return;
@@ -458,8 +555,8 @@
         ) || null;
 
         branchCounty.textContent = selectedBranch && selectedBranch.area_name
-            ? `County: ${selectedBranch.area_name}. Products are filtered to active appointments in this county.`
-            : "County not assigned. Regional products are hidden until this branch is mapped to a county.";
+            ? `Physical branch location: ${selectedBranch.area_name}. Distribution county is selected separately.`
+            : "Branch county is not recorded. Organisation administrators can still select a distribution county.";
     }
 
     function populateBranchSelect() {
@@ -475,6 +572,7 @@
     }
 
     async function initialiseWorkspace(account) {
+        currentAccount = account;
         try {
             const branchResult = await getJson("branches/list.php");
 
@@ -509,6 +607,18 @@
             )
                 ? preferredBranchId
                 : Number(activeBranches[0].branch_id);
+
+            const branchForContext = activeBranches.find(
+                branch => Number(branch.branch_id) === Number(selectedBranchId)
+            ) || null;
+
+            selectedDistributionAreaId = params.has("areaId")
+                ? (Number(params.get("areaId")) || 0)
+                : Number(branchForContext?.area_id || 0);
+
+            if (account?.user?.role === "BRANCH_ADMIN") {
+                selectedDistributionAreaId = Number(branchForContext?.area_id || 0);
+            }
 
             populateBranchSelect();
 
@@ -566,6 +676,22 @@
 
         const url = new URL(window.location.href);
         url.searchParams.set("branchId", String(selectedBranchId));
+        url.searchParams.set("areaId", String(selectedDistributionAreaId || ""));
+        window.history.replaceState(window.history.state, "", url.href);
+
+        if (selectedRelationshipId) {
+            loadWorkspace(selectedRelationshipId);
+        }
+    });
+
+    distributionAreaSelect.addEventListener("change", () => {
+        if (currentAccount?.user?.role === "BRANCH_ADMIN") return;
+
+        selectedDistributionAreaId =
+            Number(distributionAreaSelect.value) || 0;
+
+        const url = new URL(window.location.href);
+        url.searchParams.set("areaId", String(selectedDistributionAreaId || ""));
         window.history.replaceState(window.history.state, "", url.href);
 
         if (selectedRelationshipId) {

@@ -107,6 +107,60 @@ try {
     }
 
     $branchAreaId = $branch['area_id'] !== null ? (int)$branch['area_id'] : null;
+
+    $areaParameterProvided = array_key_exists('areaId', $_GET);
+    $requestedAreaText = trim((string)($_GET['areaId'] ?? ''));
+    $requestedDistributionAreaId = null;
+
+    if ($requestedAreaText !== '') {
+        $parsedAreaId = filter_var(
+            $requestedAreaText,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1]]
+        );
+
+        if ($parsedAreaId === false || $parsedAreaId === null) {
+            respond_error(400, 'Select a valid distribution county.');
+        }
+
+        $areaCheck = $pdo->prepare(
+            "SELECT area_id
+             FROM distribution_areas
+             WHERE area_id = ? AND status = 'ACTIVE'
+             LIMIT 1"
+        );
+        $areaCheck->execute([(int)$parsedAreaId]);
+
+        if ($areaCheck->fetchColumn() === false) {
+            respond_error(400, 'Select an active distribution county.');
+        }
+
+        $requestedDistributionAreaId = (int)$parsedAreaId;
+    }
+
+    if ($actor['role'] === 'BRANCH_ADMIN') {
+        if (
+            $requestedDistributionAreaId !== null
+            && $requestedDistributionAreaId !== $branchAreaId
+        ) {
+            respond_error(403, 'Branch administrators can only view appointments for their branch county.');
+        }
+
+        $distributionAreaId = $branchAreaId;
+    } else {
+        $distributionAreaId = $areaParameterProvided
+            ? $requestedDistributionAreaId
+            : $branchAreaId;
+    }
+
+    $areaListStatement = $pdo->query(
+        "SELECT area_id, area_name
+         FROM distribution_areas
+         WHERE status = 'ACTIVE'
+         ORDER BY area_name"
+    );
+    $distributionAreas = $areaListStatement->fetchAll(PDO::FETCH_ASSOC);
+
     $partnerId = (int)$relationship['partner_id'];
     $sourceOrganizationId = (int)$relationship['source_organization_id'];
     $targetOrganizationId = (int)$relationship['target_organization_id'];
@@ -130,10 +184,64 @@ try {
         ? $targetOrganizationId
         : $sourceOrganizationId;
 
+    $supplierCoverageVisible = false;
+    $supplierCoverageOwnerName = null;
+    $supplierCoverage = [];
+
+    $supplierOwnerStatement = $pdo->prepare(
+        "SELECT organization_name, organization_type
+         FROM organizations
+         WHERE organization_id = ?
+         LIMIT 1"
+    );
+    $supplierOwnerStatement->execute([$productSupplierId]);
+    $supplierOwner = $supplierOwnerStatement->fetch(PDO::FETCH_ASSOC);
+
+    if (
+        $supplierOwner
+        && in_array(
+            $supplierOwner['organization_type'],
+            ['SUPPLIER', 'MANUFACTURER_SUPPLIER'],
+            true
+        )
+    ) {
+        $supplierCoverageVisible = true;
+        $supplierCoverageOwnerName = $supplierOwner['organization_name'];
+
+        $coverageStatement = $pdo->prepare(
+            "SELECT sda.supplier_area_id,
+                    sda.area_id,
+                    da.area_name,
+                    sda.start_date,
+                    sda.end_date,
+                    sda.status,
+                    sda.created_at
+             FROM supplier_distribution_areas sda
+             INNER JOIN distribution_areas da
+                ON da.area_id = sda.area_id
+             WHERE sda.supplier_id = ?
+             ORDER BY
+                CASE
+                    WHEN sda.status = 'ACTIVE'
+                     AND sda.start_date <= CURDATE()
+                     AND (sda.end_date IS NULL OR sda.end_date >= CURDATE())
+                    THEN 0
+                    WHEN sda.status = 'ACTIVE'
+                     AND sda.start_date > CURDATE()
+                    THEN 1
+                    ELSE 2
+                END,
+                sda.start_date DESC,
+                da.area_name"
+        );
+        $coverageStatement->execute([$productSupplierId]);
+        $supplierCoverage = $coverageStatement->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     $products = [];
 
-    // A branch without a mapped county must not inherit national coverage.
-    if ($branchAreaId !== null) {
+    // Regional products are filtered by the selected distribution county, independently of branch location.
+    if ($distributionAreaId !== null) {
         $statement = $pdo->prepare(
             "SELECT DISTINCT
                     p.product_id,
@@ -185,7 +293,7 @@ try {
         $statement->execute([
             $sourceOrganizationId,
             $productSupplierId,
-            $branchAreaId,
+            $distributionAreaId,
             $productSupplierId,
             $manufacturerToSupplier ? 1 : 0,
             $sourceOrganizationId
@@ -285,6 +393,19 @@ try {
             'area_id' => $branchAreaId,
             'area_name' => $branch['area_name'] ?? null
         ],
+        'areas' => array_map(
+            static function (array $area): array {
+                return [
+                    'area_id' => (int)$area['area_id'],
+                    'area_name' => $area['area_name']
+                ];
+            },
+            $distributionAreas
+        ),
+        'distribution_area_id' => $distributionAreaId,
+        'supplier_coverage_visible' => $supplierCoverageVisible,
+        'supplier_coverage_owner_name' => $supplierCoverageOwnerName,
+        'supplier_coverage' => $supplierCoverage,
         'products' => $products,
         'orders' => $orders,
         'promotions' => $promotions

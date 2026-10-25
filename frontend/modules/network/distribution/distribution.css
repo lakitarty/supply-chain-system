@@ -1,261 +1,1027 @@
 .regional-distribution-page {
-    width: min(100% - 48px, 1440px);
-    margin: 0 auto;
-    padding: 28px 0 48px;
-    color: #182230;
+    width: min(100%, 1600px);
+    margin-inline: auto;
+    padding-top: 22px;
+    color: var(--text, #252934);
 }
 
-.distribution-heading {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 18px;
-}
-
-.regional-distribution-page .page-title {
-    margin: 0;
-    color: #182230;
-    font-size: 28px;
-    font-weight: 650;
-    letter-spacing: -0.5px;
-}
-
-.distribution-intro,
-.distribution-section .section-help {
-    margin: 7px 0 0;
-    max-width: 900px;
-    color: #667085;
-    font-size: 13px;
-    line-height: 1.55;
-}
-
-.distribution-section {
-    margin-top: 18px;
-    padding: 20px 22px;
-    border: 1px solid #e1e7ed;
-    border-radius: 8px;
-    background: #fff;
-}
-
-.distribution-section .section-title {
-    margin: 0;
-    padding: 0;
-    border: 0;
-    color: #182230;
-    font-size: 17px;
-    font-weight: 650;
-}
-
-.distribution-form-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px 20px;
-    margin-top: 20px;
-}
-
-.regional-distribution-page .form-group {
-    min-width: 0;
-    margin: 0;
-}
-
-.regional-distribution-page .form-group label {
-    display: block;
-    margin-bottom: 7px;
-    color: #344054;
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.regional-distribution-page .form-group input:not([type="checkbox"]),
-.regional-distribution-page .form-group select {
-    box-sizing: border-box;
-    width: 100%;
-    min-width: 0;
-    height: 42px;
-    padding: 0 11px;
-    border: 1px solid #cfd7e1;
-    border-radius: 5px;
-    background: #fff;
-    color: #182230;
-    font: inherit;
-    font-size: 14px;
-}
-
-.regional-distribution-page .form-group input:focus,
-.regional-distribution-page .form-group select:focus {
-    border-color: #0f766e;
-    outline: 2px solid rgba(15, 118, 110, 0.12);
-}
-
-.distribution-exclusive-field {
-    align-self: start;
-    padding-top: 2px;
-}
-
-.regional-distribution-page .distribution-checkbox-label {
-    display: flex !important;
-    align-items: center;
-    gap: 9px;
-    min-height: 40px;
-    margin: 0 !important;
-}
-
-.distribution-checkbox-label input {
-    width: 16px;
-    height: 16px;
-    accent-color: #0f766e;
-}
-
-.regional-distribution-page .field-hint {
-    margin: 4px 0 0;
-    color: #667085;
-    font-size: 12px;
-    line-height: 1.5;
-}
-
-.distribution-form-actions {
-    display: flex;
-    justify-content: flex-start;
-    margin-top: 20px;
-    padding-top: 16px;
-    border-top: 1px solid #edf0f3;
-}
-
-.distribution-form-actions .primary-button {
-    width: auto;
-    min-width: 176px;
-    min-height: 40px;
-    padding: 0 16px;
-    border-radius: 5px;
-    background: #0f766e;
-}
-
-.distribution-form-actions .primary-button:hover {
-    background: #115e59;
-}
-
-.distribution-table-heading {
+.distribution-page-heading {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    margin-bottom: 16px;
+    margin-bottom: 18px;
 }
 
-.distribution-table-heading .section-help {
-    margin-top: 5px;
+.distribution-page-heading .page-title {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 650;
 }
 
-.distribution-table-heading .secondary-button {
-    flex: 0 0 auto;
-    min-height: 36px;
+.distribution-page-heading .secondary-button {
+    min-height: 35px;
 }
 
-.distribution-table-wrap {
+.distribution-message {
+    margin: 0;
+    color: #b42318;
+    font-size: 12px;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+}
+
+.distribution-message:empty {
+    display: none;
+}
+
+.distribution-message.success {
+    color: #067647;
+}
+
+.distribution-message.info {
+    color: #475467;
+}
+
+.distribution-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(320px, .95fr);
+    align-items: stretch;
+    min-width: 0;
+    margin-top: 14px;
+    border-top: 1px solid var(--border-light, #e5e8ee);
+    border-bottom: 1px solid var(--border-light, #e5e8ee);
+}
+
+.distribution-product-pane,
+.distribution-setup-pane {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    padding: 18px 22px 18px 0;
+}
+
+.distribution-setup-pane {
+    padding: 18px 0 18px 22px;
+    border-left: 1px solid var(--border-light, #e5e8ee);
+}
+
+.distribution-pane-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-light, #e5e8ee);
+}
+
+.distribution-pane-heading h2,
+.distribution-history-heading h2 {
+    margin: 0;
+    color: var(--text, #252934);
+    font-size: 16px;
+    font-weight: 650;
+}
+
+.distribution-count {
+    color: var(--muted, #667085);
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.distribution-search-label {
+    display: block;
+    margin: 14px 0 6px;
+    color: var(--text, #344054);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.distribution-search {
+    box-sizing: border-box;
     width: 100%;
-    overflow-x: auto;
+    min-height: 38px;
+    padding: 8px 10px;
+    border: 1px solid var(--border, #d7dce4);
+    border-radius: 4px;
+    background: var(--white, #fff);
+    color: var(--text, #252934);
+    font: inherit;
+    font-size: 12px;
+}
+
+.distribution-search:focus,
+.distribution-field input:focus,
+.distribution-field select:focus,
+.distribution-history-controls select:focus {
+    border-color: var(--brand, #9c1248);
+    outline: 2px solid rgba(156, 18, 72, .10);
+}
+
+.distribution-list-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 42px;
+    border-bottom: 1px solid var(--border-light, #e5e8ee);
+}
+
+.distribution-select-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text, #344054);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.distribution-select-all input,
+.distribution-product-row input,
+.distribution-supplier-row input,
+.distribution-exclusive input {
+    flex: 0 0 auto;
+    accent-color: var(--brand, #9c1248);
+}
+
+.distribution-scroll-list {
+    box-sizing: border-box;
+    height: clamp(270px, calc(100dvh - 345px), 590px);
+    min-height: 220px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.distribution-scroll-list::-webkit-scrollbar,
+.distribution-supplier-list::-webkit-scrollbar,
+.distribution-history-table-scroll::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+.distribution-product-row {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-height: 43px;
+    padding: 7px 7px;
+    border-bottom: 1px solid var(--border-light, #edf0f4);
+    cursor: pointer;
+}
+
+.distribution-product-row:hover,
+.distribution-supplier-row:hover {
+    background: var(--background, #f8f6f8);
+}
+
+.distribution-product-row input {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+}
+
+.distribution-product-copy,
+.distribution-supplier-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.distribution-product-copy strong,
+.distribution-supplier-copy strong {
+    color: var(--text, #344054);
+    font-size: 12px;
+    font-weight: 550;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.distribution-product-copy small,
+.distribution-supplier-copy small {
+    color: var(--muted, #7a8495);
+    font-size: 10px;
+    line-height: 1.4;
+}
+
+.distribution-supplier-list {
+    box-sizing: border-box;
+    height: 190px;
+    min-height: 135px;
+    margin-top: 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    border-bottom: 1px solid var(--border-light, #e5e8ee);
+}
+
+.distribution-supplier-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 43px;
+    padding: 7px 8px;
+    border-bottom: 1px solid var(--border-light, #edf0f4);
+    cursor: pointer;
+}
+
+.distribution-supplier-row input {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+}
+
+.distribution-supplier-row:has(input:checked) {
+    background: rgba(156, 18, 72, .055);
+}
+
+.distribution-supplier-row:has(input:checked) strong {
+    color: var(--brand, #9c1248);
+    font-weight: 650;
+}
+
+.distribution-empty {
+    margin: 0;
+    padding: 18px 8px;
+    color: var(--muted, #667085);
+    font-size: 11px;
+    line-height: 1.55;
+    text-align: center;
+}
+
+.distribution-appointment-fields {
+    padding-top: 15px;
+}
+
+.distribution-field {
+    min-width: 0;
+    margin-bottom: 12px;
+}
+
+.distribution-field label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text, #344054);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.distribution-field input,
+.distribution-field select {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 37px;
+    padding: 7px 9px;
+    border: 1px solid var(--border, #d7dce4);
+    border-radius: 4px;
+    background: var(--white, #fff);
+    color: var(--text, #252934);
+    font: inherit;
+    font-size: 12px;
+}
+
+.distribution-date-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+}
+
+.distribution-optional {
+    color: var(--muted, #7a8495);
+    font-weight: 400;
+}
+
+.distribution-exclusive {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 5px 0 14px;
+    cursor: pointer;
+}
+
+.distribution-exclusive input {
+    width: 15px;
+    height: 15px;
+    margin: 2px 0 0;
+}
+
+.distribution-exclusive span {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.distribution-exclusive strong {
+    color: var(--text, #344054);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.distribution-exclusive small {
+    color: var(--muted, #667085);
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+.distribution-create-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+    padding-top: 13px;
+    border-top: 1px solid var(--border-light, #e5e8ee);
+}
+
+.distribution-create-footer .primary-button {
+    min-height: 38px;
+    padding: 0 13px;
+    border-radius: 4px;
+    background: var(--brand, #9c1248);
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.distribution-create-footer .primary-button:hover {
+    filter: brightness(.92);
+}
+
+.distribution-create-footer .primary-button:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+.distribution-history {
+    margin-top: 18px;
+}
+
+.distribution-history-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 48px;
+    padding: 0;
+    border: 0;
+    border-bottom: 1px solid var(--border-light, #e5e8ee);
+    background: transparent;
+    color: var(--text, #252934);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 650;
+    text-align: left;
+    cursor: pointer;
+}
+
+.distribution-toggle-chevron {
+    margin-left: auto;
+    color: var(--muted, #667085);
+    font-size: 18px;
+    transition: transform .15s ease;
+}
+
+.distribution-history-toggle[aria-expanded="true"] .distribution-toggle-chevron {
+    transform: rotate(180deg);
+}
+
+#appointmentsSection[hidden] {
+    display: none !important;
+}
+
+.distribution-history-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 16px 0 12px;
+}
+
+.distribution-history-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.distribution-history-controls label {
+    color: var(--muted, #667085);
+    font-size: 11px;
+}
+
+.distribution-history-controls select {
+    min-height: 34px;
+    max-width: 230px;
+    padding: 5px 9px;
+    border: 1px solid var(--border, #d7dce4);
+    border-radius: 4px;
+    background: var(--white, #fff);
+    color: var(--text, #344054);
+    font: inherit;
+    font-size: 11px;
+}
+
+.distribution-history-table-scroll {
+    max-height: 450px;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
 .distribution-table {
     width: 100%;
-    min-width: 900px;
+    min-width: 820px;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: 11px;
 }
 
 .distribution-table th {
-    padding: 11px 12px;
-    border-top: 1px solid #e5eaf0;
-    border-bottom: 1px solid #dbe2e9;
-    background: #f7f9fb;
-    color: #475467;
-    font-size: 11px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 10px;
+    border-bottom: 1px solid var(--border, #d7dce4);
+    background: var(--background, #f7f8fa);
+    color: var(--muted, #667085);
+    font-size: 9px;
     font-weight: 700;
     text-align: left;
     text-transform: uppercase;
-    letter-spacing: 0.35px;
     white-space: nowrap;
 }
 
 .distribution-table td {
-    padding: 12px;
-    border-bottom: 1px solid #e8edf2;
-    color: #344054;
+    padding: 10px;
+    border-bottom: 1px solid var(--border-light, #edf0f4);
+    color: var(--text, #344054);
     vertical-align: middle;
 }
 
-.distribution-table tbody tr:hover {
-    background: #fafcfd;
-}
-
-.distribution-table .distribution-product-cell {
-    color: #182230;
+.distribution-table-product {
     font-weight: 600;
 }
 
-.distribution-table .distribution-dates {
+.distribution-table-date {
     white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-}
-
-.distribution-table .distribution-legacy-area {
-    color: #8a4b12;
-}
-
-.distribution-table .distribution-empty {
-    padding: 26px 12px;
-    color: #667085;
-    text-align: center;
 }
 
 .distribution-end-button {
-    border: 1px solid #d7dee7;
-    border-radius: 5px;
-    background: #fff;
-    color: #344054;
-    padding: 7px 10px;
+    padding: 6px 9px;
+    border: 1px solid var(--border, #d7dce4);
+    border-radius: 4px;
+    background: var(--white, #fff);
+    color: var(--text, #344054);
     font: inherit;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 10px;
     cursor: pointer;
-    white-space: nowrap;
 }
 
 .distribution-end-button:hover {
     border-color: #b42318;
     color: #b42318;
-    background: #fff8f7;
-}
-
-.distribution-no-action {
-    color: #98a2b3;
 }
 
 .regional-distribution-page [hidden] {
     display: none !important;
 }
 
-@media (max-width: 950px) {
-    .distribution-form-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+@media (max-width: 900px) {
+    .distribution-workspace {
+        grid-template-columns: minmax(0, 1fr) minmax(290px, .95fr);
+    }
+
+    .distribution-product-pane {
+        padding-right: 15px;
+    }
+
+    .distribution-setup-pane {
+        padding-left: 15px;
     }
 }
 
-@media (max-width: 620px) {
-    .regional-distribution-page {
-        width: min(100% - 28px, 1440px);
-        padding-top: 20px;
-    }
-
-    .distribution-section {
-        padding: 16px;
-    }
-
-    .distribution-form-grid {
+@media (max-width: 720px) {
+    .distribution-workspace {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    .distribution-table-heading {
-        align-items: flex-start;
+    .distribution-product-pane,
+    .distribution-setup-pane {
+        padding: 16px 0;
     }
+
+    .distribution-setup-pane {
+        border-top: 1px solid var(--border-light, #e5e8ee);
+        border-left: 0;
+    }
+
+    .distribution-scroll-list {
+        height: 330px;
+    }
+
+    .distribution-supplier-list {
+        height: 200px;
+    }
+}
+
+@media (max-width: 480px) {
+    .regional-distribution-page {
+        padding-top: 17px;
+    }
+
+    .distribution-page-heading .page-title {
+        font-size: 23px;
+    }
+
+    .distribution-date-fields {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0;
+    }
+
+    .distribution-create-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .distribution-create-footer .primary-button {
+        width: 100%;
+    }
+
+    .distribution-history-controls {
+        width: 100%;
+    }
+
+    .distribution-history-controls select {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+/* Distribution workspace styling: clean spacing and white surfaces */
+
+/* Distribution workspace: aligned with the Workspace visual style */
+.regional-distribution-page {
+    background: #ffffff !important;
+    color: #354956;
+}
+
+.regional-distribution-page .distribution-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr);
+    align-items: stretch;
+    gap: 24px;
+    margin-top: 18px;
+    min-width: 0;
+    border: 0;
+    background: #ffffff;
+}
+
+/* Keep the products heading, search and selection toolbar in place. */
+.regional-distribution-page .distribution-product-pane {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    height: clamp(400px, calc(100dvh - 280px), 680px);
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: #ffffff !important;
+    box-shadow: none;
+    overflow: hidden;
+}
+
+/* The setup side scrolls independently from the products side. */
+.regional-distribution-page .distribution-setup-pane {
+    box-sizing: border-box;
+    height: clamp(400px, calc(100dvh - 280px), 680px);
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: #ffffff !important;
+    box-shadow: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.regional-distribution-page .distribution-setup-pane::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+/* Use Workspace-style typography and spacing. */
+.regional-distribution-page .distribution-pane-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0 0 14px;
+    border: 0;
+    background: #ffffff !important;
+    box-shadow: none;
+}
+
+.regional-distribution-page .distribution-pane-heading h2,
+.regional-distribution-page .distribution-history-heading h2 {
+    margin: 0;
+    color: #263b49;
+    font-size: 15px;
+    font-weight: 650;
+    line-height: 1.5;
+}
+
+.regional-distribution-page .distribution-count {
+    color: #53646f;
+    font-size: 11px;
+}
+
+.regional-distribution-page .distribution-search-label {
+    display: block;
+    flex: 0 0 auto;
+    margin: 0 0 10px;
+    color: #354956;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.regional-distribution-page .distribution-search {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 36px;
+    padding: 7px 9px;
+    border: 1px solid #c9d3d6 !important;
+    border-radius: 4px !important;
+    background: #ffffff !important;
+    color: #202b38;
+    font: inherit;
+    font-size: 12px;
+    box-shadow: none !important;
+}
+
+.regional-distribution-page .distribution-search:focus,
+.regional-distribution-page .distribution-field input:focus,
+.regional-distribution-page .distribution-field select:focus,
+.regional-distribution-page .distribution-history-controls select:focus {
+    border-color: #176b61 !important;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(23, 107, 97, 0.15) !important;
+}
+
+.regional-distribution-page .distribution-list-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    flex: 0 0 auto;
+    gap: 8px 12px;
+    margin: 0;
+    padding: 4px 0 10px;
+    border: 0;
+    background: #ffffff !important;
+}
+
+/* Only this list scrolls on the left. Its heading/search remain fixed. */
+.regional-distribution-page .distribution-scroll-list {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: #ffffff !important;
+    box-shadow: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.regional-distribution-page .distribution-scroll-list::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+/* Plain white rows, with subtle Workspace-style hover/selection feedback. */
+.regional-distribution-page .distribution-product-row,
+.regional-distribution-page .distribution-supplier-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    margin: 0;
+    padding: 13px 11px;
+    border: 0 !important;
+    border-radius: 0;
+    background: #ffffff !important;
+    color: #202b38;
+    box-shadow: none !important;
+    cursor: pointer;
+}
+
+.regional-distribution-page .distribution-product-row:hover,
+.regional-distribution-page .distribution-supplier-row:hover {
+    background: #f5f9f8 !important;
+}
+
+.regional-distribution-page .distribution-product-row:has(input:checked),
+.regional-distribution-page .distribution-supplier-row:has(input:checked) {
+    background: #eaf4f2 !important;
+}
+
+.regional-distribution-page .distribution-product-copy,
+.regional-distribution-page .distribution-supplier-copy {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.regional-distribution-page .distribution-product-copy strong,
+.regional-distribution-page .distribution-supplier-copy strong,
+.regional-distribution-page .distribution-exclusive strong,
+.regional-distribution-page .distribution-field label {
+    color: #354956;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.regional-distribution-page .distribution-product-copy small,
+.regional-distribution-page .distribution-supplier-copy small,
+.regional-distribution-page .distribution-exclusive small {
+    color: #5f6e79;
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.regional-distribution-page .distribution-product-row input,
+.regional-distribution-page .distribution-supplier-row input,
+.regional-distribution-page .distribution-exclusive input,
+.regional-distribution-page .distribution-select-all input {
+    accent-color: #176b61;
+}
+
+.regional-distribution-page .distribution-supplier-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+    margin: 4px 0 0;
+    padding: 0;
+    border: 0;
+    background: #ffffff !important;
+    box-shadow: none;
+    overflow: visible;
+}
+
+/* Retain form layout; standardise control appearance only. */
+.regional-distribution-page .distribution-field input,
+.regional-distribution-page .distribution-field select,
+.regional-distribution-page .distribution-history-controls select {
+    box-sizing: border-box;
+    max-width: 100%;
+    min-height: 36px;
+    border: 1px solid #c9d3d6 !important;
+    border-radius: 4px !important;
+    background: #ffffff !important;
+    color: #202b38;
+    box-shadow: none !important;
+    font: inherit;
+    font-size: 12px;
+}
+
+.regional-distribution-page .distribution-appointment-fields,
+.regional-distribution-page .distribution-create-footer {
+    border: 0 !important;
+    border-radius: 0;
+    background: #ffffff !important;
+    box-shadow: none !important;
+}
+
+.regional-distribution-page .distribution-create-footer {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: flex-start;
+    padding: 14px 0 0;
+}
+
+.regional-distribution-page .distribution-create-footer .primary-button {
+    border: 0 !important;
+    border-radius: 4px !important;
+    background: #176b61 !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+}
+
+.regional-distribution-page .distribution-create-footer .primary-button:hover {
+    background: #12584f !important;
+}
+
+/* History remains below both independently scrolling work areas. */
+.regional-distribution-page .distribution-history {
+    margin-top: 24px;
+    padding: 0;
+    border: 0 !important;
+    border-radius: 0;
+    background: #ffffff !important;
+    box-shadow: none !important;
+}
+
+.regional-distribution-page .distribution-history-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 0;
+    border: 0 !important;
+    border-radius: 0;
+    background: #ffffff !important;
+    color: #354956 !important;
+    box-shadow: none !important;
+}
+
+.regional-distribution-page .distribution-history-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.regional-distribution-page .distribution-history-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.regional-distribution-page .distribution-history-table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.regional-distribution-page .distribution-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #ffffff;
+}
+
+.regional-distribution-page .distribution-table,
+.regional-distribution-page .distribution-table th,
+.regional-distribution-page .distribution-table td {
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+.regional-distribution-page .distribution-table th {
+    background: #ffffff !important;
+    color: #53646f !important;
+    font-size: 11px;
+    font-weight: 650;
+    text-align: left;
+}
+
+.regional-distribution-page .distribution-table td,
+.regional-distribution-page .distribution-table tbody tr:nth-child(even) td {
+    background: #ffffff !important;
+    color: #354956;
+}
+
+.regional-distribution-page .distribution-end-button {
+    border: 0 !important;
+    border-radius: 4px;
+    background: #eaf4f2 !important;
+    color: #176b61 !important;
+    box-shadow: none !important;
+}
+
+.regional-distribution-page .distribution-empty {
+    margin: 0;
+    padding: 14px 0;
+    color: #657480;
+    font-size: 12px;
+    line-height: 1.8;
+}
+
+/* On narrow screens, stack the work areas but keep each scroll independent. */
+@media (max-width: 720px) {
+    .regional-distribution-page .distribution-workspace {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 24px;
+    }
+
+    .regional-distribution-page .distribution-product-pane {
+        height: 420px;
+    }
+
+    .regional-distribution-page .distribution-setup-pane {
+        height: 460px;
+        max-height: none;
+    }
+}
+/* Supplier picker dropdown */
+.regional-distribution-page .distribution-supplier-picker {
+    position: relative;
+    min-width: 0;
+    margin: 0 0 12px;
+}
+
+.regional-distribution-page .distribution-supplier-dropdown-button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 10px;
+    border: 1px solid #c9d3d6;
+    border-radius: 4px;
+    background: #ffffff;
+    color: #354956;
+    font: inherit;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.regional-distribution-page .distribution-supplier-dropdown-button:hover {
+    background: #f5f9f8;
+}
+
+.regional-distribution-page .distribution-supplier-dropdown-button:focus-visible {
+    outline: 2px solid #176b61;
+    outline-offset: 2px;
+}
+
+.regional-distribution-page .distribution-supplier-dropdown-button.has-selection {
+    font-weight: 600;
+}
+
+.regional-distribution-page .distribution-supplier-dropdown-chevron {
+    flex: 0 0 auto;
+    color: #53646f;
+    font-size: 16px;
+    line-height: 1;
+}
+
+.regional-distribution-page .distribution-supplier-list[hidden] {
+    display: none !important;
+}
+
+.regional-distribution-page .distribution-supplier-list:not([hidden]) {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    left: 0;
+    z-index: 50;
+    box-sizing: border-box;
+    max-height: 240px;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 1px solid #dfe5e8;
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(32, 43, 56, 0.08);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.regional-distribution-page .distribution-supplier-list:not([hidden])::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
 }

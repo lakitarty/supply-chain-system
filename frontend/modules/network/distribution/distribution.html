@@ -3,97 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distribution | Nexora MSRC</title>
     <link rel="stylesheet" href="../../../shared/css/base.css">
     <link rel="stylesheet" href="../../../shared/css/shell.css">
     <link rel="stylesheet" href="distribution.css">
-    <title>Manufacturer Distribution | Nexora MSRC</title>
 </head>
 <body>
     <div id="shell"></div>
 
     <main class="page regional-distribution-page">
-        <header class="distribution-heading">
-            <div>
-                <h1 class="page-title">Manufacturer distribution</h1>
-                <p class="distribution-intro">Appoint approved suppliers to distribute your products in specific counties, with clear effective dates and retained history.</p>
-            </div>
+        <header class="distribution-page-heading">
+            <h1 class="page-title">Distribution</h1>
+            <button type="button" class="secondary-button" id="refreshDistributionButton">
+                Refresh
+            </button>
         </header>
 
-        <div id="distributionMessage" class="form-message" role="alert" aria-live="polite"></div>
+        <div id="distributionMessage" class="distribution-message"
+             role="status" aria-live="polite"></div>
 
-        <section class="distribution-section" id="appointmentFormSection">
-            <h2 class="section-title">Create a regional appointment</h2>
-            <p class="section-help">Only suppliers with an active, approved supply relationship are available. A county appointment does not change your overall relationship with that supplier.</p>
+        <form id="distributionForm" novalidate>
+            <div class="distribution-workspace">
 
-            <form id="distributionForm" novalidate>
-                <div class="distribution-form-grid">
-                    <div class="form-group">
-                        <label for="distributionProduct">Product</label>
-                        <select id="distributionProduct" required>
-                            <option value="">Select your product</option>
-                        </select>
+                <section class="distribution-product-pane" aria-labelledby="productsHeading">
+                    <div class="distribution-pane-heading">
+                        <h2 id="productsHeading">Products</h2>
+                        <span id="productCount" class="distribution-count">Loading…</span>
                     </div>
-                    <div class="form-group">
-                        <label for="distributionSupplier">Approved supplier</label>
-                        <select id="distributionSupplier" required>
-                            <option value="">Select a supplier</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="distributionArea">County</label>
-                        <select id="distributionArea" required>
-                            <option value="">Select a county</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="distributionStartDate">Effective from</label>
-                        <input type="date" id="distributionStartDate" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="distributionEndDate">Effective until <span class="optional">(optional)</span></label>
-                        <input type="date" id="distributionEndDate">
-                    </div>
-                    <div class="form-group distribution-exclusive-field">
-                        <label class="distribution-checkbox-label" for="distributionExclusive">
-                            <input type="checkbox" id="distributionExclusive">
-                            Exclusive appointment
+
+                    <label class="distribution-search-label" for="productSearch">
+                        Search products
+                    </label>
+                    <input
+                        type="search"
+                        id="productSearch"
+                        class="distribution-search"
+                        placeholder="Search by name or category"
+                        autocomplete="off"
+                    >
+
+                    <div class="distribution-list-toolbar">
+                        <label class="distribution-select-all">
+                            <input type="checkbox" id="distributionSelectAll">
+                            <span>Select all products</span>
                         </label>
-                        <p class="field-hint">Prevents another supplier's overlapping appointment for this product and county.</p>
+                        <span id="selectedProductCount" class="distribution-count">
+                            0 selected
+                        </span>
+                    </div>
+
+                    <div id="distributionProductList"
+                         class="distribution-scroll-list"
+                         aria-label="Product selection"
+                         aria-live="polite">
+                        <p class="distribution-empty">Loading products…</p>
+                    </div>
+                </section>
+
+                <section class="distribution-setup-pane" aria-labelledby="supplierHeading">
+                    <div class="distribution-pane-heading">
+                        <h2 id="supplierHeading">Approved supplier</h2>
+                        <span id="supplierCount" class="distribution-count">Loading…</span>
+                    </div>
+
+                    <div id="supplierDropdownPicker" class="distribution-supplier-picker">
+    <button
+        type="button"
+        id="supplierDropdownButton"
+        class="distribution-supplier-dropdown-button"
+        aria-expanded="false"
+        aria-controls="distributionSupplierList"
+        aria-label="Select supplier"
+    >
+        <span id="supplierDropdownLabel">Select supplier</span>
+        <span class="distribution-supplier-dropdown-chevron" aria-hidden="true">&#9662;</span>
+    </button>
+
+    <div
+        id="distributionSupplierList"
+        class="distribution-supplier-list"
+        role="radiogroup"
+        aria-label="Choose one approved supplier"
+        hidden
+    >
+        <p class="distribution-empty">Loading suppliers...</p>
+    </div>
+</div>
+
+                    <div class="distribution-appointment-fields">
+                        <div class="distribution-field">
+                            <label for="distributionArea">County</label>
+                            <select id="distributionArea" required>
+                                <option value="">Select a county</option>
+                            </select>
+                        </div>
+
+                        <div class="distribution-date-fields">
+                            <div class="distribution-field">
+                                <label for="distributionStartDate">Effective from</label>
+                                <input type="date" id="distributionStartDate" required>
+                            </div>
+
+                            <div class="distribution-field">
+                                <label for="distributionEndDate">
+                                    Effective until <span class="distribution-optional">(optional)</span>
+                                </label>
+                                <input type="date" id="distributionEndDate">
+                            </div>
+                        </div>
+
+                        <label class="distribution-exclusive">
+                            <input type="checkbox" id="distributionExclusive">
+                            <span>
+                                <strong>Exclusive appointment</strong>
+                                <small>
+                                    Prevents overlapping appointments for this product
+                                    and county with another supplier.
+                                </small>
+                            </span>
+                        </label>
+
+                        <div class="distribution-create-footer">
+                            <span id="distributionSelectionSummary" class="distribution-count">
+                                No products selected
+                            </span>
+                            <button
+                                type="submit"
+                                class="primary-button"
+                                id="saveAppointmentButton"
+                                disabled>
+                                Create appointments
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </form>
+
+        <section class="distribution-history" aria-label="Appointment history">
+            <button
+                type="button"
+                id="viewAppointmentsButton"
+                class="distribution-history-toggle"
+                aria-expanded="false">
+                <span>View appointments</span>
+                <span id="appointmentTotalCount" class="distribution-count"></span>
+                <span class="distribution-toggle-chevron" aria-hidden="true">⌄</span>
+            </button>
+
+            <div id="appointmentsSection" hidden>
+                <div class="distribution-history-heading">
+                    <h2>Appointments</h2>
+                    <div class="distribution-history-controls">
+                        <label for="appointmentStatusFilter">Show</label>
+                        <select id="appointmentStatusFilter">
+                            <option value="running">Running appointments</option>
+                            <option value="scheduled">Scheduled appointments</option>
+                            <option value="ended">Ended appointments</option>
+                            <option value="all">All appointments</option>
+                        </select>
                     </div>
                 </div>
 
-                <div class="distribution-form-actions">
-                    <button type="submit" class="primary-button" id="saveAppointmentButton">Create appointment</button>
+                <div class="distribution-history-table-scroll">
+                    <table class="distribution-table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Supplier</th>
+                                <th>County</th>
+                                <th>Effective dates</th>
+                                <th>Status</th>
+                                <th>Type</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="distributionAppointmentsBody">
+                            <tr>
+                                <td colspan="7" class="distribution-empty">
+                                    Loading appointments…
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
-            </form>
-        </section>
-
-        <section class="distribution-section">
-            <div class="distribution-table-heading">
-                <div>
-                    <h2 class="section-title">Appointments and history</h2>
-                    <p class="section-help">County-unassigned legacy records are labelled and do not count as regional authorisation.</p>
-                </div>
-                <button type="button" class="secondary-button" id="refreshDistributionButton">Refresh</button>
-            </div>
-
-            <div class="distribution-table-wrap">
-                <table class="distribution-table">
-                    <thead>
-                        <tr>
-                            <th>Product</th>
-                            <th>Supplier</th>
-                            <th>County</th>
-                            <th>Effective dates</th>
-                            <th>Appointment</th>
-                            <th>Type</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="distributionAppointmentsBody">
-                        <tr><td colspan="7" class="distribution-empty">Loading appointmentsâ€¦</td></tr>
-                    </tbody>
-                </table>
             </div>
         </section>
     </main>

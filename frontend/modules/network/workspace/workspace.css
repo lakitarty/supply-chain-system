@@ -579,3 +579,51 @@
     width: 0;
     height: 0;
 }
+/* Branch location and distribution territory are independent controls. */
+.relationship-workspace .workspace-context {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: end;
+    gap: 10px 18px;
+}
+
+.relationship-workspace .workspace-context-control {
+    min-width: 0;
+}
+
+.relationship-workspace .workspace-context-control label {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.relationship-workspace .workspace-context-control select {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+}
+
+.relationship-workspace .workspace-context-note {
+    margin: 0;
+    min-width: 0;
+    line-height: 1.5;
+}
+
+#workspaceDistributionNote {
+    grid-column: 2;
+}
+
+@media (max-width: 680px) {
+    .relationship-workspace .workspace-context {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    #workspaceDistributionNote {
+        grid-column: 1;
+    }
+}
+.relationship-workspace .workspace-coverage-intro {
+    margin: 8px 0 12px;
+    color: #667085;
+    font-size: 13px;
+    line-height: 1.5;
+}

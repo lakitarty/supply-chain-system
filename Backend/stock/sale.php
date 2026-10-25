@@ -142,7 +142,8 @@ try {
     }
 
     $existingStatement = $pdo->prepare(
-        'SELECT sales_history_id, units_sold, sales_amount
+        'SELECT sales_history_id, units_sold, sales_amount,
+                tax_category_snapshot, tax_rate_snapshot, tax_amount, net_sales_amount
          FROM sales_history
          WHERE retailer_id = ? AND branch_id = ? AND product_id = ?
            AND product_version_id = ? AND sale_date = ?
@@ -158,6 +159,25 @@ try {
     $existingSale = $existingStatement->fetch(PDO::FETCH_ASSOC);
     $previousUnits = $existingSale ? (int)$existingSale['units_sold'] : 0;
     $unitDelta = $unitsSold - $previousUnits;
+
+    // What will actually be persisted for tax fields.
+    $storeCategory = $taxCategorySnapshot;
+    $storeRate     = $taxRateSnapshot;
+    $storeTax      = $taxAmount;
+    $storeNet      = $netSalesAmount;
+    $preservedPrevious = false;
+    if ($existingSale && $taxCalculationStatus !== 'CALCULATED') {
+        if ($existingSale['tax_category_snapshot'] !== null
+            || $existingSale['tax_rate_snapshot'] !== null
+            || $existingSale['tax_amount'] !== null
+            || $existingSale['net_sales_amount'] !== null) {
+            $storeCategory    = $existingSale['tax_category_snapshot'];
+            $storeRate        = $existingSale['tax_rate_snapshot'];
+            $storeTax         = $existingSale['tax_amount'];
+            $storeNet         = $existingSale['net_sales_amount'];
+            $preservedPrevious = true;
+        }
+    }
 
     $currentStock = null;
     if ($isToday) {
@@ -206,10 +226,10 @@ try {
             $unitsSold,
             $salesAmount,
             $salesAmountBasis,
-            $taxCategorySnapshot,
-            $taxRateSnapshot,
-            $taxAmount,
-            $netSalesAmount,
+            $storeCategory,
+            $storeRate,
+            $storeTax,
+            $storeNet,
             (int)$existingSale['sales_history_id']
         ]);
         $savedSaleId = (int)$existingSale['sales_history_id'];
@@ -255,6 +275,9 @@ try {
 
     $baseMessage = $existingSale ? 'Daily sales summary updated.' : 'Daily sales summary saved.';
     $displayMessage = $baseMessage . ' ' . $taxCalculationMessage;
+    if ($preservedPrevious) {
+        $displayMessage .= ' The previously recorded tax snapshot was preserved.';
+    }
 
     respond(200, [
         'success' => true,
@@ -266,10 +289,11 @@ try {
             'units_sold' => $unitsSold,
             'sales_amount' => $salesAmount,
             'sales_amount_basis' => $salesAmountBasis,
-            'tax_category_snapshot' => $taxCategorySnapshot,
-            'tax_rate_snapshot' => $taxRateSnapshot,
-            'tax_amount' => $taxAmount,
-            'net_sales_amount' => $netSalesAmount,
+            'tax_category_snapshot' => $storeCategory,
+            'tax_rate_snapshot' => $storeRate,
+            'tax_amount' => $storeTax,
+            'net_sales_amount' => $storeNet,
+            'tax_snapshot_preserved' => $preservedPrevious,
             'tax_calculation_status' => $taxCalculationStatus,
             'tax_calculation_message' => $taxCalculationMessage,
             'was_updated' => (bool)$existingSale,

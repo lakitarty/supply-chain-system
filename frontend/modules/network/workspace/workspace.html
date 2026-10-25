@@ -47,7 +47,17 @@
                         <label for="workspaceBranchSelect">Viewing branch</label>
                         <select id="workspaceBranchSelect" aria-describedby="workspaceBranchCounty"></select>
                     </div>
-                    <p id="workspaceBranchCounty" class="workspace-context-note">Loading branch county...</p>
+                    <p id="workspaceBranchCounty" class="workspace-context-note">Loading branch location...</p>
+
+                    <div class="workspace-context-control">
+                        <label for="workspaceDistributionAreaSelect">Distribution county</label>
+                        <select id="workspaceDistributionAreaSelect" aria-describedby="workspaceDistributionNote">
+                            <option value="">Choose a distribution county</option>
+                        </select>
+                    </div>
+                    <p id="workspaceDistributionNote" class="workspace-context-note">
+                        Choose a county to view its regional product appointments. This does not change the branch location.
+                    </p>
                 </div>
                 <p id="workspaceSelectionPrompt" class="workspace-selection-prompt">
                     Select an active relationship to view the organisation's information.
@@ -65,9 +75,20 @@
 
                     <div class="workspace-meta" id="workspaceMeta"></div>
 
-                    <section class="workspace-section" aria-label="Products supplied">
+                    <section class="workspace-section" aria-label="Supplier-declared coverage">
+                <div class="workspace-section-header">
+                    <h2 class="workspace-section-title">Supplier-declared coverage</h2>
+                    <span class="workspace-count" id="workspaceSupplierCoverageCount">0</span>
+                </div>
+                <p class="workspace-coverage-intro">
+                    Counties declared by the supplier in this relationship. Coverage indicates where the supplier says it can operate; it does not itself appoint specific products.
+                </p>
+                <div id="workspaceSupplierCoverage" class="workspace-record-list"></div>
+            </section>
+
+            <section class="workspace-section" aria-label="Products supplied">
                         <div class="workspace-section-header">
-                            <h2 class="workspace-section-title">Products in this supply relationship</h2>
+                            <h2 class="workspace-section-title">Products appointed for the selected distribution county</h2>
                             <span class="workspace-count" id="productsCount">0</span>
                         </div>
                         <div id="workspaceProducts" class="workspace-record-list"></div>

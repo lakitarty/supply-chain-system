@@ -1,280 +1,555 @@
-const distributionForm = document.getElementById('distributionForm');
-const distributionMessage = document.getElementById('distributionMessage');
-const productSelect = document.getElementById('distributionProduct');
-const supplierSelect = document.getElementById('distributionSupplier');
-const areaSelect = document.getElementById('distributionArea');
-const startDateInput = document.getElementById('distributionStartDate');
-const endDateInput = document.getElementById('distributionEndDate');
-const exclusiveInput = document.getElementById('distributionExclusive');
-const saveAppointmentButton = document.getElementById('saveAppointmentButton');
-const refreshButton = document.getElementById('refreshDistributionButton');
-const appointmentsBody = document.getElementById('distributionAppointmentsBody');
+const distributionForm = document.getElementById("distributionForm");
+const distributionMessage = document.getElementById("distributionMessage");
+const productSearch = document.getElementById("productSearch");
+const supplierDropdownButton = document.getElementById("supplierDropdownButton");
+const supplierDropdownLabel = document.getElementById("supplierDropdownLabel");
+const supplierPicker = document.getElementById("supplierDropdownPicker");
+const productList = document.getElementById("distributionProductList");
+const supplierList = document.getElementById("distributionSupplierList");
+const selectAll = document.getElementById("distributionSelectAll");
+const productCount = document.getElementById("productCount");
+const selectedProductCount = document.getElementById("selectedProductCount");
+const supplierCount = document.getElementById("supplierCount");
+const areaSelect = document.getElementById("distributionArea");
+const startDateInput = document.getElementById("distributionStartDate");
+const endDateInput = document.getElementById("distributionEndDate");
+const exclusiveInput = document.getElementById("distributionExclusive");
+const saveButton = document.getElementById("saveAppointmentButton");
+const refreshButton = document.getElementById("refreshDistributionButton");
+const selectionSummary = document.getElementById("distributionSelectionSummary");
+const appointmentsBody = document.getElementById("distributionAppointmentsBody");
+const statusFilter = document.getElementById("appointmentStatusFilter");
+const appointmentsSection = document.getElementById("appointmentsSection");
+const viewAppointmentsButton = document.getElementById("viewAppointmentsButton");
 
-let distributionData = { products: [], suppliers: [], areas: [], appointments: [] };
+let distributionData = {
+    products: [],
+    suppliers: [],
+    areas: [],
+    appointments: []
+};
 
-function localDateString() {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    return now.toISOString().slice(0, 10);
+let selectedProductIds = new Set();
+let selectedSupplierId = "";
+let loading = false;
+
+function setSupplierDropdownOpen(isOpen) {
+    const open = Boolean(isOpen);
+
+    supplierList.hidden = !open;
+    supplierDropdownButton.setAttribute("aria-expanded", String(open));
 }
 
-function distributionElement(tag, className, text) {
-    const element = document.createElement(tag);
-    if (className) element.className = className;
-    if (text !== undefined && text !== null) element.textContent = String(text);
-    return element;
+function updateSupplierDropdownLabel() {
+    const selectedSupplier = distributionData.suppliers.find(
+        supplier => String(supplier.supplier_id) === selectedSupplierId
+    );
+
+    supplierDropdownLabel.textContent = selectedSupplier
+        ? selectedSupplier.supplier_name
+        : "Select supplier";
+
+    supplierDropdownButton.setAttribute(
+        "aria-label",
+        selectedSupplier
+            ? `Selected supplier: ${selectedSupplier.supplier_name}. Click to change supplier.`
+            : "Select supplier"
+    );
+
+    supplierDropdownButton.classList.toggle("has-selection", Boolean(selectedSupplier));
 }
 
-function showDistributionMessage(message, type = 'error') {
-    distributionMessage.textContent = message;
-    distributionMessage.className = message ? `form-message ${type}` : 'form-message';
+function todayString() {
+    const date = new Date();
+    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+    return date.toISOString().slice(0, 10);
 }
 
-function replaceOptions(select, placeholder, items, valueKey, labelBuilder, previousValue) {
-    select.replaceChildren(new Option(placeholder, ''));
-    for (const item of items) {
-        select.add(new Option(labelBuilder(item), String(item[valueKey])));
+function makeElement(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined && text !== null) node.textContent = String(text);
+    return node;
+}
+
+function showMessage(message, type = "") {
+    distributionMessage.textContent = message || "";
+    distributionMessage.className = message
+        ? `distribution-message ${type}`.trim()
+        : "distribution-message";
+}
+
+async function fetchDistributionData() {
+    const result = await getJson("network/distribution-list.php");
+    const data = result?.data || {};
+
+    if (!result?.ok || data.success !== true) {
+        throw new Error(data.error || data.message || "Unable to load distribution data.");
     }
-    if (previousValue && [...select.options].some(option => option.value === previousValue)) {
-        select.value = previousValue;
+
+    distributionData = {
+        products: data.products || [],
+        suppliers: data.suppliers || [],
+        areas: data.areas || [],
+        appointments: data.appointments || []
+    };
+
+    const validIds = new Set(
+        distributionData.products.map(product => String(product.product_id))
+    );
+    selectedProductIds = new Set(
+        [...selectedProductIds].filter(id => validIds.has(id))
+    );
+
+    renderProducts();
+    renderSuppliers();
+    renderAreas();
+    renderAppointments();
+    updateSelectionSummary();
+}
+
+function renderProducts() {
+    const query = productSearch.value.trim().toLocaleLowerCase();
+    const products = distributionData.products.filter(product => {
+        const name = String(product.product_name || "").toLocaleLowerCase();
+        const category = String(product.category || "").toLocaleLowerCase();
+        return name.includes(query) || category.includes(query);
+    });
+
+    productList.replaceChildren();
+    productCount.textContent = `${distributionData.products.length} products`;
+
+    if (!products.length) {
+        productList.appendChild(
+            makeElement("p", "distribution-empty", "No matching products.")
+        );
+    }
+
+    products.forEach(product => {
+        const id = String(product.product_id);
+        const row = makeElement("label", "distribution-product-row");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = selectedProductIds.has(id);
+        checkbox.value = id;
+        checkbox.setAttribute("aria-label", `Select ${product.product_name}`);
+
+        const copy = makeElement("span", "distribution-product-copy");
+        copy.appendChild(makeElement("strong", "", product.product_name));
+
+        if (product.category) {
+            copy.appendChild(makeElement("small", "", product.category));
+        }
+
+        row.append(checkbox, copy);
+        checkbox.addEventListener("change", () => {
+            if (checkbox.checked) {
+                selectedProductIds.add(id);
+            } else {
+                selectedProductIds.delete(id);
+            }
+            updateSelectionSummary();
+        });
+
+        productList.appendChild(row);
+    });
+
+    const total = distributionData.products.length;
+    selectAll.checked = total > 0 && selectedProductIds.size === total;
+    selectAll.indeterminate =
+        selectedProductIds.size > 0 && selectedProductIds.size < total;
+}
+
+function updateSelectionSummary() {
+    const count = selectedProductIds.size;
+    selectedProductCount.textContent = `${count} selected`;
+    selectionSummary.textContent = count
+        ? `${count} product${count === 1 ? "" : "s"} selected`
+        : "No products selected";
+
+    saveButton.disabled = count === 0 || loading;
+
+    const total = distributionData.products.length;
+    selectAll.checked = total > 0 && count === total;
+    selectAll.indeterminate = count > 0 && count < total;
+}
+
+function renderSuppliers() {
+    const suppliers = distributionData.suppliers;
+
+    supplierList.replaceChildren();
+    supplierCount.textContent = `${distributionData.suppliers.length} available`;
+
+    if (!suppliers.length) {
+        supplierList.appendChild(makeElement(
+            "p",
+            "distribution-empty",
+            distributionData.suppliers.length
+                ? "No suppliers match your search."
+                : "No approved supplier relationships are available."
+        ));
+        return;
+    }
+
+    suppliers.forEach((supplier, index) => {
+        const id = String(supplier.supplier_id);
+        const row = makeElement("label", "distribution-supplier-row");
+        const radio = document.createElement("input");
+        radio.type = "radio";
+        radio.name = "distributionSupplierChoice";
+        radio.value = id;
+        radio.checked = id === selectedSupplierId;
+        radio.id = `distributionSupplier${index}`;
+
+        const copy = makeElement("span", "distribution-supplier-copy");
+        copy.appendChild(makeElement("strong", "", supplier.supplier_name));
+
+        if (supplier.supplier_type === "MANUFACTURER_SUPPLIER") {
+            copy.appendChild(makeElement("small", "", "Manufacturer and supplier"));
+        } else {
+            copy.appendChild(makeElement("small", "", "Approved supplier"));
+        }
+
+        row.append(radio, copy);
+
+        radio.addEventListener("change", () => {
+            if (radio.checked) {
+                selectedSupplierId = id;
+                updateSupplierDropdownLabel();
+                setSupplierDropdownOpen(false);
+            }
+        });
+
+        supplierList.appendChild(row);
+    });
+    updateSupplierDropdownLabel();
+}
+
+function renderAreas() {
+    const previous = areaSelect.value;
+    areaSelect.replaceChildren(new Option("Select a county", ""));
+
+    distributionData.areas.forEach(area => {
+        areaSelect.add(new Option(area.area_name, String(area.area_id)));
+    });
+
+    if (previous && [...areaSelect.options].some(option => option.value === previous)) {
+        areaSelect.value = previous;
     }
 }
 
-function populateDistributionForm() {
-    const productValue = productSelect.value;
-    const supplierValue = supplierSelect.value;
-    const areaValue = areaSelect.value;
-
-    replaceOptions(
-        productSelect,
-        'Select your product',
-        distributionData.products,
-        'product_id',
-        product => product.category ? `${product.product_name}  |  ${product.category}` : product.product_name,
-        productValue
-    );
-    replaceOptions(
-        supplierSelect,
-        'Select a supplier',
-        distributionData.suppliers,
-        'supplier_id',
-        supplier => `${supplier.supplier_name}${supplier.supplier_type === 'MANUFACTURER_SUPPLIER' ? '  |  Manufacturer and supplier' : ''}`,
-        supplierValue
-    );
-    replaceOptions(
-        areaSelect,
-        'Select a county',
-        distributionData.areas,
-        'area_id',
-        area => area.area_name,
-        areaValue
-    );
-}
-
-function dateStatus(appointment) {
-    if (appointment.status !== 'ACTIVE') return 'Ended / cancelled';
-
-    const today = localDateString();
-    if (appointment.start_date > today) return 'Scheduled';
-    if (appointment.end_date && appointment.end_date < today) return 'Expired';
-    return 'Active';
+function appointmentStatus(appointment) {
+    if (String(appointment.status).toUpperCase() !== "ACTIVE") return "Ended";
+    if (appointment.end_date && appointment.end_date < todayString()) return "Ended";
+    if (appointment.start_date > todayString()) return "Scheduled";
+    return "Running";
 }
 
 function renderAppointments() {
     appointmentsBody.replaceChildren();
 
-    if (distributionData.appointments.length === 0) {
-        const row = distributionElement('tr');
-        row.append(distributionElement('td', 'distribution-empty', 'No appointments recorded yet.'));
-        row.firstElementChild.colSpan = 7;
-        appointmentsBody.append(row);
+    const all = distributionData.appointments;
+    const filtered = all.filter(appointment => {
+        const status = appointmentStatus(appointment);
+
+        if (statusFilter.value === "running") return status === "Running";
+        if (statusFilter.value === "scheduled") return status === "Scheduled";
+        if (statusFilter.value === "ended") return status === "Ended";
+        return true;
+    });
+
+    document.getElementById("appointmentTotalCount").textContent =
+        `${all.length} total`;
+
+    if (!filtered.length) {
+        const row = document.createElement("tr");
+        const cell = makeElement(
+            "td",
+            "distribution-empty",
+            all.length
+                ? "No appointments in this category."
+                : "No appointments have been created yet."
+        );
+        cell.colSpan = 7;
+        row.appendChild(cell);
+        appointmentsBody.appendChild(row);
         return;
     }
 
-    for (const appointment of distributionData.appointments) {
-        const row = distributionElement('tr');
-        const dates = `${appointment.start_date}${appointment.end_date ? ` to ${appointment.end_date}` : ' onward'}`;
-        const state = dateStatus(appointment);
-        const effective = appointment.status === 'ACTIVE'
-            && (!appointment.end_date || appointment.end_date >= localDateString());
+    filtered.forEach(appointment => {
+        const row = document.createElement("tr");
+        const status = appointmentStatus(appointment);
+        const dates = `${appointment.start_date}${
+            appointment.end_date ? ` to ${appointment.end_date}` : " onward"
+        }`;
 
         row.append(
-            distributionElement('td', 'distribution-product-cell', appointment.product_name),
-            distributionElement('td', '', appointment.supplier_name),
-            distributionElement('td', appointment.area_id ? '' : 'distribution-legacy-area', appointment.area_name || 'County not assigned'),
-            distributionElement('td', 'distribution-dates', dates),
-            distributionElement('td', '', state),
-            distributionElement('td', '', Number(appointment.is_exclusive) === 1 ? 'Exclusive' : 'Non-exclusive')
+            makeElement("td", "distribution-table-product", appointment.product_name),
+            makeElement("td", "", appointment.supplier_name),
+            makeElement("td", "", appointment.area_name || "County not assigned"),
+            makeElement("td", "distribution-table-date", dates),
+            makeElement("td", "", status),
+            makeElement(
+                "td",
+                "",
+                Number(appointment.is_exclusive) === 1 ? "Exclusive" : "Non-exclusive"
+            )
         );
 
-        const actionCell = distributionElement('td', 'distribution-action-cell');
-        if (effective) {
-            const endButton = distributionElement('button', 'distribution-end-button', appointment.start_date > localDateString() ? 'Cancel' : 'End appointment');
-            endButton.type = 'button';
-            endButton.addEventListener('click', () => endAppointment(appointment));
-            actionCell.append(endButton);
+        const action = makeElement("td", "");
+
+        if (status === "Running" || status === "Scheduled") {
+            const button = makeElement(
+                "button",
+                "distribution-end-button",
+                status === "Scheduled" ? "Cancel" : "End appointment"
+            );
+            button.type = "button";
+            button.addEventListener("click", () => endAppointment(appointment));
+            action.appendChild(button);
         } else {
-            actionCell.append(distributionElement('span', 'distribution-no-action', '-'));
+            action.textContent = "—";
         }
-        row.append(actionCell);
-        appointmentsBody.append(row);
-    }
-}
 
-async function loadDistributionData() {
-    const previousProduct = productSelect.value;
-    const previousSupplier = supplierSelect.value;
-    const previousArea = areaSelect.value;
-
-    const result = await getJson('network/distribution-list.php');
-    if (!result.ok || result.data.success !== true) {
-        throw new Error(result.data.error || 'Unable to load regional distribution.');
-    }
-
-    distributionData = {
-        products: result.data.products || [],
-        suppliers: result.data.suppliers || [],
-        areas: result.data.areas || [],
-        appointments: result.data.appointments || []
-    };
-
-    populateDistributionForm();
-    if (previousProduct) productSelect.value = previousProduct;
-    if (previousSupplier) supplierSelect.value = previousSupplier;
-    if (previousArea) areaSelect.value = previousArea;
-    renderAppointments();
+        row.appendChild(action);
+        appointmentsBody.appendChild(row);
+    });
 }
 
 async function endAppointment(appointment) {
-    const question = appointment.start_date > localDateString()
-        ? `Cancel the scheduled appointment for ${appointment.product_name} with ${appointment.supplier_name} in ${appointment.area_name || 'an unassigned county'}?`
-        : `End the appointment for ${appointment.product_name} with ${appointment.supplier_name} in ${appointment.area_name || 'an unassigned county'}?`;
+    const action = appointmentStatus(appointment) === "Scheduled"
+        ? "cancel"
+        : "end";
 
-    if (!window.confirm(`${question}\n\nThe record will be retained in history.`)) return;
+    const confirmed = window.confirm(
+        `Are you sure you want to ${action} the appointment for ` +
+        `${appointment.product_name} with ${appointment.supplier_name} in ` +
+        `${appointment.area_name || "the unassigned county"}? The record will remain in history.`
+    );
 
-    showDistributionMessage('Updating appointment...', '');
+    if (!confirmed) return;
+
+    showMessage("Updating appointment…", "info");
+
     try {
-        const result = await postJson('network/distribution-end.php', {
+        const result = await postJson("network/distribution-end.php", {
             appointmentId: Number(appointment.product_supplier_id)
         });
+        const data = result?.data || {};
 
-        if (!result.ok || result.data.success !== true) {
-            throw new Error(result.data.error || 'Unable to end the appointment.');
+        if (!result?.ok || data.success !== true) {
+            throw new Error(data.error || data.message || "Unable to update appointment.");
         }
 
-        await loadDistributionData();
-        showDistributionMessage(result.data.message || 'Appointment ended.', 'success');
+        await fetchDistributionData();
+        showMessage(data.message || "Appointment updated.", "success");
     } catch (error) {
-        showDistributionMessage(error.message || 'Unable to contact the server.');
+        showMessage(error.message || "Unable to update appointment.");
     }
 }
 
-async function saveAppointment(event) {
+async function createAppointments(event) {
     event.preventDefault();
-    showDistributionMessage('', '');
+    showMessage("");
 
-    if (!productSelect.value || !supplierSelect.value || !areaSelect.value || !startDateInput.value) {
-        showDistributionMessage('Choose a product, approved supplier, county and start date.');
+    const chosenProducts = distributionData.products.filter(product =>
+        selectedProductIds.has(String(product.product_id))
+    );
+    const areaId = areaSelect.value;
+    const startDate = startDateInput.value;
+    const endDate = endDateInput.value;
+
+    if (!chosenProducts.length) {
+        showMessage("Select at least one product.");
         return;
     }
 
-    if (endDateInput.value && endDateInput.value < startDateInput.value) {
-        showDistributionMessage('The end date cannot be earlier than the start date.');
+    if (!selectedSupplierId) {
+        showMessage("Select an approved supplier from the right-hand panel.");
+        return;
+    }
+
+    if (!areaId || !startDate) {
+        showMessage("Select the county and effective start date.");
+        return;
+    }
+
+    if (endDate && endDate < startDate) {
+        showMessage("The end date cannot be earlier than the start date.");
         endDateInput.focus();
         return;
     }
 
-    saveAppointmentButton.disabled = true;
-    saveAppointmentButton.textContent = 'Creating appointment...';
+    loading = true;
+    saveButton.disabled = true;
+    saveButton.textContent = "Creating appointments…";
+
+    let created = 0;
+    const failures = [];
+    let coverageBlocked = false;
 
     try {
-        const payload = {
-            productId: Number(productSelect.value),
-            supplierId: Number(supplierSelect.value),
-            areaId: Number(areaSelect.value),
-            startDate: startDateInput.value,
-            endDate: endDateInput.value || null,
-            isExclusive: exclusiveInput.checked
-        };
+        for (const product of chosenProducts) {
+            const result = await postJson("network/distribution-save.php", {
+                productId: Number(product.product_id),
+                supplierId: Number(selectedSupplierId),
+                areaId: Number(areaId),
+                startDate,
+                endDate: endDate || null,
+                isExclusive: exclusiveInput.checked
+            });
 
-        let result = await postJson('network/distribution-save.php', payload);
+            const data = result?.data || {};
 
-        if (!result.ok && result.data?.code === 'SUPPLIER_COVERAGE_WARNING') {
-            const warning = result.data;
-            const period = `${warning.start_date}${warning.end_date ? ` to ${warning.end_date}` : ' onward'}`;
-            const details = [
-                warning.warning,
-                '',
-                `Product: ${warning.product_name}`,
-                `Supplier: ${warning.supplier_name}`,
-                `County: ${warning.area_name}`,
-                `Appointment period: ${period}`,
-                '',
-                'Create this appointment anyway? The warning will be recorded in the audit log.'
-            ].join('\n');
-
-            if (!window.confirm(details)) {
-                showDistributionMessage('Appointment not created. Supplier coverage was not confirmed.', '');
-                return;
+            if (result?.ok && data.success === true) {
+                created += 1;
+                selectedProductIds.delete(String(product.product_id));
+                continue;
             }
 
-            result = await postJson('network/distribution-save.php', {
-                ...payload,
-                confirmMissingCoverage: true
-            });
+            const reason = data.error || data.message || "Could not create appointment.";
+            failures.push(`${product.product_name}: ${reason}`);
+
+            if (data.code === "SUPPLIER_COVERAGE_REQUIRED") {
+                coverageBlocked = true;
+                break;
+            }
         }
 
-        if (!result.ok || result.data.success !== true) {
-            throw new Error(result.data.error || 'Unable to create the appointment.');
+        await fetchDistributionData();
+
+        if (created && !failures.length) {
+            showMessage(
+                `Successfully created ${created} appointment${created === 1 ? "" : "s"}.`,
+                "success"
+            );
+        } else if (created) {
+            const explanation = coverageBlocked
+                ? "The supplier must declare matching county coverage before more appointments can be created."
+                : failures.slice(0, 2).join(" ");
+            showMessage(`Created ${created}; ${failures.length} failed. ${explanation}`);
+        } else {
+            const explanation = coverageBlocked
+                ? "The supplier has not declared coverage matching this county and appointment period. Ask the supplier to update its coverage first."
+                : failures.slice(0, 3).join(" ");
+            showMessage(explanation || "No appointments were created.");
         }
 
-        await loadDistributionData();
-        endDateInput.value = '';
-        exclusiveInput.checked = false;
-        showDistributionMessage(result.data.message || 'Regional appointment created.', 'success');
+        updateSelectionSummary();
+
+        if (created && appointmentsSection.hidden) {
+            appointmentsSection.hidden = false;
+            viewAppointmentsButton.setAttribute("aria-expanded", "true");
+            viewAppointmentsButton.querySelector("span").textContent = "Hide appointments";
+        }
     } catch (error) {
-        showDistributionMessage(error.message || 'Unable to contact the server.');
+        showMessage(error.message || "Unable to contact the server.");
     } finally {
-        saveAppointmentButton.disabled = false;
-        saveAppointmentButton.textContent = 'Create appointment';
+        loading = false;
+        saveButton.textContent = "Create appointments";
+        updateSelectionSummary();
     }
 }
 
 function initialiseDistribution() {
+    const today = todayString();
+    startDateInput.min = today;
+    startDateInput.value = today;
+    endDateInput.min = today;
+
+    startDateInput.addEventListener("change", () => {
+        endDateInput.min = startDateInput.value || todayString();
+        if (endDateInput.value && endDateInput.value < startDateInput.value) {
+            endDateInput.value = "";
+        }
+    });
+
+    productSearch.addEventListener("input", renderProducts);
+    setSupplierDropdownOpen(false);
+
+    supplierDropdownButton.addEventListener("click", () => {
+        setSupplierDropdownOpen(supplierList.hidden);
+    });
+
+    supplierDropdownButton.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
+            setSupplierDropdownOpen(false);
+        }
+    });
+
+    supplierList.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
+            setSupplierDropdownOpen(false);
+            supplierDropdownButton.focus();
+        }
+    });
+
+    document.addEventListener("click", event => {
+        if (!supplierPicker.contains(event.target)) {
+            setSupplierDropdownOpen(false);
+        }
+    });
+
+    selectAll.addEventListener("change", () => {
+        if (selectAll.checked) {
+            distributionData.products.forEach(product => {
+                selectedProductIds.add(String(product.product_id));
+            });
+        } else {
+            selectedProductIds.clear();
+        }
+
+        renderProducts();
+        updateSelectionSummary();
+    });
+
+    distributionForm.addEventListener("submit", createAppointments);
+    statusFilter.addEventListener("change", renderAppointments);
+
+    viewAppointmentsButton.addEventListener("click", () => {
+        appointmentsSection.hidden = !appointmentsSection.hidden;
+        const open = !appointmentsSection.hidden;
+        viewAppointmentsButton.setAttribute("aria-expanded", String(open));
+        viewAppointmentsButton.querySelector("span").textContent =
+            open ? "Hide appointments" : "View appointments";
+
+        if (open) {
+            renderAppointments();
+            appointmentsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    });
+
+    refreshButton.addEventListener("click", async () => {
+        refreshButton.disabled = true;
+        try {
+            await fetchDistributionData();
+            showMessage("Distribution refreshed.", "success");
+        } catch (error) {
+            showMessage(error.message || "Unable to refresh distribution.");
+        } finally {
+            refreshButton.disabled = false;
+        }
+    });
+
     shellReady.then(async account => {
         if (!account) return;
 
-        const allowedTypes = ['MANUFACTURER', 'MANUFACTURER_SUPPLIER'];
-        if (account.user.role !== 'ADMIN' || !allowedTypes.includes(account.organization.organization_type)) {
+        const validTypes = ["MANUFACTURER", "MANUFACTURER_SUPPLIER"];
+        const permitted = account.user.role === "ADMIN" &&
+            validTypes.includes(account.organization.organization_type);
+
+        if (!permitted) {
             distributionForm.hidden = true;
-            showDistributionMessage('Manufacturer organisation administrator access is required.');
-            appointmentsBody.replaceChildren();
-            const row = distributionElement('tr');
-            row.append(distributionElement('td', 'distribution-empty', 'You do not have permission to view distribution appointments.'));
-            row.firstElementChild.colSpan = 7;
-            appointmentsBody.append(row);
+            showMessage("Manufacturer organisation administrator access is required.");
             return;
         }
 
         try {
-            await loadDistributionData();
+            await fetchDistributionData();
         } catch (error) {
-            showDistributionMessage(error.message || 'Unable to load regional distribution.');
+            showMessage(error.message || "Unable to load distribution.");
         }
     });
 }
-
-distributionForm.addEventListener('submit', saveAppointment);
-refreshButton.addEventListener('click', async () => {
-    refreshButton.disabled = true;
-    try {
-        await loadDistributionData();
-        showDistributionMessage('Appointments refreshed.', 'success');
-    } catch (error) {
-        showDistributionMessage(error.message || 'Unable to refresh appointments.');
-    } finally {
-        refreshButton.disabled = false;
-    }
-});
 
 initialiseDistribution();

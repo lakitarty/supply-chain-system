@@ -48,6 +48,30 @@ try {
     );
     $areas = $statement->fetchAll(PDO::FETCH_ASSOC);
 
+    $coverageStatement = $pdo->prepare(
+        "SELECT sda.supplier_id,
+                sda.area_id,
+                da.area_name,
+                sda.start_date,
+                sda.end_date,
+                sda.status
+         FROM supplier_distribution_areas sda
+         INNER JOIN distribution_areas da
+            ON da.area_id = sda.area_id
+         INNER JOIN organizations supplier
+            ON supplier.organization_id = sda.supplier_id
+           AND supplier.status = 'ACTIVE'
+           AND supplier.organization_type IN ('SUPPLIER', 'MANUFACTURER_SUPPLIER')
+         INNER JOIN organization_relationships r
+            ON r.target_organization_id = sda.supplier_id
+           AND r.source_organization_id = ?
+           AND r.status = 'ACTIVE'
+         WHERE sda.status = 'ACTIVE'
+         ORDER BY sda.supplier_id, da.area_name, sda.start_date DESC"
+    );
+    $coverageStatement->execute([$organizationId]);
+    $coverages = $coverageStatement->fetchAll(PDO::FETCH_ASSOC);
+
     $statement = $pdo->prepare(
         "SELECT ps.product_supplier_id,
                 ps.product_id,
@@ -76,6 +100,7 @@ try {
         'products' => $products,
         'suppliers' => $suppliers,
         'areas' => $areas,
+        'coverages' => $coverages,
         'appointments' => $appointments
     ]);
 

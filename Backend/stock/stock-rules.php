@@ -201,19 +201,17 @@ function stock_recommended_quantity(
 
     $minimumOrderQuantity = max(1, $minimumOrderQuantity);
     $orderMultiple = max(1, $orderMultiple);
-    $target = max(
-        $averageDailySales * ($leadTimeDays + NEXORA_STOCK_COVER_DAYS),
-        (float)$reorderLevel,
-        (float)($onHand + 1),
-        $onHand === 0 ? (float)$minimumOrderQuantity : 0.0
-    );
+    $coverDemand = round($averageDailySales * ($leadTimeDays + NEXORA_STOCK_COVER_DAYS), 6);
+    $target = max($coverDemand, (float)$reorderLevel, (float)($onHand + 1));
     $needed = max(1, (int)ceil($target - $onHand));
 
-    if ($supplierAvailable) {
-        return max($minimumOrderQuantity, (int)(ceil($needed / $orderMultiple) * $orderMultiple));
+    if (!$supplierAvailable) {
+        return $needed;
     }
 
-    return $needed;
+    $quantity = max($needed, $minimumOrderQuantity);
+
+    return (int)(ceil($quantity / $orderMultiple) * $orderMultiple);
 }
 
 function stock_analyze_row(array $row): array
@@ -224,8 +222,9 @@ function stock_analyze_row(array $row): array
     $leadTimeDays = (int)$row['lead_time_days'];
     $minimumOrderQuantity = (int)$row['minimum_order_quantity'];
     $orderMultiple = (int)$row['order_multiple'];
-    $averageDailySales = round(((float)$row['sold_recently']) / NEXORA_STOCK_SALES_WINDOW_DAYS, 2);
-    $status = stock_status($onHand, $reorderLevel, $averageDailySales, $leadTimeDays, $recorded);
+    $rawAverage = ((float)$row['sold_recently']) / NEXORA_STOCK_SALES_WINDOW_DAYS;
+    $averageDailySales = round($rawAverage, 2);
+    $status = stock_status($onHand, $reorderLevel, $rawAverage, $leadTimeDays, $recorded);
     $supplierAvailable = $row['supplier_id'] !== null;
 
     $row['product_id'] = (int)$row['product_id'];
@@ -237,7 +236,7 @@ function stock_analyze_row(array $row): array
     $row['stock_recorded'] = $recorded;
     $row['sold_recently'] = (int)$row['sold_recently'];
     $row['average_daily_sales'] = $averageDailySales;
-    $row['days_left'] = $averageDailySales > 0 ? round($onHand / $averageDailySales, 1) : null;
+    $row['days_left'] = $rawAverage > 0 ? round($onHand / $rawAverage, 1) : null;
     $row['lead_time_days'] = $leadTimeDays;
     $row['lead_time_is_estimate'] = !$supplierAvailable;
     $row['minimum_order_quantity'] = $minimumOrderQuantity;
@@ -248,7 +247,7 @@ function stock_analyze_row(array $row): array
         $status,
         $onHand,
         $reorderLevel,
-        $averageDailySales,
+        $rawAverage,
         $leadTimeDays,
         $minimumOrderQuantity,
         $orderMultiple,
@@ -454,7 +453,7 @@ function stock_sync_alert(PDO $pdo, array $actor, array $branch, array $stock): 
         (int)$stock['reorder_level'],
         (float)$stock['average_daily_sales'],
         (int)$stock['lead_time_days'],
-        round((float)$stock['average_daily_sales'] * (int)$stock['lead_time_days'], 2),
+        round(((int)$stock['sold_recently'] * (int)$stock['lead_time_days']) / NEXORA_STOCK_SALES_WINDOW_DAYS, 2),
         (int)$stock['recommended_quantity']
     ];
 

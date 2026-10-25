@@ -550,6 +550,74 @@ function dashboard_build_cards(
 
     return array_slice($cards, 0, 9);
 }
+
+function attention_total(PDO $pdo, array $actor): int
+{
+    $organizationId = (int)$actor['organization_id'];
+    $isAdmin = $actor['role'] === 'ADMIN';
+
+    $counts = [
+        [
+            "SELECT COUNT(*) AS total
+             FROM change_recipients r
+             INNER JOIN product_changes c ON c.product_change_id = r.product_change_id
+             INNER JOIN products p ON p.product_id = c.product_id
+             INNER JOIN organizations o ON o.organization_id = p.manufacturer_id
+             WHERE r.organization_id = ?
+               AND c.status = 'PUBLISHED'
+               AND r.acknowledged_at IS NULL",
+            [$organizationId]
+        ],
+        [
+            "SELECT COUNT(*) AS total
+             FROM product_announcement_recipients r
+             INNER JOIN product_announcements a ON a.announcement_id = r.announcement_id
+             INNER JOIN products p ON p.product_id = a.product_id
+             INNER JOIN organizations o ON o.organization_id = p.manufacturer_id
+             WHERE r.organization_id = ?
+               AND a.status = 'PUBLISHED'
+               AND r.acknowledgement_status <> 'ACKNOWLEDGED'",
+            [$organizationId]
+        ]
+    ];
+
+    if ($isAdmin) {
+        $counts[] = [
+            "SELECT COUNT(*) AS total
+             FROM organization_relationships r
+             INNER JOIN organizations partner
+                ON partner.organization_id = IF(
+                    r.source_organization_id = ?,
+                    r.target_organization_id,
+                    r.source_organization_id
+                )
+             WHERE r.status = 'PENDING'
+               AND (r.source_organization_id = ? OR r.target_organization_id = ?)
+               AND r.requested_by_organization_id <> ?",
+            [$organizationId, $organizationId, $organizationId, $organizationId]
+        ];
+    }
+
+    if ($isAdmin && can_manufacture($actor)) {
+        $counts[] = [
+            "SELECT COUNT(*) AS total
+             FROM product_changes c
+             INNER JOIN products p ON p.product_id = c.product_id
+             WHERE p.manufacturer_id = ?
+               AND c.status = 'PENDING_APPROVAL'",
+            [$organizationId]
+        ];
+    }
+
+    $total = 0;
+
+    foreach ($counts as [$sql, $params]) {
+        $total += (int)dashboard_rows($pdo, $sql, $params)[0]['total'];
+    }
+
+    return $total;
+}
+
 function fetch_dashboard(PDO $pdo, array $actor): array
 {
     $isAdmin = $actor['role'] === 'ADMIN';
@@ -563,10 +631,7 @@ function fetch_dashboard(PDO $pdo, array $actor): array
         $manufactures ? changes_waiting_on_others($pdo, $actor) : []
     );
 
-    $attentionCount = count(array_filter(
-        $items,
-        fn(array $item) => $item['group'] === ATTENTION_GROUP
-    ));
+    $attentionCount = attention_total($pdo, $actor);
 
     $summary = dashboard_summary($pdo, $actor, $attentionCount);
     $activity = dashboard_recent_activity($pdo, $actor);

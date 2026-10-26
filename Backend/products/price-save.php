@@ -258,13 +258,15 @@ try {
         );
     }
 
-    $priceDecreaseNotificationOnly = false;
+    $automaticCascadeEligible =
         $ownsProduct &&
         !$hasScheduledManufacturerSellingPeriod &&
         $priceType === 'SELLING' &&
         $fromDate === $todayNairobi &&
         $toDate === null &&
         (float)$amount > 0;
+
+    $priceDecreaseNotificationOnly = false;
 
     if ($automaticCascadeEligible) {
         $currentPriceStatement = $pdo->prepare(
@@ -640,20 +642,272 @@ try {
             $recipientsStatement->fetchAll(PDO::FETCH_COLUMN)
         )));
 
+        // Decreases may update a direct supplier only when that supplier opted in
+        // and no scheduled price, promotion, or offer could be overwritten.
+        // Retailer and branch prices are deliberately never updated by this path.
+        $supplierDecreaseAdjustments = [];
+
+        if ($hasProductSupplierAppointments) {
+            foreach ($recipientIds as $recipientId) {
+                $recipientId = (int)$recipientId;
+                $supplierDecreaseAdjustments[$recipientId] = [
+                    'applied' => false,
+                    'reason' => 'No automatic adjustment was made. Review your own pricing records and any scheduled commercial periods.'
+                ];
+
+                $recipientTypeStatement = $pdo->prepare(
+                    "SELECT organization_type
+                     FROM organizations
+                     WHERE organization_id = ? AND status = 'ACTIVE'
+                     LIMIT 1
+                     FOR UPDATE"
+                );
+                $recipientTypeStatement->execute([$recipientId]);
+                $recipientType = $recipientTypeStatement->fetchColumn();
+
+                if (!in_array($recipientType, ['SUPPLIER', 'MANUFACTURER_SUPPLIER'], true)) {
+                    $supplierDecreaseAdjustments[$recipientId]['reason'] =
+                        'Automatic adjustment was skipped because the direct recipient is not an active supplier organisation.';
+                    continue;
+                }
+
+                $protectionStatement = $pdo->prepare(
+                    'SELECT enabled
+                     FROM organization_price_protection
+                     WHERE organization_id = ?
+                     LIMIT 1
+                     FOR UPDATE'
+                );
+                $protectionStatement->execute([$recipientId]);
+                $protectionValue = $protectionStatement->fetchColumn();
+
+                if ($protectionValue === false || (int)$protectionValue !== 1) {
+                    $supplierDecreaseAdjustments[$recipientId]['reason'] =
+                        'Automatic adjustment was skipped because Price Change Protection is not enabled for your organisation.';
+                    continue;
+                }
+
+                $promotionStatement = $pdo->prepare(
+                    "SELECT pr.promotion_id
+                     FROM promotions pr
+                     INNER JOIN promotion_products pp
+                        ON pp.promotion_id = pr.promotion_id
+                     LEFT JOIN promotion_participants participant
+                        ON participant.promotion_id = pr.promotion_id
+                       AND participant.organization_id = ?
+                       AND participant.status IN ('PENDING', 'ACCEPTED', 'ACTIVE')
+                     WHERE pp.product_id = ?
+                       AND pr.status IN ('SUBMITTED', 'APPROVED', 'SCHEDULED', 'ACTIVE')
+                       AND pr.end_date >= ?
+                       AND (
+                           pr.organization_id = ?
+                           OR participant.organization_id IS NOT NULL
+                       )
+                     LIMIT 1
+                     FOR UPDATE"
+                );
+                $promotionStatement->execute([
+                    $recipientId,
+                    $productId,
+                    $fromDate,
+                    $recipientId
+                ]);
+
+                if ($promotionStatement->fetchColumn() !== false) {
+                    $supplierDecreaseAdjustments[$recipientId]['reason'] =
+                        'Automatic adjustment was skipped because a promotion involving this product requires protection or review.';
+                    continue;
+                }
+
+                $offerStatement = $pdo->prepare(
+                    "SELECT supplier_product_offer_id
+                     FROM supplier_product_offers
+                     WHERE supplier_id = ?
+                       AND product_id = ?
+                       AND product_version_id = ?
+                       AND status = 'ACTIVE'
+                       AND (
+                           effective_from > ?
+                           OR (
+                               effective_from <= ?
+                               AND (effective_to IS NULL OR effective_to >= ?)
+                           )
+                       )
+                     LIMIT 1
+                     FOR UPDATE"
+                );
+                $offerStatement->execute([
+                    $recipientId,
+                    $productId,
+                    $versionId,
+                    $fromDate,
+                    $fromDate,
+                    $fromDate
+                ]);
+
+                if ($offerStatement->fetchColumn() !== false) {
+                    $supplierDecreaseAdjustments[$recipientId]['reason'] =
+                        'Automatic adjustment was skipped because a supplier offer is current or scheduled for this product.';
+                    continue;
+                }
+
+                $supplierPriceStatement = $pdo->prepare(
+                    "SELECT price_id, organization_id, product_id, product_version_id,
+                            price_type, price_amount, price_includes_vat, tax_category,
+                            effective_from, effective_to
+                     FROM product_prices
+                     WHERE organization_id = ?
+                       AND product_id = ?
+                       AND product_version_id = ?
+                       AND price_type IN ('COST', 'SELLING')
+                     ORDER BY price_type, effective_from, price_id
+                     FOR UPDATE"
+                );
+                $supplierPriceStatement->execute([$recipientId, $productId, $versionId]);
+                $supplierPriceRows = $supplierPriceStatement->fetchAll(PDO::FETCH_ASSOC);
+
+                $hasScheduledSupplierPeriod = false;
+                $currentSupplierPrices = ['COST' => [], 'SELLING' => []];
+
+                foreach ($supplierPriceRows as $supplierPriceRow) {
+                    $rowStart = (string)$supplierPriceRow['effective_from'];
+                    $rowEnd = $supplierPriceRow['effective_to'] === null
+                        ? null
+                        : (string)$supplierPriceRow['effective_to'];
+                    $rowType = (string)$supplierPriceRow['price_type'];
+
+                    if (
+                        $rowStart > $fromDate ||
+                        ($rowStart <= $fromDate && $rowEnd !== null && $rowEnd >= $fromDate)
+                    ) {
+                        $hasScheduledSupplierPeriod = true;
+                    }
+
+                    if (
+                        $rowStart <= $fromDate &&
+                        ($rowEnd === null || $rowEnd >= $fromDate) &&
+                        isset($currentSupplierPrices[$rowType])
+                    ) {
+                        $currentSupplierPrices[$rowType][] = $supplierPriceRow;
+                    }
+                }
+
+                if ($hasScheduledSupplierPeriod) {
+                    $supplierDecreaseAdjustments[$recipientId]['reason'] =
+                        'Automatic adjustment was skipped because a scheduled or time-limited price period requires review.';
+                    continue;
+                }
+
+                if (
+                    count($currentSupplierPrices['COST']) !== 1 ||
+                    count($currentSupplierPrices['SELLING']) !== 1
+                ) {
+                    $supplierDecreaseAdjustments[$recipientId]['reason'] =
+                        'Automatic adjustment was skipped because the current cost and selling-price records need review.';
+                    continue;
+                }
+
+                $supplierCostRow = $currentSupplierPrices['COST'][0];
+                $oldSupplierCost = (float)$supplierCostRow['price_amount'];
+                $newSupplierCost = round((float)$amount, 2);
+
+                if ($newSupplierCost >= $oldSupplierCost - 0.005) {
+                    $supplierDecreaseAdjustments[$recipientId]['reason'] =
+                        'Automatic adjustment was skipped because the new manufacturer price is not lower than this organisationâ€™s current recorded cost. Review the price records before syncing.';
+                    continue;
+                }
+
+                $writeSupplierCost = function (array $priceRow, float $newPrice) use ($pdo, $fromDate): void {
+                    $priceId = (int)$priceRow['price_id'];
+                    $rowStart = (string)$priceRow['effective_from'];
+
+                    if ($rowStart === $fromDate) {
+                        $update = $pdo->prepare(
+                            'UPDATE product_prices SET price_amount = ? WHERE price_id = ?'
+                        );
+                        $update->execute([$newPrice, $priceId]);
+                        return;
+                    }
+
+                    $close = $pdo->prepare(
+                        'UPDATE product_prices SET effective_to = ? WHERE price_id = ?'
+                    );
+                    $close->execute([price_save_day_before($fromDate), $priceId]);
+
+                    $insert = $pdo->prepare(
+                        'INSERT INTO product_prices
+                            (organization_id, product_id, product_version_id, price_type,
+                             price_amount, price_includes_vat, tax_category,
+                             effective_from, effective_to)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)'
+                    );
+                    $insert->execute([
+                        (int)$priceRow['organization_id'],
+                        (int)$priceRow['product_id'],
+                        (int)$priceRow['product_version_id'],
+                        (string)$priceRow['price_type'],
+                        $newPrice,
+                        (int)$priceRow['price_includes_vat'],
+                        (string)$priceRow['tax_category'],
+                        $fromDate
+                    ]);
+                };
+
+                // A manufacturer price decrease changes the supplier's COST only.
+                // The supplier's SELLING price is deliberately left untouched.
+                $writeSupplierCost($supplierCostRow, $newSupplierCost);
+
+                $supplierDecreaseAdjustments[$recipientId] = [
+                    'applied' => true,
+                    'old_cost' => $oldSupplierCost,
+                    'new_cost' => $newSupplierCost
+                ];
+
+                record_audit(
+                    $pdo,
+                    $actor,
+                    'SUPPLIER_PRICE_DECREASE_APPLIED',
+                    'PRODUCT_VERSION',
+                    (int)$versionId,
+                    "Reduced the direct supplier's COST price for product version {$versionId} after a manufacturer selling-price decrease. The supplier's SELLING price, retailer prices, and branch prices were left unchanged."
+                );
+            }
+        }
+
         $productName = (string)$productInfo['product_name'];
         $versionNumber = (int)$productInfo['version_number'];
         $oldAmountText = number_format($priceDecreaseOldAmount, 2, '.', '');
         $newAmountText = number_format((float)$amount, 2, '.', '');
 
         foreach ($recipientIds as $recipientId) {
-            create_organization_notification(
-                $pdo,
-                $recipientId,
-                'SUPPLY_CHANGE',
-                (int)$versionId,
-                "Manufacturer price decreased: {$productName}",
-                "The direct manufacturer supply price for {$productName}, version {$versionNumber}, decreased from KSh {$oldAmountText} to KSh {$newAmountText}, effective {$fromDate}. No prices were automatically changed in your organisation. Review your own purchasing and selling prices and adjust them if appropriate."
-            );
+            $adjustment = $supplierDecreaseAdjustments[(int)$recipientId] ?? null;
+
+            if ($adjustment !== null && !empty($adjustment['applied'])) {
+                $ownOldCost = number_format((float)$adjustment['old_cost'], 2, '.', '');
+                $ownNewCost = number_format((float)$adjustment['new_cost'], 2, '.', '');
+
+                create_organization_notification(
+                    $pdo,
+                    (int)$recipientId,
+                    'SUPPLY_CHANGE',
+                    (int)$versionId,
+                    "Supplier cost price reduced: {$productName}",
+                    "Your cost price for {$productName}, version {$versionNumber}, was reduced from KSh {$ownOldCost} to KSh {$ownNewCost}, effective {$fromDate}. This adjustment changed your COST price only. Your SELLING price was left unchanged; no retailer or branch prices were changed automatically."
+                );
+            } else {
+                $skipReason = is_array($adjustment) && !empty($adjustment['reason'])
+                    ? ' ' . (string)$adjustment['reason']
+                    : ' No prices were automatically changed in your organisation. Review your own purchasing and selling prices and adjust them if appropriate.';
+
+                create_organization_notification(
+                    $pdo,
+                    (int)$recipientId,
+                    'SUPPLY_CHANGE',
+                    (int)$versionId,
+                    "Manufacturer price decreased: {$productName}",
+                    "The direct manufacturer supply price for {$productName}, version {$versionNumber}, decreased from KSh {$oldAmountText} to KSh {$newAmountText}, effective {$fromDate}.{$skipReason}"
+                );
+            }
 
             $priceDecreaseNotifiedCount++;
         }

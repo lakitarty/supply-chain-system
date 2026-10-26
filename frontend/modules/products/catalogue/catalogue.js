@@ -53,6 +53,15 @@
     let originalCostPrice = "";
     let originalSellingPrice = "";
     let pricingLoaded = false;
+    let priceSaveInProgress = false;
+    let livePriceRefreshInProgress = false;
+
+    function hasUnsavedPriceEdits() {
+        return pricingLoaded && (
+            normalizePriceForComparison(el.cost.value) !== originalCostPrice ||
+            normalizePriceForComparison(el.selling.value) !== originalSellingPrice
+        );
+    }
 
     function normalizePriceForComparison(value) {
         const raw = String(value ?? "").trim();
@@ -89,6 +98,7 @@
         if (el.search) el.search.addEventListener("input", renderList);
         
         await fetchProducts();
+        startLivePriceRefresh();
     }
 
     async function fetchProducts() {
@@ -202,6 +212,79 @@
         el.profit.style.color = profit < 0 ? '#dc2626' : '#16a34a';
     }
 
+    async function refreshCurrentPricing() {
+        if (
+            livePriceRefreshInProgress ||
+            priceSaveInProgress ||
+            !pricingLoaded ||
+            !state.currentVersionId ||
+            !document.body.contains(el.cost) ||
+            !document.body.contains(el.selling)
+        ) {
+            return;
+        }
+
+        const requestedVersionId = state.currentVersionId;
+        livePriceRefreshInProgress = true;
+
+        try {
+            const response = await getJson(
+                `products/price-list.php?product_version_id=${encodeURIComponent(requestedVersionId)}&live_refresh=${Date.now()}`
+            );
+            const data = response.data || response;
+
+            if (response.ok === false || data.success === false) {
+                throw new Error(data.error || data.message || "Unable to refresh current prices.");
+            }
+            if (!data || !Array.isArray(data.prices)) return;
+            if (requestedVersionId !== state.currentVersionId) return;
+
+            let latestCostValue = "";
+            let latestSellingValue = "";
+            data.prices.forEach(price => {
+                if (price.price_type === "COST") latestCostValue = String(price.price_amount ?? "");
+                if (price.price_type === "SELLING") latestSellingValue = String(price.price_amount ?? "");
+            });
+
+            const latestCost = normalizePriceForComparison(latestCostValue);
+            const latestSelling = normalizePriceForComparison(latestSellingValue);
+            const serverPriceChanged =
+                latestCost !== originalCostPrice ||
+                latestSelling !== originalSellingPrice;
+
+            if (!serverPriceChanged) return;
+
+            const priceInputFocused = document.activeElement === el.cost || document.activeElement === el.selling;
+            if (hasUnsavedPriceEdits() || priceSaveInProgress || priceInputFocused) return;
+
+            el.cost.value = latestCostValue;
+            el.selling.value = latestSellingValue;
+            originalCostPrice = latestCost;
+            originalSellingPrice = latestSelling;
+            calcMargin();
+            updateSaveButtonState();
+        } catch (error) {
+            console.error("Automatic price refresh failed:", error);
+        } finally {
+            livePriceRefreshInProgress = false;
+        }
+    }
+
+    function startLivePriceRefresh() {
+        if (window.__nexoraCataloguePriceRefreshTimer) {
+            window.clearInterval(window.__nexoraCataloguePriceRefreshTimer);
+        }
+
+        window.__nexoraCataloguePriceRefreshTimer = window.setInterval(() => {
+            if (!document.body.contains(el.cost) || !document.body.contains(el.selling)) {
+                window.clearInterval(window.__nexoraCataloguePriceRefreshTimer);
+                window.__nexoraCataloguePriceRefreshTimer = null;
+                return;
+            }
+            if (document.visibilityState === "hidden") return;
+            refreshCurrentPricing();
+        }, 10000);
+    }
     async function loadPricing(versionId) {
         pricingLoaded = false;
         originalCostPrice = "";
@@ -478,6 +561,7 @@
             return data;
         }
 
+        priceSaveInProgress = true;
         el.saveBtn.disabled = true;
         el.saveBtn.textContent = "Saving...";
 
@@ -535,6 +619,7 @@
             updateSaveButtonState();
         } finally {
             confirmationPassword = "";
+            priceSaveInProgress = false;
         }
     }
 

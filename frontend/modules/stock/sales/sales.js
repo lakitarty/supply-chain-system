@@ -70,6 +70,8 @@
             ["Customer total incl. VAT (calculated)", money(totals.customer_total_incl_vat)],
             ["Tax calculated", money(totals.tax_calculated_total)],
             ["Net sales calculated", money(totals.net_sales_total)],
+            ["Zero-rated sales", money(totals.zero_rated_total)],
+            ["Exempt sales", money(totals.exempt_total)],
             ["Units sold", number(totals.units_sold)]
         ];
         byId("salesReportMetrics").innerHTML = metrics.map(([label, value]) =>

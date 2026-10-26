@@ -25,16 +25,25 @@ function fetch_visible_products(PDO $pdo, array $actor): array
                 p.description,
                 p.image_path,
                 p.availability_status,
-                o.organization_name AS manufacturer_name
+                o.organization_name AS manufacturer_name,
+                COALESCE(rs.total_stock, 0) AS stock
          FROM products p
          INNER JOIN organizations o
             ON o.organization_id = p.manufacturer_id
+         LEFT JOIN (
+             SELECT product_id, SUM(quantity_on_hand) AS total_stock
+             FROM retailer_stock
+             WHERE retailer_id = ?
+             GROUP BY product_id
+         ) rs ON rs.product_id = p.product_id
          WHERE p.status = \'ACTIVE\'
            AND p.manufacturer_id IN (' . sql_placeholders($manufacturerIds) . ')
          ORDER BY p.product_name'
     );
 
-    $statement->execute($manufacturerIds);
+    $params = [$actor['organization_id']];
+    $params = array_merge($params, $manufacturerIds);
+    $statement->execute($params);
     $products = $statement->fetchAll();
 
     if ($products === []) {
@@ -44,7 +53,7 @@ function fetch_visible_products(PDO $pdo, array $actor): array
     $productIds = array_column($products, 'product_id');
 
     $statement = $pdo->prepare(
-        'SELECT product_id, version_number, barcode, pack_size, packaging_description,
+        'SELECT product_version_id, product_id, version_number, barcode, pack_size, packaging_description,
                 effective_from, effective_to, is_current
          FROM product_versions
          WHERE product_id IN (' . sql_placeholders($productIds) . ')

@@ -61,8 +61,13 @@ try {
                 COALESCE(SUM(sh.units_sold), 0) AS units_sold,
                 COALESCE(SUM(CASE WHEN sh.sales_amount IS NOT NULL THEN sh.sales_amount ELSE 0 END), 0.00) AS amount_entered,
                 COALESCE(SUM(CASE WHEN sh.tax_amount IS NOT NULL THEN sh.tax_amount ELSE 0 END), 0.00) AS tax_calculated_total,
+                COALESCE(SUM(CASE WHEN sh.tax_category_snapshot = 'ZERO_RATED' THEN sh.net_sales_amount ELSE 0 END), 0.00) AS zero_rated_total,
+                COALESCE(SUM(CASE WHEN sh.tax_category_snapshot = 'EXEMPT' THEN sh.net_sales_amount ELSE 0 END), 0.00) AS exempt_total,
                 COALESCE(SUM(CASE WHEN sh.net_sales_amount IS NOT NULL THEN sh.net_sales_amount ELSE 0 END), 0.00) AS net_sales_total,
-                COALESCE(SUM(CASE WHEN sh.tax_amount IS NOT NULL AND sh.net_sales_amount IS NOT NULL AND sh.sales_amount_basis IS NOT NULL THEN CASE WHEN sh.sales_amount_basis = 'VAT_EXCLUSIVE' THEN sh.sales_amount + sh.tax_amount WHEN sh.sales_amount_basis = 'VAT_INCLUSIVE' THEN sh.sales_amount ELSE NULL END ELSE 0 END), 0.00) AS customer_total_incl_vat,
+                COALESCE(SUM(CASE 
+                    WHEN sh.sales_amount_basis = 'VAT_INCLUSIVE' THEN sh.sales_amount 
+                    WHEN sh.sales_amount_basis = 'VAT_EXCLUSIVE' THEN sh.sales_amount + COALESCE(sh.tax_amount, 0)
+                    ELSE NULL END), 0.00) AS customer_total_incl_vat,
                 COALESCE(SUM(CASE WHEN sh.sales_amount IS NULL THEN 1 ELSE 0 END), 0) AS entries_missing_amount,
                 COALESCE(SUM(CASE WHEN sh.sales_amount IS NOT NULL AND (sh.sales_amount_basis IS NULL OR sh.tax_category_snapshot IS NULL OR sh.tax_rate_snapshot IS NULL OR sh.tax_amount IS NULL OR sh.net_sales_amount IS NULL) THEN 1 ELSE 0 END), 0) AS entries_missing_tax_calculation,
                 COALESCE(SUM(CASE WHEN sh.sales_amount IS NOT NULL AND sh.sales_amount_basis IS NOT NULL AND sh.tax_category_snapshot IS NOT NULL AND sh.tax_rate_snapshot IS NOT NULL AND sh.tax_amount IS NOT NULL AND sh.net_sales_amount IS NOT NULL THEN 1 ELSE 0 END), 0) AS entries_tax_calculated
@@ -87,7 +92,7 @@ try {
     ];
     $totals['entry_count'] = (int)$totals['entry_count'];
     $totals['units_sold'] = (int)$totals['units_sold'];
-    foreach (['amount_entered', 'tax_calculated_total', 'net_sales_total', 'customer_total_incl_vat'] as $moneyKey) {
+    foreach (['amount_entered', 'tax_calculated_total', 'net_sales_total', 'customer_total_incl_vat', 'zero_rated_total', 'exempt_total'] as $moneyKey) {
         $totals[$moneyKey] = (string)$totals[$moneyKey];
     }
     foreach (['entries_missing_amount', 'entries_missing_tax_calculation', 'entries_tax_calculated'] as $countKey) {
@@ -103,7 +108,10 @@ try {
                 COALESCE(SUM(CASE WHEN sh.sales_amount IS NOT NULL THEN sh.sales_amount ELSE 0 END), 0.00) AS amount_entered,
                 COALESCE(SUM(CASE WHEN sh.tax_amount IS NOT NULL THEN sh.tax_amount ELSE 0 END), 0.00) AS tax_calculated,
                 COALESCE(SUM(CASE WHEN sh.net_sales_amount IS NOT NULL THEN sh.net_sales_amount ELSE 0 END), 0.00) AS net_sales_calculated,
-                COALESCE(SUM(CASE WHEN sh.tax_amount IS NOT NULL AND sh.net_sales_amount IS NOT NULL AND sh.sales_amount_basis IS NOT NULL THEN CASE WHEN sh.sales_amount_basis = 'VAT_EXCLUSIVE' THEN sh.sales_amount + sh.tax_amount WHEN sh.sales_amount_basis = 'VAT_INCLUSIVE' THEN sh.sales_amount ELSE NULL END ELSE 0 END), 0.00) AS customer_total_incl_vat,
+                COALESCE(SUM(CASE 
+                    WHEN sh.sales_amount_basis = 'VAT_INCLUSIVE' THEN sh.sales_amount 
+                    WHEN sh.sales_amount_basis = 'VAT_EXCLUSIVE' THEN sh.sales_amount + COALESCE(sh.tax_amount, 0)
+                    ELSE NULL END), 0.00) AS customer_total_incl_vat,
                 SUM(CASE WHEN sh.sales_amount IS NULL THEN 1 ELSE 0 END) AS entries_missing_amount,
                 SUM(CASE WHEN sh.sales_amount IS NOT NULL AND (sh.sales_amount_basis IS NULL OR sh.tax_category_snapshot IS NULL OR sh.tax_rate_snapshot IS NULL OR sh.tax_amount IS NULL OR sh.net_sales_amount IS NULL) THEN 1 ELSE 0 END) AS entries_missing_tax_calculation,
                 SUM(CASE WHEN sh.sales_amount IS NOT NULL AND sh.sales_amount_basis IS NOT NULL AND sh.tax_category_snapshot IS NOT NULL AND sh.tax_rate_snapshot IS NOT NULL AND sh.tax_amount IS NOT NULL AND sh.net_sales_amount IS NOT NULL THEN 1 ELSE 0 END) AS entries_tax_calculated

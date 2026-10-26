@@ -54,6 +54,48 @@ try {
     $product = stock_validate_product_version($pdo, $actor, $productId, $versionId);
     $isToday = $saleDate === date('Y-m-d');
 
+    // Phase 2A: reconcile units x effective price vs entered sales amount.
+    // Missing/ambiguous price = allow (policy a); basis mismatch = warn in audit only.
+    $salesAmountOverride = ($input['salesAmountOverride'] ?? false) === true;
+    $priceReconciliation = null;
+    $effectivePrice = stock_effective_price(
+        $pdo,
+        (int)$actor['organization_id'],
+        (int)$branch['branch_id'],
+        $productId,
+        $versionId,
+        $saleDate
+    );
+    if ($effectivePrice['status'] === 'EFFECTIVE' && $effectivePrice['price_basis'] === $salesAmountBasis) {
+        $unitPrice = (float)$effectivePrice['selling_price'];
+        $expectedGross = round($unitPrice * $unitsSold, 2, PHP_ROUND_HALF_UP);
+        $enteredGross = (float)$salesAmount;
+        $diff = abs($expectedGross - $enteredGross);
+        $priceReconciliation = [
+            'expected_gross' => number_format($expectedGross, 2, '.', ''),
+            'entered_gross'  => number_format($enteredGross, 2, '.', ''),
+            'override'       => $diff > 0.01 && $salesAmountOverride
+        ];
+        if ($diff > 0.01 && !$salesAmountOverride) {
+            respond_field_error(400, field_error(
+                'salesAmount',
+                sprintf(
+                    'Expected KSh %.2f for %d × %.2f. You entered KSh %.2f. Tick the override to save anyway.',
+                    $expectedGross,
+                    $unitsSold,
+                    $unitPrice,
+                    $enteredGross
+                )
+            ));
+        }
+    } elseif ($effectivePrice['status'] === 'EFFECTIVE') {
+        $priceReconciliation = [
+            'warning'       => 'basis_mismatch',
+            'stored_basis'  => $effectivePrice['price_basis'],
+            'entered_basis' => $salesAmountBasis
+        ];
+    }
+
     $pdo->beginTransaction();
 
     // Lock the selected branch to serialize writes to its daily sales summaries.
@@ -199,10 +241,8 @@ try {
             $pdo->rollBack();
             respond_error(409, 'Set an opening stock count before saving today\'s sales summary.');
         }
-        if ($unitDelta > (int)$currentStock['quantity_on_hand']) {
-            $pdo->rollBack();
-            respond_error(409, 'The additional units sold exceed stock currently on hand. Correct the daily total or update the stock count first.');
-        }
+        // Negative stock is allowed: real-world sales outpace recorded stock.
+        // The negative quantity_on_hand serves as the indicator and triggers OUT_OF_STOCK alerts.
 
         if ($unitDelta !== 0) {
             $stockUpdate = $pdo->prepare(
@@ -264,6 +304,13 @@ try {
     }
 
     $auditDescription = "Daily sales summary #{$savedSaleId}: {$product['product_name']} version {$product['version_number']} at {$branch['branch_name']}; units {$previousUnits} to {$unitsSold}; KSh {$salesAmount} ({$salesAmountBasis}); tax status {$taxCalculationStatus}";
+    if ($priceReconciliation !== null) {
+        if (isset($priceReconciliation['override']) && $priceReconciliation['override']) {
+            $auditDescription .= "; PRICE OVERRIDE: expected KSh {$priceReconciliation['expected_gross']}, entered KSh {$priceReconciliation['entered_gross']}";
+        } elseif (isset($priceReconciliation['warning'])) {
+            $auditDescription .= "; price basis mismatch: stored {$priceReconciliation['stored_basis']}, entered {$priceReconciliation['entered_basis']}";
+        }
+    }
     if ($isToday) {
         $auditDescription .= "; stock adjusted by " . (-$unitDelta) . ' units';
     } else {
@@ -275,6 +322,12 @@ try {
 
     $baseMessage = $existingSale ? 'Daily sales summary updated.' : 'Daily sales summary saved.';
     $displayMessage = $baseMessage . ' ' . $taxCalculationMessage;
+
+    $stockWarning = null;
+    if ($updated !== null && isset($updated['on_hand']) && (int)$updated['on_hand'] < 0) {
+        $stockWarning = " WARNING: Stock is now negative ({$updated['on_hand']} units). Please check physical stock accuracy and update the count.";
+        $displayMessage .= $stockWarning;
+    }
     if ($preservedPrevious) {
         $displayMessage .= ' The previously recorded tax snapshot was preserved.';
     }
@@ -282,6 +335,7 @@ try {
     respond(200, [
         'success' => true,
         'message' => $displayMessage,
+        'stock_warning' => $stockWarning !== null ? 'NEGATIVE_STOCK' : null,
         'branch' => $branch,
         'sale_summary' => [
             'sales_history_id' => $savedSaleId,
@@ -294,6 +348,7 @@ try {
             'tax_amount' => $storeTax,
             'net_sales_amount' => $storeNet,
             'tax_snapshot_preserved' => $preservedPrevious,
+            'price_reconciliation' => $priceReconciliation,
             'tax_calculation_status' => $taxCalculationStatus,
             'tax_calculation_message' => $taxCalculationMessage,
             'was_updated' => (bool)$existingSale,

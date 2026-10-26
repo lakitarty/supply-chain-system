@@ -511,3 +511,38 @@ function stock_fetch_alert_rows(PDO $pdo, array $actor, array $branch): array
 
     return $statement->fetchAll(PDO::FETCH_ASSOC);
 }
+
+function stock_effective_price(
+    PDO $pdo,
+    int $retailerId,
+    int $branchId,
+    int $productId,
+    int $versionId,
+    string $saleDate
+): array {
+    $statement = $pdo->prepare(
+        "SELECT selling_price, price_basis, effective_from, effective_to
+         FROM retailer_branch_prices
+         WHERE retailer_id = ? AND branch_id = ? AND product_id = ? AND product_version_id = ?
+           AND status = 'ACTIVE' AND effective_from <= ?
+           AND (effective_to IS NULL OR effective_to >= ?)
+         ORDER BY effective_from DESC
+         LIMIT 2"
+    );
+    $statement->execute([$retailerId, $branchId, $productId, $versionId, $saleDate, $saleDate]);
+    $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+    if (count($rows) === 0) {
+        return ['status' => 'MISSING_PRICE', 'selling_price' => null, 'price_basis' => null];
+    }
+    if (count($rows) > 1) {
+        return ['status' => 'AMBIGUOUS_PRICE', 'selling_price' => null, 'price_basis' => null];
+    }
+    return [
+        'status'         => 'EFFECTIVE',
+        'selling_price'  => (string)$rows[0]['selling_price'],
+        'price_basis'    => (string)$rows[0]['price_basis'],
+        'effective_from' => (string)$rows[0]['effective_from'],
+        'effective_to'   => $rows[0]['effective_to'] !== null ? (string)$rows[0]['effective_to'] : null
+    ];
+}

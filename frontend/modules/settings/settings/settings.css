@@ -51,3 +51,60 @@
         min-width: 104px;
     }
 }
+.price-protection-section {
+    max-width: 680px;
+}
+
+.settings-explainer {
+    margin: 8px 0 14px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.price-protection-control {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.price-protection-control label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.price-protection-control input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    accent-color: var(--primary);
+}
+
+.price-protection-control button {
+    flex: 0 0 auto;
+    min-height: 34px;
+    padding: 0 12px;
+    font-size: 12px;
+}
+
+.settings-status {
+    margin: 10px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+@media (max-width: 520px) {
+    .price-protection-control {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

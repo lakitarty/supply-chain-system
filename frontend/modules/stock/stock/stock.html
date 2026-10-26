@@ -121,6 +121,13 @@
                         <p id="salesAmountHint" class="stock-form-help">Enter the actual total for the selected day, including any promotions or discounts.</p>
                     </div>
                     <div class="stock-field">
+                        <label class="stock-checkbox">
+                            <input id="salesAmountOverride" name="salesAmountOverride" type="checkbox">
+                            <span>Save anyway (price override)</span>
+                        </label>
+                        <p id="salesAmountOverrideHint" class="stock-form-help" style="display:none;">The amount differs from the listed price × units. Tick above to save anyway; the override will be recorded in the audit trail.</p>
+                    </div>
+                    <div class="stock-field">
                         <label for="salesAmountBasis">Amount basis</label>
                         <select id="salesAmountBasis" name="salesAmountBasis" required>
                             <option value="">Choose amount basis</option>

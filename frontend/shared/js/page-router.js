@@ -30,6 +30,10 @@
         activePageStylesheet.dataset.nexoraPageStylesheet = "active";
     }
 
+    for (const link of document.querySelectorAll('link[rel="stylesheet"][href]')) {
+        link.href = new URL(link.getAttribute("href"), window.location.href).href;
+    }
+
     function normaliseUrl(value, base = window.location.href) {
         const url = new URL(value, base);
         url.search = "";
@@ -182,9 +186,12 @@
     async function runPageScripts(scripts, routeId) {
         for (const source of scripts) {
             const moduleUrl = new URL(source.href);
+            const moduleId = `${routeId}-${++moduleSequence}`;
+
+            moduleUrl.searchParams.set("__nexora_route", moduleId);
             moduleUrl.searchParams.set(
-                "__nexora_route",
-                `${routeId}-${++moduleSequence}`
+                "__nexora_cache",
+                `${Date.now()}-${moduleId}`
             );
 
             await import(moduleUrl.href);

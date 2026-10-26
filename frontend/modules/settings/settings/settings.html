@@ -13,6 +13,29 @@
 
     <main class="page settings-page">
         <section class="page-section settings-section">
+                    <section class="page-section settings-section price-protection-section">
+            <h2 class="section-title">Price Change Protection</h2>
+            <p class="settings-explainer">
+                Automatically adjust your organisation's own prices when an authorised upstream price
+                change affects your purchases, then notify your organisation. Your organisation's
+                financial records remain private whether this feature is enabled or disabled.
+            </p>
+
+            <div class="price-protection-control">
+                <label for="priceProtectionToggle">
+                    <input type="checkbox" id="priceProtectionToggle" disabled>
+                    <span>Enable Price Change Protection</span>
+                </label>
+                <button type="button" class="secondary-button"
+                        id="priceProtectionSaveButton" disabled>
+                    Save setting
+                </button>
+            </div>
+
+            <p id="priceProtectionStatus" class="settings-status" aria-live="polite">
+                Loading organisation setting...
+            </p>
+        </section>
             <h2 class="section-title">Session</h2>
 
             <div class="settings-action-row">

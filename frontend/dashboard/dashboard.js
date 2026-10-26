@@ -138,9 +138,28 @@ async function loadDashboard() {
     }
 }
 
+async function checkNegativeStockWarning() {
+    try {
+        const { ok, data } = await getJson("stock/negative-stock-count.php");
+        if (ok && data && data.success && data.negative_count > 0) {
+            const warning = document.createElement("div");
+            warning.className = "dashboard-alert-warning";
+            warning.innerHTML = `⚠️ <strong>Stock Accuracy Alert:</strong> You have ${data.negative_count} product(s) with negative stock. <a href="../modules/stock/stock/stock.html">Review and correct stock counts</a>.`;
+            
+            // Inject before the card grid
+            if (dashboardCardGrid && dashboardCardGrid.parentNode) {
+                dashboardCardGrid.parentNode.insertBefore(warning, dashboardCardGrid);
+            }
+        }
+    } catch (e) {
+        console.error("Failed to check negative stock", e);
+    }
+}
+
 shellReady.then(account => {
     if (account) {
         loadDashboard();
+        checkNegativeStockWarning();
     } else {
         dashboardCardGrid.setAttribute("aria-busy", "false");
     }

@@ -11,6 +11,8 @@ try {
 
     respond(200, [
         'success' => true,
+        'organization_id' => (int)$actor['organization_id'],
+        'organization_type' => (string)$actor['organization_type'],
         'products' => fetch_visible_products($pdo, $actor)
     ]);
 

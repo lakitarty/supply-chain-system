@@ -2,44 +2,263 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <link rel="stylesheet" href="../../../shared/css/base.css">
     <link rel="stylesheet" href="../../../shared/css/shell.css">
-    <link rel="stylesheet" href="catalogue.css">
-    <title>Catalogue | Supply Chain Management System</title>
+    <link rel="stylesheet" href="/supply-chain-system/frontend/modules/products/catalogue/catalogue.css">
+
+    <title>Product Catalogue | Nexora MSRC</title>
 </head>
 <body>
     <div id="shell"></div>
 
-    <main class="page catalogue-page">
-        <h1 class="page-title">Stock listing</h1>
+    <main class="page catalogue-container">
+        <div class="main-split">
 
-        <section class="page-section">
-            <div id="catalogueMessage" class="form-message" role="alert" aria-live="polite"></div>
-
-            <div class="form-grid catalogue-selectors">
-                <div class="form-group">
-                    <label for="productSelect">Select product</label>
-                    <select id="productSelect"></select>
+            <aside class="list-panel">
+                <div class="list-header">
+                    <span>Products</span>
+                    <span class="list-count" id="listCount">0</span>
                 </div>
 
-                <div class="form-group">
-                    <label for="versionSelect">Select version</label>
-                    <select id="versionSelect"></select>
+                <div class="search-box">
+                    <input
+                        type="search"
+                        id="catalogueSearch"
+                        placeholder="Search products..."
+                        aria-label="Search products"
+                    >
                 </div>
-            </div>
 
-            <div id="catalogueImageContainer" class="catalogue-image-panel" hidden>
-    <img
-        id="catalogueProductImage"
-        alt="Product image"
-        class="catalogue-product-image"
-    >
-</div>
+                <div class="list-scroll" id="productListContainer"></div>
+            </aside>
 
-<dl class="detail-list" id="productDetail"></dl>
-        </section>
+            <section class="detail-panel">
+
+                <header class="detail-top">
+                    <div class="detail-image-box">
+                        <img id="detailImage" src="" alt="Product image" style="display:none;">
+                        <span id="imageFallbackText">No image available</span>
+                    </div>
+
+                    <div class="detail-info">
+                        <div class="title-row">
+                            <h2 id="detailProductName">Select a product</h2>
+                            <span class="badge-active">Catalogue</span>
+                        </div>
+
+                        <p class="subtitle" id="detailManufacturer">Manufacturer</p>
+
+                        <div class="meta-grid">
+                            <div>
+                                <span>Barcode</span>
+                                <strong id="detailBarcode">-</strong>
+                            </div>
+                            <div>
+                                <span>Version</span>
+                                <strong id="detailVersion">-</strong>
+                            </div>
+                            <div>
+                                <span>Pack size</span>
+                                <strong id="detailPackSize">-</strong>
+                            </div>
+                            <div>
+                                <span>Category</span>
+                                <strong id="detailCategory">-</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-actions">
+                        <div class="price-change-heading">Manufacturer price change</div>
+
+                        <input
+                            id="manufacturerNewPrice"
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            placeholder="New price (KSh)"
+                            aria-label="New manufacturer price in Kenyan shillings"
+                        >
+
+                        <button id="simulateHikeBtn" class="btn-primary" type="button">
+                            Simulate change
+                        </button>
+                    </div>
+                </header>
+
+                <section id="priceCascadePreview" class="price-cascade-preview" hidden aria-live="polite">
+                    <div class="price-cascade-preview-heading">
+                        <div>
+                            <span class="price-cascade-eyebrow">PRICE IMPACT PREVIEW</span>
+                            <h3 id="priceCascadeTitle">Review proposed price changes</h3>
+                            <p id="priceCascadeDescription" class="price-cascade-description"></p>
+                        </div>
+                        <span class="price-cascade-preview-status">Not applied yet</span>
+                    </div>
+
+                    <div id="priceCascadeWarnings" class="price-cascade-warnings" hidden>
+                        <strong>Review these warnings before applying</strong>
+                        <ul id="priceCascadeWarningList"></ul>
+                    </div>
+
+                    <div class="price-cascade-table-wrap">
+                        <table class="price-cascade-table">
+                            <thead>
+                                <tr>
+                                    <th>Organisation</th>
+                                    <th>Role</th>
+                                    <th>Cost to organisation</th>
+                                    <th>Selling price</th>
+                                    <th>Gross margin</th>
+                                    <th>Retail pricing rule</th>
+                                    <th>Active branch prices</th>
+                                </tr>
+                            </thead>
+                            <tbody id="priceCascadeRows"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="price-cascade-branch-section">
+                        <h4>Retail branch price impact</h4>
+                        <ul id="priceCascadeBranchList" class="price-cascade-branch-list"></ul>
+                        <p id="priceCascadeNoBranches" class="price-cascade-no-branches" hidden>
+                            No active branch price records were found for this product version. Organisation-level prices can be updated, but checkout will still require a branch selling price.
+                        </p>
+                    </div>
+
+                    <div class="price-cascade-preview-actions">
+                        <button type="button" id="cancelPriceCascadeBtn" class="price-cascade-cancel">Cancel preview</button>
+                        <button type="button" id="applyPriceCascadeBtn" class="btn-primary">Apply price change</button>
+                    </div>
+                </section>
+
+                <div class="workspace-content">
+
+                    <div class="section-heading">
+                        <span>Product information</span>
+                        <span class="section-caption">Selected product</span>
+                    </div>
+
+                    <div class="information-grid">
+                        <section class="info-card">
+                            <div class="card-heading">
+                                <h3>Pricing</h3>
+                                <span class="card-caption">KSh</span>
+                            </div>
+
+                            <div class="price-fields">
+                                <label>
+                                    <span id="inlineCostLabel">Purchase Cost</span>
+                                    <input id="inlineCost" type="number" min="0" step="0.01">
+                                </label>
+
+                                <label>
+                                    Selling price
+                                    <input id="inlineSelling" type="number" min="0" step="0.01">
+                                </label>
+                            </div>
+
+                            <div class="profit-row">
+                                <div>
+                                    <span>Margin</span>
+                                    <strong id="inlineMargin">0%</strong>
+                                </div>
+                                <div>
+                                    <span>Profit</span>
+                                    <strong id="inlineProfit" class="text-green">0.00</strong>
+                                </div>
+                            </div>
+
+                            <button id="saveInlinePriceBtn" class="btn-save" type="button" disabled aria-disabled="true">
+                                Save prices
+                            </button>
+                        </section>
+
+                        <section class="info-card stock-card">
+                            <div class="card-heading">
+                                <h3>Stock</h3>
+                                <span class="card-caption">Current quantity</span>
+                            </div>
+
+                            <div class="stock-display">
+                                <strong id="detailStock">0</strong>
+                                <span>Units in stock</span>
+                            </div>
+
+                            <div class="stock-footnote">
+                                Quantity supplied by the catalogue data
+                            </div>
+                        </section>
+                    </div>
+
+                    <div class="section-heading secondary-heading">
+                        <span>Product record</span>
+                    </div>
+
+                    <div class="record-grid">
+                        <div>
+                            <span>Tax treatment</span>
+                            <strong>VAT-inclusive prices</strong>
+                        </div>
+                        <div>
+                            <span>Product version</span>
+                            <strong id="recordVersion">-</strong>
+                        </div>
+                        <div>
+                            <span>Offer status</span>
+                            <strong id="recordOfferStatus">Not available</strong>
+                        </div>
+                    </div>
+
+                </div>
+
+                <footer class="workspace-footer">
+                    <span>Product Catalogue</span>
+                    <span>Nexora MSRC</span>
+                </footer>
+            </section>
+        </div>
     </main>
 
+
+    <dialog id="priceChangeConfirmDialog" class="price-change-confirm-dialog"
+            aria-labelledby="priceChangeConfirmTitle">
+        <div class="price-change-confirm-content">
+            <h2 id="priceChangeConfirmTitle">Confirm price change</h2>
+            <p id="priceChangeConfirmMessage"></p>
+            <div class="price-change-confirm-actions">
+                <button type="button" id="priceChangeCancelBtn"
+                        class="price-change-confirm-cancel">Cancel</button>
+                <button type="button" id="priceChangeProceedBtn"
+                        class="price-change-confirm-proceed">Confirm</button>
+            </div>
+        </div>
+    </dialog>
+    <dialog id="priceAdminPasswordDialog" class="price-admin-password-dialog"
+            aria-labelledby="priceAdminPasswordTitle">
+        <div class="price-admin-password-content">
+            <h2 id="priceAdminPasswordTitle">Verify administrator password</h2>
+            <p id="priceAdminPasswordMessage">Enter your administrator password to approve this price change.</p>
+            <label class="price-admin-password-label" for="priceAdminPasswordInput">
+                Administrator password
+            </label>
+            <div class="price-admin-password-field">
+                <input id="priceAdminPasswordInput" type="password"
+                       autocomplete="current-password" required>
+                <button type="button" id="priceAdminPasswordToggle"
+                        class="price-admin-password-toggle"
+                        aria-pressed="false">Show</button>
+            </div>
+            <div class="price-admin-password-actions">
+                <button type="button" id="priceAdminCancelBtn"
+                        class="price-change-confirm-cancel">Cancel</button>
+                <button type="button" id="priceAdminVerifyBtn"
+                        class="price-change-confirm-proceed">Verify &amp; save</button>
+            </div>
+        </div>
+    </dialog>
     <script src="../../../shared/js/api.js"></script>
     <script src="../../../shared/js/form-helpers.js"></script>
     <script src="../../../shared/js/navigation.js"></script>

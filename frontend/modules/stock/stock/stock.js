@@ -137,7 +137,7 @@
         state.contextRequest += 1;
 
         byId("selectedProductLabel").textContent = "No product package selected.";
-        ["countOnHand", "countReorderLevel", "unitsSold", "salesAmount", "salesAmountBasis"].forEach(id => {
+        ["countOnHand", "countReorderLevel", "unitsSold", "salesAmount", "salesAmountBasis", "salesAmountOverride"].forEach(id => {
             byId(id).value = "";
         });
         updateFormAvailability(null);
@@ -240,7 +240,35 @@
 
     function renderSalesAmountHint() {
         const hint = byId("salesAmountHint");
+        const overrideEl = byId("salesAmountOverride");
+        const overrideHintEl = byId("salesAmountOverrideHint");
         const context = state.salesContext;
+
+        function resetOverride() {
+            if (overrideEl) { overrideEl.checked = false; overrideEl.disabled = true; }
+            if (overrideHintEl) { overrideHintEl.style.display = "none"; }
+        }
+
+        function maybeShowOverride() {
+            if (!overrideEl || !overrideHintEl) return;
+            if (!context || !context.price || context.price.status !== "EFFECTIVE") { resetOverride(); return; }
+            const basis = byId("salesAmountBasis").value;
+            if (!basis || context.price.price_basis !== basis) { resetOverride(); return; }
+            const unitsRaw = byId("unitsSold").value;
+            const amountRaw = byId("salesAmount").value;
+            if (!/^\d{1,9}$/.test(unitsRaw)) { resetOverride(); return; }
+            if (!/^\d{1,10}(?:\.\d{1,2})?$/.test(amountRaw)) { resetOverride(); return; }
+            const expected = Math.round(Number(context.price.selling_price) * Number(unitsRaw) * 100) / 100;
+            const entered = Number(amountRaw);
+            const diff = Math.abs(expected - entered);
+            if (diff > 0.01) {
+                overrideEl.disabled = false;
+                overrideHintEl.style.display = "";
+                overrideHintEl.textContent = `Expected KSh ${expected.toFixed(2)} (${unitsRaw} × ${Number(context.price.selling_price).toFixed(2)}). You entered KSh ${entered.toFixed(2)}. Tick above to save anyway; the override is recorded in the audit trail.`;
+            } else {
+                resetOverride();
+            }
+        }
         const unitsText = byId("unitsSold").value;
         if (!context || !context.price || context.price.status !== "EFFECTIVE") {
             hint.textContent = "Enter the actual total for the selected day, including any promotions or discounts. A current branch selling price is not available for this date.";
@@ -254,6 +282,8 @@
         } else {
             hint.textContent = `Current listed price is ${formatSalesMoney(price)} per unit (${basis}). Enter the actual daily total, including any promotions or discounts.`;
         }
+
+        maybeShowOverride();
     }
 
     async function loadSalesPricingContext(row, setDefaultBasis) {
@@ -568,13 +598,16 @@
                 unitsSold: Number(unitsSold),
                 salesAmount: Number(salesAmount),
                 salesAmountBasis,
-                saleDate
+                saleDate,
+                salesAmountOverride: byId("salesAmountOverride").checked === true
             });
             const data = unwrapApiResponse(response, "Unable to record sale.");
             byId("unitsSold").value = "";
             byId("salesAmount").value = "";
             await loadStockAfterAction();
-            setEditorStatus((data.message || "Daily sales summary saved.") + " Stock refreshed.", data.tax_calculation_status === "CALCULATED" ? "success" : "warning");
+            let toastStatus = data.tax_calculation_status === "CALCULATED" ? "success" : "warning";
+            if (data.stock_warning) { toastStatus = "warning"; }
+            setEditorStatus((data.message || "Daily sales summary saved.") + " Stock refreshed.", toastStatus);
         } catch (error) {
             setEditorStatus(apiMessage(error), "error");
         } finally {
@@ -644,6 +677,7 @@
         loadSalesPricingContext(selectedRow(), false);
     });
     byId("unitsSold").addEventListener("input", renderSalesAmountHint);
+byId("salesAmount").addEventListener("input", renderSalesAmountHint);
     byId("salesAmountBasis").addEventListener("change", renderSalesAmountHint);
 
     loadStock();

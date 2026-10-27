@@ -28,6 +28,11 @@ const BUILT_PATHS = [
     "modules/stock/sales/sales.html",
     "modules/network/offers/offers.html",
     "modules/stock/prices/prices.html",
+    "modules/finance/accounts/accounts.html",
+    "modules/finance/accounts/overview.html",
+    "modules/finance/accounts/documents.html",
+    "modules/finance/accounts/payments.html",
+    "modules/finance/accounts/ledger.html",
 ];
 function page(module, name) {
     return `modules/${module}/${name}/${name}.html`;
@@ -85,6 +90,20 @@ const TABS = [
             { label: "Sales & Reports", path: page("stock", "sales") }
         ]
     },
+
+        {
+        id: "finance",
+        label: "Accounts & Payments",
+        roles: ["ADMIN"],
+        sections: [
+            { label: "Overview", path: "modules/finance/accounts/overview.html" },
+            { label: "Accounts", path: "modules/finance/accounts/accounts.html" },
+            { label: "Invoices & bills", path: "modules/finance/accounts/documents.html" },
+            { label: "Payments", path: "modules/finance/accounts/payments.html" },
+            { label: "Ledger", path: "modules/finance/accounts/ledger.html" }
+        ]
+    },
+
     {
         id: "messages",
         label: "Messages",

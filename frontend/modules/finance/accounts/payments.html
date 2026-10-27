@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <link rel="stylesheet" href="accounts.css">
+    <title>Payments | Accounts &amp; Payments | ChainBridge</title>
+</head>
+<body>
+    <div id="shell"></div>
+    <main class="page finance-page" data-finance-view="payments">
+        <header class="finance-page-header">
+            <div>
+                <h1 class="page-title">Accounts &amp; Payments</h1>
+                <p class="page-description">Manage financial accounts, invoices, bills and payments.</p>
+            </div>
+            <button id="financeRefresh" class="finance-button finance-button-secondary" type="button">Refresh</button>
+        </header>
+        <div id="financeStatus" class="finance-status" role="status" aria-live="polite" hidden></div>
+        <section id="financeContent" class="finance-content" aria-live="polite">
+            <div class="finance-loading">Loading financial information…</div>
+        </section>
+    </main>
+    <dialog id="financeDialog" class="finance-dialog">
+        <div class="finance-dialog-content" id="financeDialogContent"></div>
+    </dialog>
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="../../../shared/js/page-router.js"></script>
+    <script src="accounts.js"></script>
+</body>
+</html>

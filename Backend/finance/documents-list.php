@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../core/bootstrap.php';
 require_once __DIR__ . '/../core/guard.php';
+require_once __DIR__ . '/../core/validation.php';
 
 try {
     $actor = require_admin($pdo);
@@ -52,7 +53,7 @@ try {
         $params[] = $direction;
     }
     if ($status !== '') {
-        $sql .= ' AND d.status = ?';
+        $sql .= ' HAVING calculated_status = ?';
         $params[] = $status;
     }
     $sql .= ' ORDER BY d.issue_date DESC, d.document_id DESC LIMIT ' . $limit;
@@ -61,16 +62,24 @@ try {
     $statement->execute($params);
     $documents = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-    foreach ($documents as &$document) {
+    $linesByDocument = [];
+    if ($documents !== []) {
+        $documentIds = array_map(static fn(array $document): int => (int)$document['document_id'], $documents);
         $linesStatement = $pdo->prepare(
-            'SELECT document_line_id, line_number, product_id, description,
+            'SELECT document_id, document_line_id, line_number, product_id, description,
                     quantity, unit_price, tax_rate, line_subtotal, line_tax, line_total
              FROM finance_document_lines
-             WHERE document_id = ?
-             ORDER BY line_number'
+             WHERE document_id IN (' . sql_placeholders($documentIds) . ')
+             ORDER BY document_id, line_number'
         );
-        $linesStatement->execute([(int)$document['document_id']]);
-        $document['lines'] = $linesStatement->fetchAll(PDO::FETCH_ASSOC);
+        $linesStatement->execute($documentIds);
+        foreach ($linesStatement->fetchAll(PDO::FETCH_ASSOC) as $line) {
+            $linesByDocument[(int)$line['document_id']][] = $line;
+        }
+    }
+
+    foreach ($documents as &$document) {
+        $document['lines'] = $linesByDocument[(int)$document['document_id']] ?? [];
     }
     unset($document);
 

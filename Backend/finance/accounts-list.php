@@ -8,6 +8,7 @@ require_once __DIR__ . '/helpers.php';
 try {
     $actor = require_admin($pdo);
     $organizationId = (int)$actor['organization_id'];
+    finance_ensure_accounts($pdo, $organizationId);
 
     $statement = $pdo->prepare(
         "SELECT a.account_id, a.account_code, a.account_name, a.account_type,

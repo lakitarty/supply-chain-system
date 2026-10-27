@@ -44,6 +44,41 @@ function finance_relationship_is_active(PDO $pdo, int $firstOrganizationId, int 
     return $statement->fetchColumn() !== false;
 }
 
+const FINANCE_DEFAULT_ACCOUNTS = [
+    ['1000', 'Cash on hand', 'ASSET', 'DEBIT'],
+    ['1010', 'Bank account', 'ASSET', 'DEBIT'],
+    ['1020', 'M-Pesa and mobile money', 'ASSET', 'DEBIT'],
+    ['1030', 'Other payment clearing', 'ASSET', 'DEBIT'],
+    ['1100', 'Accounts receivable', 'ASSET', 'DEBIT'],
+    ['1200', 'Inventory', 'ASSET', 'DEBIT'],
+    ['1300', 'Input tax receivable', 'ASSET', 'DEBIT'],
+    ['1400', 'Supplier advances', 'ASSET', 'DEBIT'],
+    ['2000', 'Accounts payable', 'LIABILITY', 'CREDIT'],
+    ['2100', 'Tax payable', 'LIABILITY', 'CREDIT'],
+    ['2200', 'Customer advances', 'LIABILITY', 'CREDIT'],
+    ['3000', 'Opening balance equity', 'EQUITY', 'CREDIT'],
+    ['4000', 'Sales revenue', 'INCOME', 'CREDIT'],
+    ['5000', 'Purchases and cost of goods sold', 'EXPENSE', 'DEBIT'],
+    ['5100', 'Payment and bank fees', 'EXPENSE', 'DEBIT']
+];
+
+function finance_ensure_accounts(PDO $pdo, int $organizationId): void
+{
+    $existing = $pdo->prepare('SELECT COUNT(*) FROM finance_accounts WHERE organization_id = ?');
+    $existing->execute([$organizationId]);
+    if ((int)$existing->fetchColumn() > 0) {
+        return;
+    }
+
+    $insert = $pdo->prepare(
+        'INSERT IGNORE INTO finance_accounts (organization_id, account_code, account_name, account_type, normal_balance)
+         VALUES (?, ?, ?, ?, ?)'
+    );
+    foreach (FINANCE_DEFAULT_ACCOUNTS as [$code, $name, $type, $balance]) {
+        $insert->execute([$organizationId, $code, $name, $type, $balance]);
+    }
+}
+
 function finance_account(PDO $pdo, int $organizationId, string $accountCode): array
 {
     $statement = $pdo->prepare(
@@ -74,6 +109,8 @@ function finance_post_journal(
     string $description,
     array $lines
 ): int {
+    finance_ensure_accounts($pdo, $organizationId);
+
     $preparedLines = [];
     $debitCents = 0;
     $creditCents = 0;
@@ -136,6 +173,72 @@ function finance_post_journal(
     }
 
     return $entryId;
+}
+
+function finance_reverse_journal(
+    PDO $pdo,
+    int $organizationId,
+    int $userId,
+    string $sourceType,
+    int $sourceId,
+    string $entryDate,
+    string $description
+): int {
+    $originalStatement = $pdo->prepare(
+        "SELECT journal_entry_id, entry_number
+         FROM finance_journal_entries
+         WHERE organization_id = ? AND source_type = ? AND source_id = ? AND status = 'POSTED'
+         LIMIT 1 FOR UPDATE"
+    );
+    $originalStatement->execute([$organizationId, $sourceType, $sourceId]);
+    $original = $originalStatement->fetch(PDO::FETCH_ASSOC);
+    if (!$original) {
+        throw new DomainException('The original journal entry was not found, so it cannot be reversed.');
+    }
+
+    $linesStatement = $pdo->prepare(
+        'SELECT account_id, line_description, debit_amount, credit_amount
+         FROM finance_journal_lines WHERE journal_entry_id = ?'
+    );
+    $linesStatement->execute([(int)$original['journal_entry_id']]);
+    $originalLines = $linesStatement->fetchAll(PDO::FETCH_ASSOC);
+    if ($originalLines === []) {
+        throw new DomainException('The original journal entry has no lines, so it cannot be reversed.');
+    }
+
+    $entryStatement = $pdo->prepare(
+        "INSERT INTO finance_journal_entries
+            (organization_id, entry_number, source_type, source_id, entry_date,
+             description, status, reversal_of_entry_id, created_by_user_id, posted_at)
+         VALUES (?, ?, 'REVERSAL', ?, ?, ?, 'POSTED', ?, ?, NOW())"
+    );
+    $entryStatement->execute([
+        $organizationId,
+        'REV-' . (string)$original['entry_number'],
+        $sourceId,
+        $entryDate,
+        mb_substr($description, 0, 500),
+        (int)$original['journal_entry_id'],
+        $userId
+    ]);
+    $reversalId = (int)$pdo->lastInsertId();
+
+    $lineInsert = $pdo->prepare(
+        'INSERT INTO finance_journal_lines
+            (journal_entry_id, account_id, line_description, debit_amount, credit_amount)
+         VALUES (?, ?, ?, ?, ?)'
+    );
+    foreach ($originalLines as $line) {
+        $lineInsert->execute([
+            $reversalId,
+            (int)$line['account_id'],
+            mb_substr('Reversal - ' . (string)$line['line_description'], 0, 500),
+            $line['credit_amount'],
+            $line['debit_amount']
+        ]);
+    }
+
+    return $reversalId;
 }
 
 function finance_update_document_status(PDO $pdo, int $documentId): void

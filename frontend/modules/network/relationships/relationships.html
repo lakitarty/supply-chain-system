@@ -65,14 +65,14 @@
                         </div>
 
                         <div class="directory-results" id="directoryResults" aria-label="Organisation search results"></div>
-                        <p class="directory-coverage-note">Declared service counties are supplier-reported coverage, not proof that a specific product is authorised for distribution there.</p>
+                        <p class="directory-coverage-note">Supplier-declared counties do not authorise specific products for distribution.</p>
                         <select id="partnerId" hidden aria-hidden="true" tabindex="-1"></select>
                     </section>
 
                     <aside class="connection-setup">
                         <p class="network-kicker">CONNECTION REQUEST</p>
                         <h3>Relationship details</h3>
-                        <p class="connection-intro">Select an organisation to review the permitted relationship direction.</p>
+                        <p class="connection-intro">Select an organisation to review relationship direction.</p>
 
                         <div class="selected-organization" id="selectedOrganization">
                             <div class="selection-placeholder">
@@ -89,7 +89,7 @@
                             <select id="direction" disabled>
                                 <option value="">Choose an organisation first</option>
                             </select>
-                            <p class="field-hint" id="directionHint">The available direction depends on both registered organisation types.</p>
+                            <p class="field-hint" id="directionHint">Direction depends on both organisation types.</p>
                         </div>
 
                         <div class="eligibility-message" id="eligibilityMessage" role="status" aria-live="polite" hidden>
@@ -102,7 +102,7 @@
                         <button type="submit" class="primary-button connection-submit" id="requestButton" disabled>
                             Send relationship request
                         </button>
-                        <p class="connection-footnote">The other organisation must accept the request before the relationship becomes active.</p>
+                        <p class="connection-footnote">The relationship becomes active after the other organisation accepts.</p>
                     </aside>
                 </div>
             </form>
@@ -143,14 +143,14 @@
                 <header class="detail-drawer-header">
                     <div>
                         <p class="network-kicker">RELATIONSHIP DETAILS</p>
-                        <p class="detail-drawer-subtitle">Organisation profile and available actions</p>
+                        <p class="detail-drawer-subtitle">Profile and available actions</p>
                     </div>
                     <button type="button" class="detail-drawer-close" id="closeDetail" aria-label="Close relationship details">Close</button>
                 </header>
 
                 <div class="network-detail-empty" id="networkEmptyState" hidden>
                     <h2>Select a relationship</h2>
-                    <p>Choose an organisation from your network to view its details.</p>
+                    <p>Choose an organisation to view its details.</p>
                 </div>
 
                 <div class="network-detail-content" id="networkDetailContent" hidden>

@@ -197,7 +197,6 @@
             const allowed = type === "RETAILER" && ["ADMIN", "BRANCH_ADMIN"].includes(role);
             if (!allowed) {
                 byId("priceApp").hidden = true;
-+
                 setStatus("Branch selling prices are available only to retailer organisation administrators and branch administrators.", "error");
                 return;
             }

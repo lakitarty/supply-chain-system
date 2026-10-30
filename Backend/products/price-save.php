@@ -6,7 +6,7 @@ require_once __DIR__ . '/../core/guard.php';
 require_once __DIR__ . '/../core/validation.php';
 require_once __DIR__ . '/../core/audit.php';
 require_once __DIR__ . '/../core/price-confirmation.php';
-
+require_once __DIR__ . '/pricing-rules.php';
 function price_save_day_before(string $date): string
 {
     return (new DateTimeImmutable($date))->modify('-1 day')->format('Y-m-d');
@@ -28,10 +28,8 @@ try {
         FILTER_VALIDATE_INT
     );
     $priceType = trim((string)($input['price_type'] ?? ''));
-    $amount = filter_var(
-        $input['price_amount'] ?? null,
-        FILTER_VALIDATE_FLOAT
-    );
+    $amountText = parse_price_amount(trim((string)($input['price_amount'] ?? '')));
+    $amount = $amountText === null ? null : (float)$amountText;
     $includesVat = !empty($input['price_includes_vat']) ? 1 : 0;
     $fromDate = trim((string)($input['effective_from'] ?? ''));
     $toDate = trim((string)($input['effective_to'] ?? '')) ?: null;
@@ -44,10 +42,9 @@ try {
         respond_field_error(400, field_error('price_type', 'Invalid price type.'));
     }
 
-    if ($amount === false || !is_finite((float)$amount) || $amount < 0) {
-        respond_field_error(400, field_error('price_amount', 'Enter a valid amount.'));
+        if ($amount === null) {
+        respond_field_error(400, field_error('price_amount', 'Enter an amount above zero with at most two decimal places.'));
     }
-
     if (!valid_date($fromDate)) {
         respond_field_error(400, field_error('effective_from', 'Valid start date required.'));
     }
@@ -201,6 +198,14 @@ try {
         respond_error(403, 'Your organisation is not authorised to edit prices for this product.');
     }
 
+    if ($ownsProduct) {
+        if ($priceType === 'COST') {
+            $includesVat = 0;
+        } elseif (!is_bool($input['price_includes_vat'] ?? null)) {
+            respond_field_error(400, field_error('price_includes_vat', 'State whether the manufacturer selling price includes VAT.'));
+        }
+    }
+
     $statement = $pdo->prepare(
         "SELECT tax_category
          FROM product_tax_classifications
@@ -211,10 +216,12 @@ try {
          LIMIT 1"
     );
     $statement->execute([$versionId, $fromDate, $fromDate]);
-    $taxCategory = $statement->fetchColumn() ?: 'STANDARD_RATED';
+       $taxCategory = $statement->fetchColumn();
 
-    // Automatically cascade only a genuine current-date manufacturer selling-price change.
-    // Scheduled and temporary prices continue through the regular date-history path.
+    if ($taxCategory === false) {
+        respond_error(409, 'No tax category has been declared for this product version on the selected date. The manufacturer must declare it before prices can be saved.');
+    }
+
     $todayNairobi = (new DateTimeImmutable('now', new DateTimeZone('Africa/Nairobi')))
         ->format('Y-m-d');
 
@@ -303,8 +310,6 @@ try {
             abs((float)$currentPriceRows[0]['price_amount'] - (float)$amount) >= 0.005
         ) {
             if ((float)$amount < (float)$currentPriceRows[0]['price_amount'] - 0.005) {
-                // Price decreases are notification-only. The ordinary price-save
-                // transaction below will save the manufacturer's lower price.
                 $priceDecreaseNotificationOnly = true;
             } else {
             require_once __DIR__ . '/price-cascade-rules.php';
@@ -351,7 +356,6 @@ try {
 
     $pdo->beginTransaction();
 
-    // Lock the price history for this organisation, version and price type.
     $statement = $pdo->prepare(
         "SELECT price_id, price_amount, price_includes_vat, tax_category,
                 effective_from, effective_to
@@ -418,7 +422,6 @@ try {
         ? (string)$futureRows[0]['effective_from']
         : null;
 
-    // Explicit periods cannot overwrite a scheduled future price.
     if ($toDate !== null) {
         foreach ($futureRows as $futureRow) {
             if ((string)$futureRow['effective_from'] <= $toDate) {
@@ -431,13 +434,11 @@ try {
         }
         $effectiveTo = $toDate;
     } else {
-        // An open-ended price stops immediately before the next scheduled price.
         $effectiveTo = $nextFutureDate !== null
             ? price_save_day_before($nextFutureDate)
             : null;
     }
 
-    // If a temporary period is requested, preserve the old price afterwards.
     $tailSource = null;
     $tailStart = null;
     $tailEnd = null;
@@ -470,7 +471,6 @@ try {
         }
     }
 
-    // Close any older price that currently spans the new start date.
     if ($crossingRows !== []) {
         $closeDate = price_save_day_before($fromDate);
         $close = $pdo->prepare(
@@ -485,7 +485,6 @@ try {
     }
 
     if ($sameStartRows !== []) {
-        // A repeated save for the same start date edits the existing entry.
         $row = $sameStartRows[0];
 
         $update = $pdo->prepare(
@@ -524,7 +523,6 @@ try {
         ]);
     }
 
-    // Restore the previous price after a temporary period, where applicable.
     if ($tailSource !== null && $tailStart !== null) {
         $tail = $pdo->prepare(
             "INSERT INTO product_prices
@@ -569,8 +567,6 @@ try {
             throw new RuntimeException('Unable to identify the product for the price-decrease notice.');
         }
 
-        // Match the cascade's routing rule: if active product-supplier
-        // appointments exist, notify those direct purchasers only.
         $appointmentCount = $pdo->prepare(
             "SELECT COUNT(*)
              FROM product_suppliers ps
@@ -614,8 +610,6 @@ try {
                 $fromDate
             ]);
         } else {
-            // If there are no effective product-supplier appointments,
-            // only a directly supplied retailer can receive the notice.
             $recipientsStatement = $pdo->prepare(
                 "SELECT DISTINCT target.organization_id
                  FROM organization_relationships r
@@ -642,9 +636,6 @@ try {
             $recipientsStatement->fetchAll(PDO::FETCH_COLUMN)
         )));
 
-        // Decreases may update a direct supplier only when that supplier opted in
-        // and no scheduled price, promotion, or offer could be overwritten.
-        // Retailer and branch prices are deliberately never updated by this path.
         $supplierDecreaseAdjustments = [];
 
         if ($hasProductSupplierAppointments) {
@@ -813,8 +804,7 @@ try {
 
                 if ($newSupplierCost >= $oldSupplierCost - 0.005) {
                     $supplierDecreaseAdjustments[$recipientId]['reason'] =
-                        'Automatic adjustment was skipped because the new manufacturer price is not lower than this organisationâ€™s current recorded cost. Review the price records before syncing.';
-                    continue;
+                  'Automatic adjustment was skipped because the new manufacturer price is not lower than the current recorded cost of your organisation. Review the price records before syncing.';continue;
                 }
 
                 $writeSupplierCost = function (array $priceRow, float $newPrice) use ($pdo, $fromDate): void {
@@ -851,10 +841,9 @@ try {
                         (string)$priceRow['tax_category'],
                         $fromDate
                     ]);
-                };
-
-                // A manufacturer price decrease changes the supplier's COST only.
-                // The supplier's SELLING price is deliberately left untouched.
+                };  
+            
+        
                 $writeSupplierCost($supplierCostRow, $newSupplierCost);
 
                 $supplierDecreaseAdjustments[$recipientId] = [

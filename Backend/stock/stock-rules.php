@@ -265,10 +265,32 @@ function stock_fetch_rows(
     ?int $productId = null,
     ?int $versionId = null
 ): array {
+    require_once __DIR__ . '/../products/product-rules.php';
     $manufacturerIds = array_map('intval', visible_manufacturer_ids($pdo, $actor));
     if ($manufacturerIds === []) {
         return [];
     }
+
+    // Use the same package-version membership as the retailer Catalogue.
+    $catalogueProducts = fetch_visible_products($pdo, $actor);
+    $catalogueVersionMap = [];
+
+    foreach ($catalogueProducts as $catalogueProduct) {
+        foreach (($catalogueProduct['versions'] ?? []) as $catalogueVersion) {
+            $catalogueVersionId = (int)($catalogueVersion['product_version_id'] ?? 0);
+            if ($catalogueVersionId > 0) {
+                $catalogueVersionMap[$catalogueVersionId] = $catalogueVersionId;
+            }
+        }
+    }
+
+    $catalogueVersionIds = array_values($catalogueVersionMap);
+    if ($catalogueVersionIds === []) {
+        return [];
+    }
+
+    $catalogueFilter = ' AND v.product_version_id IN (' .
+        sql_placeholders($catalogueVersionIds) . ')';
 
     $productFilter = $productId === null ? '' : ' AND p.product_id = ?';
     $versionFilter = $versionId === null ? '' : ' AND v.product_version_id = ?';
@@ -328,6 +350,7 @@ function stock_fetch_rows(
          LEFT JOIN organizations supplier ON supplier.organization_id = sps.supplier_id
          WHERE p.status = 'ACTIVE'
            AND p.manufacturer_id IN (" . sql_placeholders($manufacturerIds) . ")" .
+           $catalogueFilter .
            $productFilter . $versionFilter .
          " ORDER BY p.product_name, v.is_current DESC, v.version_number DESC";
 
@@ -338,7 +361,7 @@ function stock_fetch_rows(
         (int)$branch['branch_id'],
         $branch['area_id']
     ];
-    $params = array_merge($params, $manufacturerIds);
+    $params = array_merge($params, $manufacturerIds, $catalogueVersionIds);
     if ($productId !== null) {
         $params[] = $productId;
     }
@@ -520,29 +543,223 @@ function stock_effective_price(
     int $versionId,
     string $saleDate
 ): array {
-    $statement = $pdo->prepare(
-        "SELECT selling_price, price_basis, effective_from, effective_to
-         FROM retailer_branch_prices
-         WHERE retailer_id = ? AND branch_id = ? AND product_id = ? AND product_version_id = ?
-           AND status = 'ACTIVE' AND effective_from <= ?
-           AND (effective_to IS NULL OR effective_to >= ?)
-         ORDER BY effective_from DESC
+    $branchStatement = $pdo->prepare(
+        "SELECT branch_id, branch_name, is_main_branch
+         FROM branches
+         WHERE branch_id = ? AND organization_id = ? AND status = 'ACTIVE'
+         LIMIT 1"
+    );
+    $branchStatement->execute([$branchId, $retailerId]);
+    $selectedBranch = $branchStatement->fetch(PDO::FETCH_ASSOC);
+
+    $emptyPrice = [
+        'status' => 'MISSING_PRICE',
+        'selling_price' => null,
+        'price_basis' => null,
+        'effective_from' => null,
+        'effective_to' => null,
+        'retailer_branch_price_id' => null
+    ];
+
+    if (!$selectedBranch) {
+        return array_merge($emptyPrice, [
+            'status' => 'BRANCH_NOT_FOUND',
+            'is_inherited' => false,
+            'selected_branch_id' => $branchId,
+            'selected_branch_name' => null,
+            'source_branch_id' => null,
+            'source_branch_name' => null,
+            'main_branch_name' => null
+        ]);
+    }
+
+    $selectedBranchName = (string)$selectedBranch['branch_name'];
+    $lookupPrice = static function (int $lookupBranchId) use (
+        $pdo,
+        $retailerId,
+        $productId,
+        $versionId,
+        $saleDate,
+        $emptyPrice
+    ): array {
+        $statement = $pdo->prepare(
+            "SELECT retailer_branch_price_id, selling_price, price_basis, effective_from, effective_to
+             FROM retailer_branch_prices
+             WHERE retailer_id = ? AND branch_id = ? AND product_id = ? AND product_version_id = ?
+               AND status = 'ACTIVE' AND effective_from <= ?
+               AND (effective_to IS NULL OR effective_to >= ?)
+             ORDER BY effective_from DESC, retailer_branch_price_id DESC
+             LIMIT 2"
+        );
+        $statement->execute([$retailerId, $lookupBranchId, $productId, $versionId, $saleDate, $saleDate]);
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+                if (count($rows) === 0) {
+            // Catalogue selling price is the default for the main branch.
+            // Other branches reach it through the existing main-branch fallback.
+            $mainCheck = $pdo->prepare(
+                "SELECT is_main_branch
+                 FROM branches
+                 WHERE branch_id = ? AND organization_id = ? AND status = 'ACTIVE'
+                 LIMIT 1"
+            );
+            $mainCheck->execute([$lookupBranchId, $retailerId]);
+
+            if ((int)$mainCheck->fetchColumn() !== 1) {
+                return $emptyPrice;
+            }
+
+            $catalogueStatement = $pdo->prepare(
+                "SELECT price_id, price_amount, price_includes_vat,
+                        effective_from, effective_to
+                 FROM product_prices
+                 WHERE organization_id = ?
+                   AND product_id = ?
+                   AND product_version_id = ?
+                   AND price_type = 'SELLING'
+                   AND effective_from <= ?
+                   AND (effective_to IS NULL OR effective_to >= ?)
+                 ORDER BY effective_from DESC, price_id DESC
+                 LIMIT 2"
+            );
+
+            $catalogueStatement->execute([
+                $retailerId,
+                $productId,
+                $versionId,
+                $saleDate,
+                $saleDate
+            ]);
+
+            $catalogueRows = $catalogueStatement->fetchAll(PDO::FETCH_ASSOC);
+
+            if (count($catalogueRows) === 0) {
+                return $emptyPrice;
+            }
+
+            if (count($catalogueRows) > 1) {
+                return array_merge($emptyPrice, [
+                    'status' => 'AMBIGUOUS_PRICE'
+                ]);
+            }
+
+            $cataloguePrice = $catalogueRows[0];
+
+            return [
+                'status' => 'EFFECTIVE',
+                'retailer_branch_price_id' => null,
+                'selling_price' => (string)$cataloguePrice['price_amount'],
+                'price_basis' => ((int)$cataloguePrice['price_includes_vat'] === 1)
+                    ? 'VAT_INCLUSIVE'
+                    : 'VAT_EXCLUSIVE',
+                'effective_from' => (string)$cataloguePrice['effective_from'],
+                'effective_to' => $cataloguePrice['effective_to'] !== null
+                    ? (string)$cataloguePrice['effective_to']
+                    : null,
+                'is_catalogue_default' => true
+            ];
+        }
+        if (count($rows) > 1) {
+            return array_merge($emptyPrice, ['status' => 'AMBIGUOUS_PRICE']);
+        }
+
+        return [
+            'status' => 'EFFECTIVE',
+            'retailer_branch_price_id' => (int)$rows[0]['retailer_branch_price_id'],
+            'selling_price' => (string)$rows[0]['selling_price'],
+            'price_basis' => (string)$rows[0]['price_basis'],
+            'effective_from' => (string)$rows[0]['effective_from'],
+            'effective_to' => $rows[0]['effective_to'] !== null ? (string)$rows[0]['effective_to'] : null
+        ];
+    };
+
+    $selectedPrice = $lookupPrice($branchId);
+    if ($selectedPrice['status'] !== 'MISSING_PRICE') {
+        return array_merge($selectedPrice, [
+            'is_inherited' => false,
+            'selected_branch_id' => $branchId,
+            'selected_branch_name' => $selectedBranchName,
+            'source_branch_id' => $branchId,
+            'source_branch_name' => $selectedBranchName,
+            'main_branch_name' => (int)$selectedBranch['is_main_branch'] === 1 ? $selectedBranchName : null
+        ]);
+    }
+
+    if ((int)$selectedBranch['is_main_branch'] === 1) {
+        return array_merge($emptyPrice, [
+            'is_inherited' => false,
+            'selected_branch_id' => $branchId,
+            'selected_branch_name' => $selectedBranchName,
+            'source_branch_id' => $branchId,
+            'source_branch_name' => $selectedBranchName,
+            'main_branch_name' => $selectedBranchName
+        ]);
+    }
+
+    $mainStatement = $pdo->prepare(
+        "SELECT branch_id, branch_name
+         FROM branches
+         WHERE organization_id = ? AND status = 'ACTIVE' AND is_main_branch = 1
+         ORDER BY branch_id
          LIMIT 2"
     );
-    $statement->execute([$retailerId, $branchId, $productId, $versionId, $saleDate, $saleDate]);
-    $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+    $mainStatement->execute([$retailerId]);
+    $mainBranches = $mainStatement->fetchAll(PDO::FETCH_ASSOC);
 
-    if (count($rows) === 0) {
-        return ['status' => 'MISSING_PRICE', 'selling_price' => null, 'price_basis' => null];
+    if (count($mainBranches) > 1) {
+        return array_merge($emptyPrice, [
+            'status' => 'AMBIGUOUS_PRICE',
+            'is_inherited' => false,
+            'selected_branch_id' => $branchId,
+            'selected_branch_name' => $selectedBranchName,
+            'source_branch_id' => null,
+            'source_branch_name' => null,
+            'main_branch_name' => null
+        ]);
     }
-    if (count($rows) > 1) {
-        return ['status' => 'AMBIGUOUS_PRICE', 'selling_price' => null, 'price_basis' => null];
+    if (count($mainBranches) !== 1) {
+        return array_merge($emptyPrice, [
+            'is_inherited' => false,
+            'selected_branch_id' => $branchId,
+            'selected_branch_name' => $selectedBranchName,
+            'source_branch_id' => null,
+            'source_branch_name' => null,
+            'main_branch_name' => null
+        ]);
     }
-    return [
-        'status'         => 'EFFECTIVE',
-        'selling_price'  => (string)$rows[0]['selling_price'],
-        'price_basis'    => (string)$rows[0]['price_basis'],
-        'effective_from' => (string)$rows[0]['effective_from'],
-        'effective_to'   => $rows[0]['effective_to'] !== null ? (string)$rows[0]['effective_to'] : null
-    ];
+
+    $mainBranchId = (int)$mainBranches[0]['branch_id'];
+    $mainBranchName = (string)$mainBranches[0]['branch_name'];
+    $mainPrice = $lookupPrice($mainBranchId);
+
+    if ($mainPrice['status'] === 'AMBIGUOUS_PRICE') {
+        return array_merge($mainPrice, [
+            'is_inherited' => false,
+            'selected_branch_id' => $branchId,
+            'selected_branch_name' => $selectedBranchName,
+            'source_branch_id' => $mainBranchId,
+            'source_branch_name' => $mainBranchName,
+            'main_branch_name' => $mainBranchName
+        ]);
+    }
+
+    if ($mainPrice['status'] !== 'EFFECTIVE') {
+        return array_merge($emptyPrice, [
+            'is_inherited' => false,
+            'selected_branch_id' => $branchId,
+            'selected_branch_name' => $selectedBranchName,
+            'source_branch_id' => $mainBranchId,
+            'source_branch_name' => $mainBranchName,
+            'main_branch_name' => $mainBranchName
+        ]);
+    }
+
+    return array_merge($mainPrice, [
+        'is_inherited' => true,
+        'selected_branch_id' => $branchId,
+        'selected_branch_name' => $selectedBranchName,
+        'source_branch_id' => $mainBranchId,
+        'source_branch_name' => $mainBranchName,
+        'main_branch_name' => $mainBranchName
+    ]);
 }

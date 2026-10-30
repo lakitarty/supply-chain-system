@@ -1,0 +1,470 @@
+"use strict";
+
+(() => {
+    const $ = (id) => document.getElementById(id);
+
+    const elements = {
+        conversationList: $("conversationList"),
+        directoryList: $("directoryList"),
+        conversationSearch: $("conversationSearch"),
+        newConversation: $("newConversation"),
+        emptyNewConversation: $("emptyNewConversation"),
+        conversationEmpty: $("conversationEmpty"),
+        activeConversation: $("activeConversation"),
+        activeAvatar: $("activeAvatar"),
+        activeOrganisationName: $("activeOrganisationName"),
+        activeOrganisationType: $("activeOrganisationType"),
+        messageList: $("messageList"),
+        messageForm: $("messageForm"),
+        messageInput: $("messageInput"),
+        sendMessage: $("sendMessage"),
+        notice: $("conversationNotice"),
+        sidebarTitle: $("sidebarTitle")
+    };
+
+    let conversations = [];
+    let organisations = [];
+    let activeConversationId = null;
+    let activeOrganisation = null;
+    let currentOrganizationId = 0;
+    let lastMessageId = 0;
+    let showingDirectory = false;
+    let loadingMessages = false;
+
+    function setNotice(message, type = "") {
+        elements.notice.textContent = message;
+        elements.notice.className = "conversation-notice";
+        if (type) elements.notice.classList.add(`is-${type}`);
+    }
+
+    function getInitials(name) {
+        return String(name || "?")
+            .trim()
+            .split(/\s+/)
+            .slice(0, 2)
+            .map((part) => part.charAt(0))
+            .join("")
+            .toUpperCase();
+    }
+
+    function setOrganisationAvatar(container, name, logoPath) {
+        const initials = getInitials(name);
+        container.replaceChildren();
+        container.textContent = initials;
+
+        const validLogo = /^uploads\/organization-logos\/org-\d+-[a-f0-9]{32}\.(jpg|png|webp)$/i.test(
+            String(logoPath || "")
+        );
+
+        if (!validLogo) return;
+
+        const image = document.createElement("img");
+        image.className = "conversation-organisation-logo";
+        image.alt = "";
+        image.src = new URL(
+            "../../../../" + logoPath,
+            pageUrl("modules/messages/conversations/conversations.html")
+        ).href + "?v=" + encodeURIComponent(logoPath);
+
+        image.addEventListener("error", () => {
+            image.remove();
+            container.textContent = initials;
+        }, { once: true });
+
+        container.replaceChildren(image);
+    }
+
+    function formatTime(value) {
+        if (!value) return "";
+        const date = new Date(String(value).replace(" ", "T"));
+        if (Number.isNaN(date.getTime())) return "";
+        return date.toLocaleString([], {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+    }
+
+    function escapeDisplayText(value) {
+        return String(value ?? "");
+    }
+
+    function makeElement(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = escapeDisplayText(text);
+        return node;
+    }
+
+    function getOtherOrganizationId(conversation) {
+        return Number(conversation.other_organization_id || 0);
+    }
+
+    function getOtherOrganizationName(conversation) {
+        return conversation.other_organization_name || "Organisation";
+    }
+
+    function showEmptyPanel() {
+        elements.conversationEmpty.hidden = false;
+        elements.activeConversation.hidden = true;
+    }
+
+    function showActivePanel() {
+        elements.conversationEmpty.hidden = true;
+        elements.activeConversation.hidden = false;
+        const name = activeOrganisation?.organization_name || "Organisation";
+        setOrganisationAvatar(
+            elements.activeAvatar,
+            name,
+            activeOrganisation?.logo_path || activeOrganisation?.other_logo_path || ""
+        );
+        elements.activeOrganisationName.textContent = name;
+        elements.activeOrganisationType.textContent =
+            String(activeOrganisation?.organization_type || "").replaceAll("_", " ");
+    }
+
+    function renderConversationList() {
+        const search = elements.conversationSearch.value.trim().toLowerCase();
+        elements.conversationList.replaceChildren();
+
+        const filtered = conversations.filter((conversation) => {
+            const name = getOtherOrganizationName(conversation).toLowerCase();
+            const message = String(conversation.last_message || "").toLowerCase();
+            return name.includes(search) || message.includes(search);
+        });
+
+        if (!filtered.length) {
+            elements.conversationList.append(
+                makeElement(
+                    "p",
+                    "conversation-list-empty",
+                    conversations.length
+                        ? "No conversations match your search."
+                        : "No conversations yet. Start one with an organisation in the network."
+                )
+            );
+            return;
+        }
+
+        filtered.forEach((conversation) => {
+            const button = makeElement("button", "conversation-list-item");
+            button.type = "button";
+            button.classList.toggle(
+                "is-selected",
+                Number(conversation.conversation_id) === Number(activeConversationId)
+            );
+
+            const avatar = makeElement("span", "organisation-list-avatar");
+            avatar.setAttribute("aria-hidden", "true");
+            setOrganisationAvatar(
+                avatar,
+                getOtherOrganizationName(conversation),
+                conversation.other_logo_path
+            );
+
+            const copy = makeElement("span", "conversation-list-copy");
+            copy.append(
+                makeElement("strong", "", getOtherOrganizationName(conversation)),
+                makeElement(
+                    "span",
+                    "",
+                    conversation.last_message || "Start the conversation"
+                )
+            );
+
+            button.append(avatar, copy);
+            button.addEventListener("click", () => {
+                openExistingConversation(conversation);
+            });
+            elements.conversationList.append(button);
+        });
+    }
+
+    function renderDirectory() {
+        const search = elements.conversationSearch.value.trim().toLowerCase();
+        elements.directoryList.replaceChildren();
+
+        const filtered = organisations.filter((organisation) =>
+            String(organisation.organization_name || "").toLowerCase().includes(search)
+        );
+
+        if (!filtered.length) {
+            elements.directoryList.append(
+                makeElement("p", "directory-empty", "No active organisations match that search.")
+            );
+            return;
+        }
+
+        filtered.forEach((organisation) => {
+            const button = makeElement("button", "directory-list-item");
+            button.type = "button";
+
+            const avatar = makeElement("span", "organisation-list-avatar");
+            avatar.setAttribute("aria-hidden", "true");
+            setOrganisationAvatar(
+                avatar,
+                organisation.organization_name,
+                organisation.logo_path
+            );
+
+            const copy = makeElement("span", "conversation-list-copy");
+            copy.append(
+                makeElement("strong", "", organisation.organization_name),
+                makeElement(
+                    "span",
+                    "",
+                    String(organisation.organization_type || "").replaceAll("_", " ")
+                )
+            );
+
+            button.append(avatar, copy);
+            button.addEventListener("click", () => startConversation(organisation));
+            elements.directoryList.append(button);
+        });
+    }
+
+    function setDirectoryMode(enabled) {
+        showingDirectory = enabled;
+        elements.directoryList.hidden = !enabled;
+        elements.conversationList.hidden = enabled;
+        elements.sidebarTitle.textContent = enabled ? "New conversation" : "Messages";
+        elements.newConversation.textContent = enabled ? "Cancel" : "New conversation";
+        elements.conversationSearch.value = "";
+        elements.conversationSearch.placeholder = enabled
+            ? "Search active organisations"
+            : "Search conversations";
+
+        if (enabled) {
+            renderDirectory();
+        } else {
+            renderConversationList();
+        }
+    }
+
+    async function loadDirectory() {
+        const response = await getJson("messages/direct-directory.php");
+        if (!response.ok || !response.data?.success) {
+            throw new Error(response.data?.error || "Unable to load the organisation directory.");
+        }
+        organisations = Array.isArray(response.data.organizations)
+            ? response.data.organizations
+            : [];
+        renderDirectory();
+    }
+
+    async function loadConversations() {
+        const response = await getJson("messages/direct-conversations.php?action=list");
+        if (!response.ok || !response.data?.success) {
+            throw new Error(response.data?.error || "Unable to load conversations.");
+        }
+        conversations = Array.isArray(response.data.conversations)
+            ? response.data.conversations
+            : [];
+        renderConversationList();
+    }
+
+    function renderMessages(messages, append = false) {
+        if (!append) elements.messageList.replaceChildren();
+
+        messages.forEach((message) => {
+            const row = makeElement("article", "message-row");
+            const mine = Number(message.sender_user_id) === Number(window.chainBridgeUserId);
+            row.classList.toggle("is-mine", mine);
+
+            if (!mine) {
+                row.append(
+                    makeElement(
+                        "span",
+                        "message-sender",
+                        `${message.sender_name || "User"} · ${message.organization_name || ""}`
+                    )
+                );
+            }
+
+            row.append(makeElement("div", "message-bubble", message.message_text));
+
+            const time = makeElement("time", "message-time", formatTime(message.sent_at));
+            if (message.sent_at) time.dateTime = String(message.sent_at).replace(" ", "T");
+            row.append(time);
+
+            elements.messageList.append(row);
+            lastMessageId = Math.max(lastMessageId, Number(message.message_id) || 0);
+        });
+
+        if (!append || messages.length) {
+            elements.messageList.scrollTop = elements.messageList.scrollHeight;
+        }
+    }
+
+    async function loadMessages(reset = false) {
+        if (!activeConversationId || loadingMessages) return;
+        loadingMessages = true;
+
+        try {
+            if (reset) lastMessageId = 0;
+            const params = new URLSearchParams({
+                action: "messages",
+                conversationId: String(activeConversationId),
+                after: String(lastMessageId),
+                markViewed: reset ? "1" : "0"
+            });
+
+            const response = await getJson(
+                `messages/direct-conversations.php?${params.toString()}`
+            );
+
+            if (!response.ok || !response.data?.success) {
+                throw new Error(response.data?.error || "Unable to load messages.");
+            }
+
+            renderMessages(response.data.messages || [], !reset);
+        } finally {
+            loadingMessages = false;
+        }
+    }
+
+    async function openExistingConversation(conversation) {
+        activeConversationId = Number(conversation.conversation_id);
+        activeOrganisation = {
+            organization_id: getOtherOrganizationId(conversation),
+            organization_name: getOtherOrganizationName(conversation),
+            organization_type: conversation.other_organization_type || "",
+            logo_path: conversation.other_logo_path || ""
+        };
+
+        setDirectoryMode(false);
+        showActivePanel();
+        renderConversationList();
+        elements.messageInput.focus();
+
+        try {
+            await loadMessages(true);
+            setNotice("");
+        } catch (error) {
+            setNotice(error.message || "Unable to open this conversation.", "error");
+        }
+    }
+
+    async function startConversation(organisation) {
+        setNotice("");
+
+        try {
+            const response = await postJson("messages/direct-conversations.php", {
+                action: "open",
+                organization_id: Number(organisation.organization_id)
+            });
+
+            if (!response.ok || !response.data?.success) {
+                throw new Error(response.data?.error || "Unable to start this conversation.");
+            }
+
+            activeConversationId = Number(response.data.conversation_id);
+            activeOrganisation = response.data.organization || organisation;
+
+            setDirectoryMode(false);
+            showActivePanel();
+            await loadConversations();
+            renderConversationList();
+            await loadMessages(true);
+            setNotice("");
+            elements.messageInput.focus();
+        } catch (error) {
+            setNotice(error.message || "Unable to start this conversation.", "error");
+        }
+    }
+
+    async function sendMessage(event) {
+        event.preventDefault();
+
+        const text = elements.messageInput.value.trim();
+        if (!activeConversationId || !text) return;
+
+        elements.sendMessage.disabled = true;
+        setNotice("");
+
+        try {
+            const response = await postJson("messages/direct-conversations.php", {
+                action: "send",
+                conversation_id: activeConversationId,
+                text
+            });
+
+            if (!response.ok || !response.data?.success) {
+                throw new Error(response.data?.error || "Unable to send the message.");
+            }
+
+            elements.messageInput.value = "";
+            await loadMessages();
+            await loadConversations();
+            renderConversationList();
+            setNotice("");
+        } catch (error) {
+            setNotice(error.message || "Unable to send the message.", "error");
+        } finally {
+            elements.sendMessage.disabled = false;
+            elements.messageInput.focus();
+        }
+    }
+
+
+    elements.newConversation.addEventListener("click", async () => {
+        if (showingDirectory) {
+            setDirectoryMode(false);
+            setNotice("");
+            return;
+        }
+
+        setNotice("");
+        try {
+            await loadDirectory();
+            setDirectoryMode(true);
+        } catch (error) {
+            setNotice(error.message || "Unable to load organisations.", "error");
+        }
+    });
+
+    elements.emptyNewConversation.addEventListener("click", () => {
+        elements.newConversation.click();
+    });
+
+    elements.conversationSearch.addEventListener("input", () => {
+        if (showingDirectory) renderDirectory();
+        else renderConversationList();
+    });
+
+    elements.messageForm.addEventListener("submit", sendMessage);
+
+    async function initialise() {
+        try {
+            const account = await shellReady;
+            if (!account) return;
+
+            currentOrganizationId = Number(
+                account.organization_id || account.organization?.organization_id || 0
+            );
+
+            window.chainBridgeUserId = Number(
+                account.user_id || account.user?.user_id || 0
+            );
+
+            await Promise.all([loadConversations(), loadDirectory()]);
+            window.setInterval(async () => {
+                if (document.visibilityState !== "visible" || showingDirectory) return;
+
+                try {
+                    await loadConversations();
+                    if (activeConversationId) {
+                        await loadMessages();
+                    }
+                } catch (error) {
+                    console.error("Automatic conversation update failed.", error);
+                }
+            }, 4000);
+        } catch (error) {
+            setNotice(error.message || "Unable to load conversations.", "error");
+        }
+    }
+
+    initialise();
+})();

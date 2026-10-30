@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap");
+@import url("./chainbridge-open-workspace.css");
 
 :root {
     --brand: #0f766e;
@@ -238,4 +238,47 @@ button {
 /* ChainBridge: hide all headings */
 h1, h2, h3, h4, h5, h6 {
     display: none !important;
+}
+
+/* ChainBridge: white page canvas only */
+body,
+body.shell-ready,
+main.page,
+body > .page {
+    background-color: #FFFFFF !important;
+}
+
+/* ChainBridge shared secondary text: black */
+body :is(
+    small,
+    label,
+    th,
+    [class*="muted"],
+    [class*="subtitle"],
+    [class*="description"],
+    [class*="caption"],
+    [class*="footnote"],
+    [class*="eyebrow"],
+    [class*="meta"],
+    [class*="hint"],
+    [class*="help"],
+    [class*="detail"],
+    [class*="date"],
+    [class*="label"],
+    [class*="secondary-text"]
+):not([class*="status"])
+ :not([class*="badge"])
+ :not([class*="warning"])
+ :not([class*="error"])
+ :not([class*="success"])
+ :not([class*="danger"])
+ :not([class*="attention"])
+ :not([class*="primary"]) {
+    color: #111111 !important;
+}
+
+body input::placeholder,
+body textarea::placeholder {
+    color: #111111 !important;
+    opacity: 1;
 }

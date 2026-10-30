@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
     const field = id => document.getElementById(id);
     const page = field('coveragePage');
     const message = field('coverageMessage');
@@ -48,8 +48,18 @@
 
     function populateAreas() {
         areaSelect.replaceChildren(new Option('Select a county', ''));
-        areas.forEach(area => areaSelect.add(new Option(area.area_name, String(area.area_id))));
+
+        areas.forEach(area => {
+            areaSelect.add(new Option(area.area_name, String(area.area_id)));
+        });
+
         areaSelect.disabled = areas.length === 0;
+
+        const selectAll = field('selectAllCounties');
+        if (selectAll) {
+            selectAll.checked = false;
+            selectAll.disabled = areas.length === 0;
+        }
     }
 
     function renderCoverage() {
@@ -105,16 +115,21 @@
 
     async function saveCoverage(event) {
         event.preventDefault();
+        if (saving) return;
         showMessage('');
 
-        const areaId = areaSelect.value;
+        const selectAll = field('selectAllCounties');
+        const allCounties = Boolean(selectAll?.checked);
+        const areaIds = allCounties
+            ? areas.map(area => Number(area.area_id))
+            : (areaSelect.value ? [Number(areaSelect.value)] : []);
         const startDate = startInput.value;
         const endDate = endInput.value;
         const today = localDateString();
 
-        if (!areaId) {
-            showMessage('Choose a county.', 'error');
-            areaSelect.focus();
+        if (areaIds.length === 0) {
+            showMessage(allCounties ? 'No counties are available.' : 'Choose a county or select all counties.', 'error');
+            if (!allCounties) areaSelect.focus();
             return;
         }
         if (!startDate || startDate > today) {
@@ -134,23 +149,52 @@
         }
 
         setSaving(true);
-        try {
-            const result = await postJson('network/coverage-save.php', {
-                areaId: Number(areaId),
-                startDate,
-                endDate
-            });
+        const saved = [];
+        const failed = [];
 
-            if (!result.ok || result.data?.success !== true) {
-                throw new Error(result.data?.error || 'Unable to save supplier coverage.');
+        try {
+            for (const areaId of areaIds) {
+                const area = areas.find(item => Number(item.area_id) === areaId);
+                const areaName = area?.area_name || `County ID ${areaId}`;
+
+                try {
+                    const result = await postJson('network/coverage-save.php', {
+                        areaId,
+                        startDate,
+                        endDate
+                    });
+
+                    if (!result.ok || result.data?.success !== true) {
+                        throw new Error(result.data?.error || 'Unable to save coverage.');
+                    }
+
+                    saved.push(areaName);
+                } catch (error) {
+                    failed.push(`${areaName}: ${error.message || 'Unable to save coverage.'}`);
+                }
             }
 
             form.reset();
             startInput.value = today;
+
             const refreshed = await loadCoverage(false);
-            if (refreshed) showMessage(result.data.message || 'Supplier coverage saved.', 'success');
-        } catch (error) {
-            showMessage(error.message || 'Unable to save supplier coverage.', 'error');
+
+            const summary = [];
+            if (saved.length) {
+                summary.push(`Saved coverage for ${saved.length} ${saved.length === 1 ? 'county' : 'counties'}: ${saved.join(', ')}.`);
+            }
+            if (failed.length) {
+                summary.push(`Could not save ${failed.length} ${failed.length === 1 ? 'county' : 'counties'}:\n${failed.join('\n')}`);
+            }
+
+            showMessage(
+                summary.join('\n') || 'No coverage changes were made.',
+                failed.length ? (saved.length ? '' : 'error') : 'success'
+            );
+
+            if (!refreshed) {
+                showMessage(`${summary.join('\n')}\nCoverage records could not be refreshed.`, 'error');
+            }
         } finally {
             setSaving(false);
         }
@@ -236,3 +280,4 @@
         showMessage('Unable to initialise supplier coverage.', 'error');
     });
 })();
+

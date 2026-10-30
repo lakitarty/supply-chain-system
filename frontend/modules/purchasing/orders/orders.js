@@ -1,0 +1,1223 @@
+(() => {
+    "use strict";
+
+    const byId = id => document.getElementById(id);
+
+    function localDateValue() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, "0");
+        const day = String(now.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    }
+
+    function dockPurchasingNavIntoShell() {
+        const nav = byId("purchasingNav");
+        const shellRoot = byId("shell");
+        if (!nav || !shellRoot) return false;
+        if (nav.classList.contains("purchasing-shell-secondary-nav")) return true;
+
+        const sectionRow = shellRoot.querySelector(".shell-sections");
+        if (!sectionRow) return false;
+
+        sectionRow.replaceChildren(nav);
+        nav.classList.add("purchasing-shell-secondary-nav");
+        return true;
+    }
+
+    if (!dockPurchasingNavIntoShell()) {
+        const shellRoot = byId("shell");
+        if (shellRoot && typeof MutationObserver === "function") {
+            const shellNavObserver = new MutationObserver(() => {
+                if (dockPurchasingNavIntoShell()) shellNavObserver.disconnect();
+            });
+            shellNavObserver.observe(shellRoot, { childList: true, subtree: true });
+        }
+    }
+    const state = {
+        data: null,
+        organizationType: "",
+        view: "register",
+        draftId: null,
+        items: [],
+        saving: false,
+        submitting: false,
+        modified: false,
+        saveTimer: null,
+        detailRequest: 0
+    };
+
+    function escapeHtml(value) {
+        return String(value ?? "").replace(/[&<>"']/g, character => ({
+            "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+        })[character]);
+    }
+
+    function money(value) {
+        const amount = Number(value);
+        return `KES ${(Number.isFinite(amount) ? amount : 0).toLocaleString("en-KE", {
+            minimumFractionDigits: 2, maximumFractionDigits: 2
+        })}`;
+    }
+
+    function taxBreakdown(unitPrice, priceBasis, taxCategory) {
+        const amount = Number(unitPrice);
+        const category = String(taxCategory || "");
+        if (!Number.isFinite(amount) || amount < 0 || !["STANDARD_RATED", "ZERO_RATED", "EXEMPT"].includes(category)) return null;
+        if (!["VAT_INCLUSIVE", "VAT_EXCLUSIVE"].includes(priceBasis)) return null;
+        const round = value => Math.round((value + Number.EPSILON) * 100) / 100;
+        const rate = category === "STANDARD_RATED" ? 0.16 : 0;
+        let beforeTax;
+        let tax;
+        let afterTax;
+        if (priceBasis === "VAT_INCLUSIVE") {
+            afterTax = round(amount);
+            beforeTax = rate > 0 ? round(afterTax / (1 + rate)) : afterTax;
+            tax = round(afterTax - beforeTax);
+        } else {
+            beforeTax = round(amount);
+            tax = round(beforeTax * rate);
+            afterTax = round(beforeTax + tax);
+        }
+        return { beforeTax, tax, afterTax, rate, taxCategory: category };
+    }
+    function formatDate(value) {
+        if (!value) return "Not set";
+        const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+        return match ? `${match[3]}/${match[2]}/${match[1]}` : String(value);
+    }
+
+    function setStatus(message, kind = "") {
+        const node = byId("purchasingStatus");
+        node.textContent = message || "";
+        node.classList.remove("is-error", "is-success", "is-pending");
+        if (kind) node.classList.add(`is-${kind}`);
+    }
+
+    function unwrap(response, fallback) {
+        const data = response && response.data;
+        if (!response || !response.ok || !data || data.success !== true) {
+            const message = data && (data.message || data.error);
+            const suffix = response && response.status ? ` (HTTP ${response.status})` : "";
+            throw new Error(message || `${fallback}${suffix}`);
+        }
+        return data;
+    }
+
+    async function fetchData(path, fallback) {
+        return unwrap(await getJson(path), fallback);
+    }
+
+    function currentBranchId() {
+        return byId("purchaseBranch").value || "";
+    }
+
+    function currentSupplierId() {
+        return byId("purchaseSupplier").value || "";
+    }
+
+    function isRetailer() {
+        return state.organizationType === "RETAILER";
+    }
+
+    function isSupplierBuyer() {
+        return ["SUPPLIER", "MANUFACTURER_SUPPLIER"].includes(state.organizationType);
+    }
+
+    function canCreateLpo() {
+        return isRetailer() || isSupplierBuyer();
+    }
+
+    function priceBasisLabel(value) {
+        if (value === "VAT_INCLUSIVE") return "VAT inclusive";
+        if (value === "VAT_EXCLUSIVE") return "VAT exclusive";
+        return "VAT basis not recorded";
+    }
+
+    function statusLabel(value) {
+        return String(value || "UNKNOWN").replace(/_/g, " ");
+    }
+
+    function statusClass(value) {
+        const safe = String(value || "").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+        return `purchasing-status-badge status-${safe}`;
+    }
+
+    function renderBranches(branches, selectedId = "") {
+        const select = byId("purchaseBranch");
+        const rows = Array.isArray(branches) ? branches : [];
+        select.innerHTML = rows.length ? rows.map(branch => {
+            const label = branch.area_name ? `${branch.branch_name} | ${branch.area_name}` : branch.branch_name;
+            return `<option value="${Number(branch.branch_id)}">${escapeHtml(label)}</option>`;
+        }).join("") : '<option value="">No active branch available</option>';
+
+        if (selectedId && rows.some(row => String(row.branch_id) === String(selectedId))) {
+            select.value = String(selectedId);
+        } else if (rows.length) {
+            select.value = String(rows[0].branch_id);
+        }
+        select.disabled = rows.length <= 1 || Boolean(state.draftId);
+        byId("branchField").hidden = rows.length === 0;
+    }
+
+    function renderSuppliers(suppliers, selectedId = "") {
+        const select = byId("purchaseSupplier");
+        const rows = Array.isArray(suppliers) ? suppliers : [];
+        select.innerHTML = '<option value="">Choose a supplier</option>' + rows.map(supplier =>
+            `<option value="${Number(supplier.supplier_id)}">${escapeHtml(supplier.supplier_name)}</option>`
+        ).join("");
+        if (selectedId && rows.some(row => String(row.supplier_id) === String(selectedId))) {
+            select.value = String(selectedId);
+        }
+        select.disabled = !rows.length || Boolean(state.draftId);
+    }
+
+    function currentProducts() {
+        if (!state.data || !currentSupplierId()) return [];
+        return (state.data.products || []).filter(product =>
+            String(product.supplier_id) === String(currentSupplierId())
+        );
+    }
+
+    function groupedProducts() {
+        const groups = new Map();
+        for (const product of currentProducts()) {
+            const key = String(product.product_id);
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(product);
+        }
+        return Array.from(groups.values()).map(matches => ({
+            product: matches[0],
+            matches,
+            ambiguous: matches.length !== 1
+        }));
+    }
+
+        function exactDraftItem(product) {
+        return state.items.find(item =>
+            String(item.product_id) === String(product.product_id) &&
+            String(item.product_version_id) === String(product.product_version_id) &&
+            (isSupplierBuyer()
+                ? String(item.source_product_price_id || "") === String(product.source_product_price_id || "")
+                : String(item.supplier_product_offer_id || "") === String(product.supplier_product_offer_id || ""))
+        ) || null;
+    }
+
+    function draftItemForProduct(product) {
+        return state.items.find(item => String(item.product_id) === String(product.product_id)) || null;
+    }
+
+    function itemIsValid(item) {
+        const quantity = Number(item.quantity);
+        const minimum = Number(item.minimum_order_quantity) || 1;
+        const multiple = Math.max(1, Number(item.order_multiple) || 1);
+        return Number.isInteger(quantity) && quantity >= minimum && quantity <= 999999999 && quantity % multiple === 0;
+    }
+
+        function hasStaleDraftLines() {
+        if (!state.items.length) return false;
+        const products = currentProducts();
+        return state.items.some(item => !products.some(product =>
+            String(product.product_id) === String(item.product_id) &&
+            String(product.product_version_id) === String(item.product_version_id) &&
+            (isSupplierBuyer()
+                ? String(product.source_product_price_id || "") === String(item.source_product_price_id || "")
+                : String(product.supplier_product_offer_id || "") === String(item.supplier_product_offer_id || ""))
+        ));
+    }
+
+        function renderStaleDraftLines() {
+        const node = byId("staleDraftLines");
+        const products = currentProducts();
+        const stale = state.items.filter(item => !products.some(product =>
+            String(product.product_id) === String(item.product_id) &&
+            String(product.product_version_id) === String(item.product_version_id) &&
+            (isSupplierBuyer()
+                ? String(product.source_product_price_id || "") === String(item.source_product_price_id || "")
+                : String(product.supplier_product_offer_id || "") === String(item.supplier_product_offer_id || ""))
+        ));
+        if (!stale.length) {
+            node.hidden = true;
+            node.innerHTML = "";
+            return;
+        }
+        node.hidden = false;
+        node.innerHTML = `<h4>Saved lines need review</h4>${stale.map(item => `
+            <div class="purchasing-stale-line">
+                <div><strong>${escapeHtml(item.product_name || `Product #${item.product_id}`)}</strong>
+                    <small>Saved quantity: ${Number(item.quantity).toLocaleString("en-KE")} | Saved price: ${money(item.unit_price)} | ${escapeHtml(priceBasisLabel(item.price_basis))}</small>
+                </div>
+                <button class="purchasing-text-button" type="button" data-remove-stale="${Number(item.product_id)}">Remove line</button>
+            </div>`).join("")}`;
+    }
+
+        function renderCatalogue() {
+        const body = byId("catalogueBody");
+        const supplierId = currentSupplierId();
+        const branchId = currentBranchId();
+        const columns = 10;
+
+        if (!canCreateLpo()) {
+            body.innerHTML = `<tr><td colspan="${columns}" class="purchasing-empty-cell">Incoming LPOs only</td></tr>`;
+            byId("catalogueCount").textContent = "Read only";
+            return;
+        }
+        if (isRetailer() && !branchId) {
+            body.innerHTML = `<tr><td colspan="${columns}" class="purchasing-empty-cell">No active branch</td></tr>`;
+            byId("catalogueCount").textContent = "0 products";
+            return;
+        }
+        if (!supplierId) {
+            body.innerHTML = `<tr><td colspan="${columns}" class="purchasing-empty-cell">${isSupplierBuyer() ? "Select manufacturer" : "Select supplier"}</td></tr>`;
+            byId("catalogueCount").textContent = "0 products";
+            renderStaleDraftLines();
+            updateSummary();
+            return;
+        }
+
+        const groups = groupedProducts();
+        byId("catalogueCount").textContent = `${groups.length} product${groups.length === 1 ? "" : "s"}`;
+        if (!groups.length) {
+            body.innerHTML = `<tr><td colspan="${columns}" class="purchasing-empty-cell">No assigned products for this account and branch</td></tr>`;
+            renderStaleDraftLines();
+            updateSummary();
+            return;
+        }
+
+        body.innerHTML = groups.map(group => {
+            const product = group.product;
+            const previous = draftItemForProduct(product);
+            const selected = exactDraftItem(product);
+            const conflictingDraftItem = Boolean(previous && !selected);
+            const availability = String(product.availability_status || "AVAILABLE");
+            const versionStart = product.version_effective_from || "";
+            const versionEnd = product.version_effective_to || "";
+            const versionNotYetAvailable = Boolean(versionStart && versionStart > localDateValue());
+            const versionExpired = Boolean(versionEnd && versionEnd < localDateValue());
+            const markedComingSoon = String(product.product_availability_status || "") === "COMING_SOON";
+            const inactiveProduct = String(product.product_status || "ACTIVE") !== "ACTIVE";
+            const priceReferenceMissing = isSupplierBuyer()
+                ? !product.source_product_price_id
+                : !product.supplier_product_offer_id;
+            const missingOffer = priceReferenceMissing || product.unit_price === null || product.unit_price === undefined;
+            const taxCategory = String(product.tax_category || "");
+            const taxMissing = !["STANDARD_RATED", "ZERO_RATED", "EXEMPT"].includes(taxCategory);
+            const pricing = missingOffer || taxMissing ? null : taxBreakdown(product.unit_price, product.price_basis, taxCategory);
+            const unavailable = ["OUT_OF_STOCK", "INACTIVE"].includes(availability) || versionNotYetAvailable || versionExpired || markedComingSoon || inactiveProduct;
+            const disabled = group.ambiguous || conflictingDraftItem || unavailable || missingOffer || taxMissing || !pricing;
+            const quantity = selected ? Number(selected.quantity) : 0;
+            const packageLabel = [product.pack_size, product.packaging_description].filter(Boolean).join(" ");
+            const minimum = Number(product.minimum_order_quantity) || 1;
+            const multiple = Math.max(1, Number(product.order_multiple) || 1);
+            let rowNote = "";
+            if (group.ambiguous) rowNote = "Overlapping prices";
+            else if (conflictingDraftItem) rowNote = "Saved package or price changed";
+            else if (versionNotYetAvailable) rowNote = `Not available until ${formatDate(versionStart)}`;
+            else if (versionExpired) rowNote = "Product version no longer available";
+            else if (markedComingSoon) rowNote = "Not yet available";
+            else if (inactiveProduct) rowNote = "Product inactive";
+            else if (availability === "OUT_OF_STOCK") rowNote = "Out of stock";
+            else if (missingOffer) rowNote = isSupplierBuyer() ? "Manufacturer selling price not provided" : "Supplier price not provided";
+            else if (taxMissing || !pricing) rowNote = "Tax classification missing";
+            else if (availability === "INACTIVE") rowNote = "Unavailable";
+            const unitBefore = pricing ? money(pricing.beforeTax) : "Not available";
+            const unitTax = pricing ? money(pricing.tax) : "Not available";
+            const unitAfter = pricing ? money(pricing.afterTax) : "Not available";
+            const rowBefore = pricing ? money(pricing.beforeTax * quantity) : "Not available";
+            const rowTax = pricing ? money(pricing.tax * quantity) : "Not available";
+            const rowAfter = pricing ? money(pricing.afterTax * quantity) : "Not available";
+
+            return `<tr data-catalogue-product="${Number(product.product_id)}">
+                <td><div class="purchasing-product-title">${escapeHtml(product.product_name)}</div>
+                    <span class="purchasing-product-subtitle">${escapeHtml(packageLabel || "Package not specified")}</span>
+                    <span class="purchasing-product-subtitle">Barcode ${escapeHtml(product.barcode || "Not recorded")}</span>
+                    ${rowNote ? `<span class="purchasing-row-note">${escapeHtml(rowNote)}</span>` : ""}</td>
+                <td>${escapeHtml(product.manufacturer_name || "Not specified")}</td>
+                <td class="purchasing-money-cell" data-unit-before-tax="${Number(product.product_id)}">${unitBefore}</td>
+                <td class="purchasing-money-cell" data-unit-tax="${Number(product.product_id)}">${unitTax}</td>
+                <td class="purchasing-money-cell" data-unit-total="${Number(product.product_id)}">${unitAfter}</td>
+                <td><span class="purchasing-term">${escapeHtml(unavailable ? "NOT AVAILABLE" : availability)}</span>
+                    <span class="purchasing-term">Lead time ${Number(product.lead_time_days) || 0} days</span>
+                    <span class="purchasing-term">Minimum ${minimum}, multiple ${multiple}</span></td>
+                <td><input class="purchasing-quantity-input" type="number" min="0" max="999999999" step="1"
+                    value="${quantity || ""}" data-catalogue-quantity="${Number(product.product_id)}"
+                    data-catalogue-locked="${disabled ? "true" : "false"}" ${disabled ? "disabled" : ""}
+                    aria-label="Quantity for ${escapeHtml(product.product_name)}"></td>
+                <td class="purchasing-row-total" data-row-before-tax="${Number(product.product_id)}">${rowBefore}</td>
+                <td class="purchasing-row-total" data-row-tax="${Number(product.product_id)}">${rowTax}</td>
+                <td class="purchasing-row-total" data-row-total="${Number(product.product_id)}">${rowAfter}</td>
+            </tr>`;
+        }).join("");
+        renderStaleDraftLines();
+        const notices = [];
+        if (groups.some(group => group.ambiguous)) notices.push("Overlapping current prices must be resolved before ordering");
+        if (hasStaleDraftLines()) notices.push("Saved draft lines need review");
+        const notice = byId("catalogueNotice");
+        if (notice) { notice.hidden = notices.length === 0; notice.textContent = notices.join(". "); }
+        updateSummary();
+    }
+
+        function updateSummary() {
+        let goods = 0;
+        let tax = 0;
+        let total = 0;
+        for (const item of state.items) {
+            const pricing = taxBreakdown(item.unit_price, item.price_basis, item.tax_category);
+            const quantity = Number(item.quantity || 0);
+            if (!pricing) continue;
+            goods += pricing.beforeTax * quantity;
+            tax += pricing.tax * quantity;
+            total += pricing.afterTax * quantity;
+        }
+        const goodsNode = byId("totalGoodsValue");
+        const taxNode = byId("totalTax");
+        const totalNode = byId("orderTotal");
+        const lineSummaryNode = byId("orderLineSummary");
+        if (goodsNode) goodsNode.textContent = money(goods);
+        if (taxNode) taxNode.textContent = money(tax);
+        if (totalNode) totalNode.textContent = money(total);
+        if (lineSummaryNode) lineSummaryNode.textContent = "";
+        updateButtons();
+    }
+
+        function updateButtons() {
+        const headersReady = canCreateLpo() && Boolean(currentSupplierId()) && (isSupplierBuyer() || Boolean(currentBranchId()));
+        const invalidLine = state.items.some(item => !itemIsValid(item));
+        const stale = hasStaleDraftLines();
+        byId("saveDraftButton").disabled = !headersReady || state.saving || state.submitting || invalidLine || stale;
+        byId("submitOrderButton").disabled = !headersReady || !state.items.length || state.saving || state.submitting || invalidLine || stale;
+        byId("newLpoButton").disabled = !canCreateLpo() || state.saving || state.submitting;
+        byId("draftState").textContent = state.draftId ? `Draft #${state.draftId}` : "New LPO";
+        byId("createViewHeading").textContent = state.draftId ? `Continue editing LPO #${state.draftId}` : (isSupplierBuyer() ? "Create LPO to manufacturer" : "Create LPO to supplier");
+        byId("purchaseBranch").disabled = !isRetailer() || Boolean(state.draftId) || byId("purchaseBranch").options.length <= 1;
+        byId("purchaseSupplier").disabled = Boolean(state.draftId) || byId("purchaseSupplier").options.length <= 1;
+        byId("productSearch").disabled = state.saving || state.submitting;
+        document.querySelectorAll("[data-catalogue-quantity]").forEach(input => {
+            input.disabled = input.dataset.catalogueLocked === "true" || state.saving || state.submitting;
+        });
+    }
+
+        function scheduleAutoSave() {
+        state.modified = true;
+        if (state.saveTimer) clearTimeout(state.saveTimer);
+        updateButtons();
+        if (!currentSupplierId() || (isRetailer() && !currentBranchId()) || (!canCreateLpo()) || (!state.items.length && !state.draftId)) return;
+        if (state.items.some(item => !itemIsValid(item)) || hasStaleDraftLines()) {
+            setStatus("Draft has unsaved changes. Correct quantities or remove outdated lines before saving.", "pending");
+            return;
+        }
+        state.saveTimer = setTimeout(() => {
+            state.saveTimer = null;
+            saveDraft(true);
+        }, 900);
+    }
+
+        async function saveDraft(silent = false, force = false) {
+        if (state.saving || (state.submitting && !force)) return false;
+        if (!canCreateLpo() || !currentSupplierId() || (isRetailer() && !currentBranchId())) {
+            if (!silent) setStatus(isSupplierBuyer() ? "Choose a manufacturer before saving the LPO draft." : "Choose a branch and supplier before saving the LPO draft.", "error");
+            return false;
+        }
+        const invalid = state.items.find(item => !itemIsValid(item));
+        if (invalid) {
+            if (!silent) setStatus(`${invalid.product_name}: quantity must meet its minimum and order multiple.`, "error");
+            return false;
+        }
+        if (hasStaleDraftLines()) {
+            if (!silent) setStatus("Remove saved lines that no longer match current prices before saving.", "error");
+            return false;
+        }
+        state.saving = true;
+        updateButtons();
+        try {
+            const payload = {
+                draftId: state.draftId,
+                items: state.items.map(item => ({ productId: Number(item.product_id), quantity: Number(item.quantity) }))
+            };
+            let endpoint;
+            if (isSupplierBuyer()) {
+                payload.manufacturerId = Number(currentSupplierId());
+                endpoint = "purchasing/supplier-draft-save.php";
+            } else {
+                payload.supplierId = Number(currentSupplierId());
+                payload.branchId = Number(currentBranchId());
+                endpoint = "purchasing/draft-save.php";
+            }
+            const result = unwrap(await postJson(endpoint, payload), "Unable to save the LPO draft.");
+            state.draftId = Number(result.supply_order_id);
+            state.modified = false;
+            updateButtons();
+            if (!silent) setStatus(`Draft LPO #${state.draftId} saved. It has not been sent yet.`, "success");
+            else setStatus("", "");
+            return true;
+        } catch (error) {
+            if (!silent) setStatus(error.message || "Unable to save the LPO draft.", "error");
+            else setStatus(`Auto-save failed: ${error.message || "Unable to save the LPO draft."} Use Save Draft to retry.`, "error");
+            return false;
+        } finally {
+            state.saving = false;
+            updateButtons();
+        }
+    }
+
+        function renderOrders() {
+        const body = byId("ordersBody");
+        const search = byId("orderSearch").value.trim().toLowerCase();
+        const all = state.data && Array.isArray(state.data.orders) ? state.data.orders : [];
+        const draftsView = state.view === "drafts";
+        const outgoingView = state.view === "outgoing";
+        const manufacturer = state.organizationType === "MANUFACTURER";
+        const supplierBuyer = isSupplierBuyer();
+        const expectedDirection = manufacturer ? "SUPPLIER_TO_MANUFACTURER" : "RETAILER_TO_SUPPLIER";
+        const ownOrganizationId = Number(state.data?.organization_id || 0);
+        const orders = all.filter(order => {
+            const direction = order.order_direction || "RETAILER_TO_SUPPLIER";
+            if (draftsView) return order.status === "DRAFT";
+            if (order.status === "DRAFT") return false;
+            if (outgoingView) return direction === "SUPPLIER_TO_MANUFACTURER" && Number(order.retailer_id) === ownOrganizationId;
+            if (supplierBuyer) return direction === "RETAILER_TO_SUPPLIER" || (state.organizationType === "MANUFACTURER_SUPPLIER" && direction === "SUPPLIER_TO_MANUFACTURER" && Number(order.supplier_id) === ownOrganizationId);
+            return direction === expectedDirection;
+        }).filter(order => [order.supply_order_id, order.supplier_name, order.retailer_name,
+            order.branch_name, order.status, order.order_date].join(" ").toLowerCase().includes(search));
+
+        byId("ordersHeading").textContent = draftsView ? "Draft LPOs" : outgoingView ? "Outgoing LPOs" : (isRetailer() ? "LPO Register" : "Incoming LPOs");
+        byId("ordersDescription").textContent = draftsView
+            ? "Draft LPOs are private to your organisation until submitted."
+            : outgoingView ? "LPOs your supplier organisation has sent to manufacturers."
+            : isRetailer() ? "Purchase orders submitted to suppliers and their current status."
+            : manufacturer ? "LPOs submitted by suppliers to your manufacturing organisation."
+            : "LPOs submitted by retailers to your supplier organisation.";
+        byId("orderPartyHeading").textContent = isRetailer() ? "Supplier" : outgoingView ? "Manufacturer" : manufacturer ? "Supplier" : state.organizationType === "MANUFACTURER_SUPPLIER" ? "Buying organisation" : "Retailer";
+        byId("ordersCount").textContent = `${orders.length} ${draftsView ? "drafts" : "orders"}`;
+        byId("draftCount").textContent = String(all.filter(order => order.status === "DRAFT").length);
+        byId("draftCount").hidden = !canCreateLpo() || !all.some(order => order.status === "DRAFT");
+
+        if (!orders.length) {
+            body.innerHTML = `<tr><td colspan="9" class="purchasing-empty-cell">${draftsView ? "No draft LPOs" : outgoingView ? "No outgoing LPOs" : "No incoming LPOs"}</td></tr>`;
+            return;
+        }
+
+        body.innerHTML = orders.map(order => {
+            const direction = order.order_direction || "RETAILER_TO_SUPPLIER";
+            const party = isRetailer() || outgoingView ? order.supplier_name : order.retailer_name;
+            const lines = Number(order.item_count) || 0;
+            const units = Number(order.quantity_ordered) || 0;
+            const id = Number(order.supply_order_id);
+            const canReview = order.status === "SUBMITTED" &&
+                ((supplierBuyer && direction === "RETAILER_TO_SUPPLIER") ||
+                 ((manufacturer || state.organizationType === "MANUFACTURER_SUPPLIER") && direction === "SUPPLIER_TO_MANUFACTURER"));
+            let actions;
+            if (draftsView) {
+                actions = `<button class="purchasing-text-button" type="button" data-continue-draft="${id}">Continue editing</button><button class="purchasing-text-button" type="button" data-open-order="${id}">View</button>`;
+            } else if (canReview) {
+                actions = `<button class="purchasing-text-button" type="button" data-review-order="${id}" data-review-decision="CONFIRMED">Confirm</button><button class="purchasing-text-button" type="button" data-review-order="${id}" data-review-decision="REJECTED">Reject</button><button class="purchasing-text-button" type="button" data-open-order="${id}">View</button>`;
+            } else {
+                actions = `<button class="purchasing-text-button" type="button" data-open-order="${id}">View LPO</button>`;
+            }
+            return `<tr>
+                <td><strong>#${id}</strong></td>
+                <td>${escapeHtml(formatDate(order.order_date))}</td>
+                <td>${escapeHtml(party || "Unknown organisation")}</td>
+                <td>${escapeHtml(order.branch_name || "Not specified")}</td>
+                <td>${lines} lines<span class="purchasing-product-subtitle">${units.toLocaleString("en-KE")} units</span></td>
+                <td>${money(order.order_value)}</td>
+                <td>${escapeHtml(formatDate(order.expected_delivery_date))}</td>
+                <td><span class="${statusClass(order.status)}">${escapeHtml(statusLabel(order.status))}</span></td>
+                <td><div class="purchasing-action-group">${actions}</div></td>
+            </tr>`;
+        }).join("");
+    }
+
+    function detailValue(label, value) {
+        return `<div><span class="purchasing-detail-label">${escapeHtml(label)}</span><span class="purchasing-detail-value">${escapeHtml(value || "Not specified")}</span></div>`;
+    }
+
+    let currentPrintOrderData = null;
+
+    async function printCurrentLpo() {
+        if (!currentPrintOrderData || !currentPrintOrderData.order) {
+            window.alert("Open an LPO before saving it as a PDF.");
+            return;
+        }
+
+        const order = currentPrintOrderData.order;
+        const items = Array.isArray(currentPrintOrderData.items)
+            ? currentPrintOrderData.items
+            : [];
+
+        if (items.length === 0) {
+            window.alert("This LPO has no products to print.");
+            return;
+        }
+
+        if (!window.nexoraDesktop ||
+            typeof window.nexoraDesktop.saveLpoPdf !== "function") {
+            window.alert("The desktop PDF service is unavailable. Restart ChainBridge.");
+            return;
+        }
+
+        const safe = value => escapeHtml(
+            value === null || value === undefined ? "" : String(value)
+        );
+
+        const organisationName = safe(
+            order.organization_name ||
+            order.retailer_name ||
+            "ORGANISATION NAME NOT SET"
+        );
+
+        const organisationLocation = safe(order.organization_location || "");
+        const organisationPhone = safe(order.organization_phone || "");
+        const contactLine = [
+            organisationLocation,
+            organisationPhone ? "TEL: " + organisationPhone : ""
+        ].filter(Boolean).join(", ");
+
+        const lpoNumber = safe(order.lpo_number || "");
+        const orderDate = safe(
+            order.order_date ? formatDate(order.order_date) : ""
+        );
+        const validUntil = safe(
+            order.lpo_valid_until ? formatDate(order.lpo_valid_until) : ""
+        );
+        const supplierName = safe(order.supplier_name || "");
+        const supplierAddress = safe(order.supplier_address || "");
+        const supplierPhone = safe(order.supplier_phone || "");
+        const preparedBy = safe(order.prepared_by || "");
+        const checkedBy = safe(order.checked_by || "");
+        const printedOn = safe(
+            new Date().toLocaleString(undefined, { dateStyle: "full", timeStyle: "short" })
+        );
+
+        const pageSize = 30;
+        const pageCount = Math.ceil(items.length / pageSize);
+        const productCount = items.length.toFixed(2);
+
+        let root = document.getElementById("lpoPrintRoot");
+
+        if (!root) {
+            root = document.createElement("div");
+            root.id = "lpoPrintRoot";
+            document.body.appendChild(root);
+        }
+
+        root.innerHTML = Array.from({ length: pageCount }, (_, pageIndex) => {
+            const pageItems = items.slice(
+                pageIndex * pageSize,
+                (pageIndex + 1) * pageSize
+            );
+
+            const rows = pageItems.map((item, rowIndex) => {
+                const lineNumber = pageIndex * pageSize + rowIndex + 1;
+                const code = item.lpo_code || item.product_code || item.barcode || "";
+                const quantity = item.quantity_ordered ?? "";
+                const packing = item.pack_size || item.packaging_description || "";
+                const packs = item.packs_ordered ?? item.packs ?? quantity;
+                const unit = item.unit_of_measure || item.unit || "";
+
+                return `
+                    <tr>
+                        <td class="lpo-line">${lineNumber}</td>
+                        <td>${safe(code)}</td>
+                        <td>${safe(item.product_name || "")}</td>
+                        <td>${safe(packing)}</td>
+                        <td>${safe(packs)}</td>
+                        <td>${safe(quantity)}</td>
+                        <td>${safe(unit)}</td>
+                    </tr>`;
+            }).join("");
+
+            return `
+                <section class="lpo-print-page">
+                    <header class="lpo-print-header">
+                        <div class="lpo-header-issuer">
+                            <h1>${organisationName}</h1>
+                            <p>${contactLine}</p>
+                            <h2>LOCAL PURCHASE ORDER</h2>
+                        </div>
+                        <div class="lpo-header-number">
+                            <strong>LOCAL PURCHASE ORDER No:</strong>
+                            <span>${lpoNumber}</span>
+                        </div>
+                    </header>
+
+                    <section class="lpo-supplier-section">
+                        <div class="lpo-supplier">
+                            <p><strong>A/c:</strong> __________________</p>
+                            <p class="lpo-supplier-name">${supplierName}</p>
+                            <p>${supplierAddress}</p>
+                            <p>${supplierPhone}</p>
+                        </div>
+
+                        <div class="lpo-print-meta">
+                            <div><strong>DATE:</strong><span>${orderDate}</span></div>
+                            <div><strong>OUR REF:</strong><span>________________</span></div>
+                            <div><strong>VALIDITY:</strong><span>${validUntil}</span></div>
+                            <div><strong>PAGE No:</strong><span>${pageIndex + 1}</span></div>
+                        </div>
+                    </section>
+
+                    <table class="lpo-item-table">
+                        <colgroup>
+                            <col style="width:6%">
+                            <col style="width:13%">
+                            <col style="width:32%">
+                            <col style="width:18%">
+                            <col style="width:9%">
+                            <col style="width:11%">
+                            <col style="width:11%">
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <th>LN</th>
+                                <th>CODE</th>
+                                <th>DESCRIPTION</th>
+                                <th>PACKING</th>
+                                <th>PACKS</th>
+                                <th>QTY</th>
+                                <th>UNIT</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+
+                    <footer class="lpo-print-footer">
+                        <div class="lpo-terms-row">
+                            <strong>TERMS</strong>
+                            <span class="lpo-terms-line"></span>
+                            <strong>No. of products: ${productCount}</strong>
+                        </div>
+
+                        <div class="lpo-approval-grid">
+                            <div>
+                                <strong>Prepared By:</strong>
+                                <span class="lpo-signature-name">${preparedBy}</span>
+                            </div>
+                            <div>
+                                <strong>Checked By:</strong>
+                                <span class="lpo-signature-name">${checkedBy}</span>
+                            </div>
+                            <div>
+                                <strong>Authorised By:</strong>
+                                <span class="lpo-signature-name">${preparedBy}</span>
+                            </div>
+                        </div>
+
+                        <div class="lpo-approval-date-row">
+                            <span>Date: ${orderDate}</span>
+                            <span>Date: ____________</span>
+                            <span>Date: ____________</span>
+                        </div>
+                        <div class="lpo-signature-row">
+                            <span>Sign: ____________</span>
+                            <span>Sign: ____________</span>
+                            <span>Sign: ____________</span>
+                        </div>
+
+                        <div class="lpo-goods-heading">GOODS RETURNED DETAILS</div>
+                        <div class="lpo-goods-grid">
+                            <span>GRT No: ______________</span>
+                            <span>PICKED BY: ______________</span>
+                            <span>VEHICLE REG No: ______________</span>
+                            <span>SIGN/ID: ______________</span>
+                        </div>
+
+                        <div class="lpo-printed-line">
+                            <span>Printed By: ${preparedBy}</span>
+                            <span>Page ${pageIndex + 1}</span>
+                            <span>Printed on: ${printedOn}</span>
+                        </div>
+                    </footer>
+                </section>`;
+        }).join("");
+
+        document.body.classList.add("lpo-print-active");
+
+        try {
+            const result = await window.nexoraDesktop.saveLpoPdf(
+                order.lpo_number || order.supply_order_id
+            );
+
+            if (!result || result.canceled) return;
+
+            if (!result.saved) {
+                throw new Error("The PDF file could not be saved.");
+            }
+
+            window.alert("LPO PDF saved to:\n" + result.filePath);
+        } catch (error) {
+            window.alert(
+                "Unable to save the LPO PDF: " +
+                (error && error.message ? error.message : String(error))
+            );
+        } finally {
+            document.body.classList.remove("lpo-print-active");
+            const printRoot = document.getElementById("lpoPrintRoot");
+            if (printRoot) printRoot.remove();
+        }
+    }
+    function renderOrderDetail(data) {
+        currentPrintOrderData = data;
+        const order = data.order;
+        const items = Array.isArray(data.items) ? data.items : [];
+        byId("orderDetailHeading").textContent = `LPO #${order.lpo_number || order.supply_order_id}`;
+        byId("orderDetailDescription").textContent = `${order.retailer_name || "Retailer"} â†’ ${order.supplier_name || "Supplier"}`;
+        byId("orderDetailMeta").innerHTML = [
+            detailValue("Order date", formatDate(order.order_date)),
+            detailValue("Expected delivery", formatDate(order.expected_delivery_date)),
+            detailValue("Deliver to branch", order.branch_name),
+            detailValue("Status", statusLabel(order.status)),
+            detailValue("Estimated value", money(order.order_value))
+        ].join("");
+
+        const body = byId("orderDetailItemsBody");
+        if (!items.length) {
+            body.innerHTML = '<tr><td colspan="5" class="purchasing-empty-cell">No lines</td></tr>';
+        } else {
+            body.innerHTML = items.map(item => {
+                const quantity = Number(item.quantity_ordered) || 0;
+                const pricing = taxBreakdown(item.unit_price, item.price_basis, item.tax_category);
+                const subtotal = quantity * (pricing ? pricing.afterTax : Number(item.unit_price || 0));
+                return `<tr>
+                    <td><div class="purchasing-product-title">${escapeHtml(item.product_name)}</div>
+                        <span class="purchasing-product-subtitle">Package version: ${item.product_version_id ? Number(item.product_version_id) : "Not captured"}</span></td>
+                    <td>${quantity.toLocaleString("en-KE")}</td>
+                    <td>${Number(item.quantity_received || 0).toLocaleString("en-KE")}</td>
+                                        <td>${pricing ? `<span class="purchasing-product-subtitle">Before tax: ${money(pricing.beforeTax)}</span><span class="purchasing-product-subtitle">Tax (${Math.round(pricing.rate * 100)}%): ${money(pricing.tax)}</span><span class="purchasing-product-subtitle">After tax: ${money(pricing.afterTax)}</span>` : "Tax classification missing"}<span class="purchasing-product-subtitle">${escapeHtml(priceBasisLabel(item.price_basis))}</span></td>
+                    <td class="purchasing-row-total">${money(subtotal)}</td>
+                </tr>`;
+            }).join("");
+        }
+        byId("orderDetailSection").hidden = false;
+        byId("orderDetailSection").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    async function openOrderDetail(orderId) {
+        const requestId = ++state.detailRequest;
+        byId("orderDetailSection").hidden = false;
+        byId("orderDetailHeading").textContent = `LPO #${Number(orderId)}`;
+        byId("orderDetailDescription").textContent = "Loading LPO detailsâ€¦";
+        byId("orderDetailMeta").innerHTML = "";
+        byId("orderDetailItemsBody").innerHTML = '<tr><td colspan="5" class="purchasing-empty-cell">Loading linesâ€¦</td></tr>';
+        try {
+            const data = await fetchData(`purchasing/order-detail.php?orderId=${encodeURIComponent(orderId)}`, "Unable to load this LPO.");
+            if (requestId !== state.detailRequest) return;
+            renderOrderDetail(data);
+        } catch (error) {
+            if (requestId !== state.detailRequest) return;
+            byId("orderDetailDescription").textContent = error.message;
+            byId("orderDetailItemsBody").innerHTML = '<tr><td colspan="5" class="purchasing-empty-cell">LPO details could not be loaded.</td></tr>';
+        }
+    }
+
+    async function refreshData(branchId = "", quiet = false, supplierId = currentSupplierId()) {
+        const queryBranch = branchId || (isRetailer() ? currentBranchId() : "");
+        const queryParts = [];
+        if (queryBranch) queryParts.push(`branchId=${encodeURIComponent(queryBranch)}`);
+        const requestedSupplierId = (isRetailer() || isSupplierBuyer()) ? String(supplierId || "") : "";
+        if (requestedSupplierId) queryParts.push(`supplierId=${encodeURIComponent(requestedSupplierId)}`);
+        const query = queryParts.length ? `?${queryParts.join("&")}` : "";        try {
+            const data = await fetchData(`purchasing/orders-list.php${query}`, "Unable to load purchasing information.");
+            const selectedSupplier = currentSupplierId();
+            state.data = data;
+            state.organizationType = data.organization_type || state.organizationType;
+            renderBranches(data.branches, queryBranch);
+            renderSuppliers(data.suppliers, selectedSupplier);
+            applyAccountMode();
+            renderCatalogue();
+            renderOrders();
+            if (!quiet) setStatus("", "");
+            return true;
+        } catch (error) {
+            if (!quiet) setStatus(error.message || "Purchasing information could not be loaded.", "error");
+            byId("ordersBody").innerHTML = '<tr><td colspan="9" class="purchasing-empty-cell">Refresh to try loading purchase orders again.</td></tr>';
+            return false;
+        }
+    }
+
+        function applyAccountMode() {
+        const retailer = isRetailer();
+        const supplierBuyer = isSupplierBuyer();
+        const manufacturer = state.organizationType === "MANUFACTURER";
+        byId("newLpoButton").hidden = !retailer;
+        document.querySelectorAll("[data-retailer-only]").forEach(button => { button.hidden = !retailer; });
+        document.querySelectorAll("[data-ordering-only]").forEach(button => { button.hidden = !(retailer || supplierBuyer); });
+        document.querySelectorAll("[data-supplier-only]").forEach(button => { button.hidden = !supplierBuyer; });
+        const createNavButton = document.querySelector('[data-view="create"]');
+        if (createNavButton) createNavButton.hidden = !(retailer || supplierBuyer);
+        const branchField = byId("branchField");
+        if (branchField) branchField.hidden = !retailer;
+        const supplierLabel = document.querySelector('label[for="purchaseSupplier"]');
+        if (supplierLabel) supplierLabel.textContent = supplierBuyer ? "Manufacturer account" : "Supplier account";
+        const registerButton = document.querySelector('[data-view="register"]');
+        if (registerButton) {
+            registerButton.title = manufacturer ? "Incoming LPOs" : supplierBuyer ? "Incoming LPOs" : "LPO Register";
+            registerButton.setAttribute("aria-label", registerButton.title);
+        }
+        const documentsGroup = document.querySelector(".purchasing-nav-group-documents");
+        if (documentsGroup && manufacturer) documentsGroup.hidden = true;
+        byId("purchasingSubtitle").textContent = retailer
+            ? "Retailer orders to approved suppliers."
+            : supplierBuyer
+                ? "Verify retailer orders and create purchase orders to manufacturers."
+                : "Review and verify incoming supplier purchase orders.";
+        if (!retailer && !supplierBuyer && ["create", "drafts", "outgoing", "receiving", "returns", "consignment", "documents"].includes(state.view)) {
+            state.view = "register";
+        }
+        if (supplierBuyer && ["receiving", "returns"].includes(state.view)) state.view = "register";
+    }
+    function fitCreateWorkspace() {
+        const page = document.querySelector(".purchasing-page");
+        const createView = byId("createView");
+        if (!page || !createView) return;
+
+        if (createView.hidden) {
+            page.classList.remove("purchasing-create-workspace");
+            page.style.removeProperty("height");
+            page.style.removeProperty("max-height");
+            page.style.removeProperty("min-height");
+            page.style.removeProperty("overflow");
+            return;
+        }
+
+        page.classList.add("purchasing-create-workspace");
+        const pageTop = Math.max(0, page.getBoundingClientRect().top);
+        let visibleBottom = window.innerHeight;
+        const footerCandidates = document.querySelectorAll(
+            "footer, [role='contentinfo'], .app-footer, .shell-footer, .session-footer, .page-footer, #appFooter, #footer"
+        );
+
+        for (const footer of footerCandidates) {
+            if (page.contains(footer)) continue;
+            const rect = footer.getBoundingClientRect();
+            if (rect.height <= 0 || rect.width <= 0 || rect.top <= pageTop) continue;
+            const style = window.getComputedStyle(footer);
+            const isFixed = style.position === "fixed" || style.position === "sticky";
+            const touchesViewportBottom = rect.bottom >= window.innerHeight - Math.max(8, Math.min(rect.height / 2, 80));
+            if ((isFixed || touchesViewportBottom) && rect.top < visibleBottom) {
+                visibleBottom = Math.max(pageTop, rect.top);
+            }
+        }
+
+        const availableHeight = Math.max(0, Math.floor(visibleBottom - pageTop - 4));
+        page.style.height = `${availableHeight}px`;
+        page.style.maxHeight = `${availableHeight}px`;
+        page.style.minHeight = "0";
+        page.style.overflow = "hidden";
+    }
+
+    window.addEventListener("resize", fitCreateWorkspace);
+    window.addEventListener("orientationchange", fitCreateWorkspace);
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", fitCreateWorkspace);
+    }
+    function activateView(view) {
+        state.view = view;
+        document.querySelectorAll("[data-view]").forEach(button => {
+            const active = button.dataset.view === view;
+            button.classList.toggle("is-active", active);
+            if (active) button.setAttribute("aria-current", "page");
+            else button.removeAttribute("aria-current");
+        });
+        byId("createView").hidden = view !== "create";
+        byId("ordersView").hidden = !["register", "drafts", "outgoing"].includes(view);
+        byId("placeholderView").hidden = !["receiving", "returns", "consignment", "documents"].includes(view);
+        byId("orderDetailSection").hidden = true;
+        fitCreateWorkspace();
+        if (view === "create") {
+            renderCatalogue();
+            updateSummary();
+        } else if (["register", "drafts", "outgoing"].includes(view)) {
+            renderOrders();
+        } else {
+            const configs = {
+                receiving: ["", "Goods Received Notes", ""],
+                returns: ["", "Goods Returned Notes", ""],
+                consignment: ["", "Consignment Notes", ""],
+                documents: ["", "Supplier Documents", ""]
+            };
+            const [icon, heading, description] = configs[view];
+            byId("placeholderIcon").hidden = true;
+            byId("placeholderHeading").textContent = heading;
+            byId("placeholderDescription").textContent = description;
+        }
+    }
+
+        async function changeView(view) {
+        if (view === "create" && !canCreateLpo()) return;
+        if (view === "drafts" && !canCreateLpo()) return;
+        if (view === "outgoing" && !isSupplierBuyer()) return;
+        if (!isRetailer() && ["receiving", "returns"].includes(view)) return;
+        if (state.saveTimer) { clearTimeout(state.saveTimer); state.saveTimer = null; }
+        if (state.modified && canCreateLpo() && currentSupplierId() && (isSupplierBuyer() || currentBranchId())) {
+            const saved = await saveDraft(true);
+            if (!saved) return;
+        }
+        if (view === "create") { await startNewLpo(); return; }
+        activateView(view);
+        if (["register", "drafts", "outgoing"].includes(view)) {
+            await refreshData(currentBranchId(), true, currentSupplierId());
+            renderOrders();
+        }
+    }
+
+        async function startNewLpo() {
+        if (!canCreateLpo() || state.saving || state.submitting) return;
+        if (state.saveTimer) { clearTimeout(state.saveTimer); state.saveTimer = null; }
+        if (state.modified && currentSupplierId() && (isSupplierBuyer() || currentBranchId())) {
+            const saved = await saveDraft(true);
+            if (!saved) return;
+        }
+        state.draftId = null;
+        state.items = [];
+        state.modified = false;
+        if (byId("expectedDeliveryDate")) byId("expectedDeliveryDate").value = "";
+        byId("productSearch").value = "";
+        renderBranches(state.data ? state.data.branches : [], currentBranchId());
+        renderSuppliers(state.data ? state.data.suppliers : [], "");
+        activateView("create");
+        setStatus("", "");
+        updateSummary();
+    }
+
+        async function continueDraft(orderId) {
+        if (!canCreateLpo()) return;
+        if (state.saveTimer) { clearTimeout(state.saveTimer); state.saveTimer = null; }
+        if (state.modified && currentSupplierId() && (isSupplierBuyer() || currentBranchId())) {
+            const saved = await saveDraft(true);
+            if (!saved) return;
+        }
+        try {
+            const detail = await fetchData(`purchasing/order-detail.php?orderId=${encodeURIComponent(orderId)}`, "Unable to open this draft.");
+            if (detail.order.status !== "DRAFT") throw new Error("This LPO is no longer an editable draft.");
+            const requiredDirection = isSupplierBuyer() ? "SUPPLIER_TO_MANUFACTURER" : "RETAILER_TO_SUPPLIER";
+            if ((detail.order.order_direction || "RETAILER_TO_SUPPLIER") !== requiredDirection) throw new Error("This draft belongs to a different purchasing workflow.");
+            state.draftId = Number(detail.order.supply_order_id);
+            await refreshData(String(detail.order.branch_id || ""), true, String(detail.order.supplier_id || ""));
+            if (isRetailer()) byId("purchaseBranch").value = String(detail.order.branch_id || "");
+            byId("purchaseSupplier").value = String(detail.order.supplier_id || "");
+            state.items = (detail.items || []).map(item => {
+                const current = currentProducts().find(product =>
+                    String(product.product_id) === String(item.product_id) &&
+                    String(product.product_version_id) === String(item.product_version_id) &&
+                    (isSupplierBuyer()
+                        ? String(product.source_product_price_id || "") === String(item.source_product_price_id || "")
+                        : String(product.supplier_product_offer_id || "") === String(item.supplier_product_offer_id || ""))
+                );
+                return {
+                    product_id: Number(item.product_id),
+                    product_version_id: Number(item.product_version_id),
+                    supplier_product_offer_id: item.supplier_product_offer_id == null ? null : Number(item.supplier_product_offer_id),
+                    source_product_price_id: item.source_product_price_id == null ? null : Number(item.source_product_price_id),
+                    product_name: item.product_name,
+                    quantity: Number(item.quantity_ordered),
+                    unit_price: Number(item.unit_price || 0),
+                    price_basis: item.price_basis || null,
+                    tax_category: item.tax_category || null,
+                    minimum_order_quantity: current ? (Number(current.minimum_order_quantity) || 1) : 1,
+                    order_multiple: current ? Math.max(1, Number(current.order_multiple) || 1) : 1
+                };
+            });
+            state.modified = false;
+            activateView("create");
+            renderCatalogue();
+            updateSummary();
+            setStatus(`Draft LPO #${state.draftId} loaded.`, "success");
+        } catch (error) {
+            setStatus(error.message || "Unable to open this draft.", "error");
+        }
+    }
+
+        async function submitLpo() {
+        if (!canCreateLpo() || state.saving || state.submitting) return;
+        if (!state.items.length) { setStatus("Enter a quantity for at least one product before submitting the LPO.", "error"); return; }
+        if (!currentSupplierId() || (isRetailer() && !currentBranchId())) {
+            setStatus(isSupplierBuyer() ? "Choose a manufacturer before submitting the LPO." : "Choose a branch and supplier before submitting the LPO.", "error");
+            return;
+        }
+        if (state.items.some(item => !itemIsValid(item))) { setStatus("Correct the quantities that do not meet their minimums or order multiples.", "error"); return; }
+        if (hasStaleDraftLines()) { setStatus("A saved product price has changed. Remove or reselect the affected line before submitting.", "error"); return; }
+        if (state.saveTimer) { clearTimeout(state.saveTimer); state.saveTimer = null; }
+        if (state.modified || !state.draftId) {
+            const saved = await saveDraft(true, true);
+            if (!saved) return;
+        }
+        state.submitting = true;
+        updateButtons();
+        try {
+            const endpoint = isSupplierBuyer() ? "purchasing/supplier-order-submit.php" : "purchasing/order-submit.php";
+            const result = unwrap(await postJson(endpoint, { orderId: Number(state.draftId) }), "Unable to submit the LPO.");
+            const submittedId = Number(result.supply_order_id || state.draftId);
+            state.draftId = null;
+            state.items = [];
+            state.modified = false;
+            await refreshData(currentBranchId(), true, currentSupplierId());
+            activateView(isSupplierBuyer() ? "outgoing" : "register");
+            renderOrders();
+            setStatus(isSupplierBuyer() ? `LPO #${submittedId} submitted to the manufacturer.` : `LPO #${submittedId} submitted to the supplier. Inventory has not changed; goods must be received separately.`, "success");
+        } catch (error) {
+            setStatus(error.message || "Unable to submit the LPO.", "error");
+        } finally {
+            state.submitting = false;
+            updateButtons();
+        }
+    }
+
+
+    async function reviewOrder(orderId, decision) {
+        if (!isSupplierBuyer() && state.organizationType !== "MANUFACTURER" && state.organizationType !== "MANUFACTURER_SUPPLIER") return;
+        try {
+            const reason = decision === "REJECTED" ? "Rejected after LPO review." : "";
+            const result = unwrap(await postJson("purchasing/order-review.php", {
+                orderId: Number(orderId), decision, reason
+            }), "Unable to verify the LPO.");
+            setStatus(result.message || "LPO updated.", "success");
+            await refreshData(currentBranchId(), true, currentSupplierId());
+            renderOrders();
+        } catch (error) {
+            setStatus(error.message || "Unable to verify the LPO.", "error");
+        }
+    }
+    byId("newLpoButton").addEventListener("click", startNewLpo);
+    document.querySelectorAll("[data-view]").forEach(button => {
+        button.addEventListener("click", () => changeView(button.dataset.view));
+    });
+
+    byId("purchaseBranch").addEventListener("change", async event => {
+        if (state.draftId) return;
+        state.items = [];
+        state.modified = false;
+        byId("productSearch").value = "";
+        await refreshData(event.target.value, true, currentSupplierId());
+        activateView("create");
+    });
+
+    byId("purchaseSupplier").addEventListener("change", async () => {
+        if (state.draftId) return;
+        state.items = [];
+        state.modified = false;
+        const loaded = await refreshData(currentBranchId(), false, currentSupplierId());
+        if (!loaded) {
+            return;
+        }
+        renderCatalogue();
+        updateSummary();
+        setStatus("Supplier catalogue loaded. Enter quantities directly beside the products you need.", "");
+    });
+
+    byId("productSearch").addEventListener("input", renderCatalogue);
+
+    byId("catalogueBody").addEventListener("input", event => {
+        const input = event.target.closest("[data-catalogue-quantity]");
+        if (!input || input.disabled) return;
+        const productId = Number(input.dataset.catalogueQuantity);
+        const productGroup = groupedProducts().find(group => Number(group.product.product_id) === productId);
+        if (!productGroup || productGroup.ambiguous) return;
+        const product = productGroup.product;
+        const quantity = input.value === "" ? 0 : Number(input.value);
+        if (!Number.isInteger(quantity) || quantity < 0 || quantity > 999999999) {
+            input.setAttribute("aria-invalid", "true");
+            return;
+        }
+
+        const existing = exactDraftItem(product);
+        const conflict = draftItemForProduct(product) && !existing;
+        if (conflict) {
+            input.value = "0";
+            return;
+        }
+
+        const minimum = Number(product.minimum_order_quantity) || 1;
+        const multiple = Math.max(1, Number(product.order_multiple) || 1);
+        if (quantity === 0) {
+            state.items = state.items.filter(item => !(String(item.product_id) === String(productId) &&
+                String(item.product_version_id) === String(product.product_version_id) &&
+                String(item.supplier_product_offer_id) === String(product.supplier_product_offer_id)));
+        } else {
+            const row = {
+                product_id: Number(product.product_id),
+                product_version_id: Number(product.product_version_id),
+            supplier_product_offer_id: isSupplierBuyer() ? null : Number(product.supplier_product_offer_id),
+            source_product_price_id: isSupplierBuyer() ? Number(product.source_product_price_id) : null,
+                product_name: product.product_name,
+                manufacturer_name: product.manufacturer_name,
+                pack_size: product.pack_size,
+                packaging_description: product.packaging_description,
+                quantity,
+                unit_price: Number(product.unit_price),
+                price_basis: product.price_basis,
+                tax_category: product.tax_category,
+                minimum_order_quantity: minimum,
+                order_multiple: multiple
+            };
+            if (existing) Object.assign(existing, row);
+            else state.items.push(row);
+        }
+
+        const current = state.items.find(item => String(item.product_id) === String(productId));
+        input.setAttribute("aria-invalid", current && !itemIsValid(current) ? "true" : "false");
+        const pricing = taxBreakdown(product.unit_price, product.price_basis, product.tax_category);
+        const beforeTaxNode = byId("catalogueBody").querySelector(`[data-row-before-tax="${productId}"]`);
+        const taxNode = byId("catalogueBody").querySelector(`[data-row-tax="${productId}"]`);
+        const totalNode = byId("catalogueBody").querySelector(`[data-row-total="${productId}"]`);
+        if (beforeTaxNode) beforeTaxNode.textContent = pricing ? money(quantity * pricing.beforeTax) : "Not available";
+        if (taxNode) taxNode.textContent = pricing ? money(quantity * pricing.tax) : "Not available";
+        if (totalNode) totalNode.textContent = pricing ? money(quantity * pricing.afterTax) : "Not available";
+        renderStaleDraftLines();
+        updateSummary();
+        scheduleAutoSave();
+    });
+
+    byId("catalogueBody").addEventListener("change", event => {
+        const input = event.target.closest("[data-catalogue-quantity]");
+        if (!input) return;
+        const productId = Number(input.dataset.catalogueQuantity);
+        const item = state.items.find(row => Number(row.product_id) === productId);
+        if (item && !itemIsValid(item)) {
+            setStatus(`${item.product_name}: order quantity must be at least ${item.minimum_order_quantity} and a multiple of ${item.order_multiple}.`, "error");
+        }
+    });
+
+    byId("staleDraftLines").addEventListener("click", event => {
+        const button = event.target.closest("[data-remove-stale]");
+        if (!button) return;
+        const productId = Number(button.dataset.removeStale);
+        state.items = state.items.filter(item => Number(item.product_id) !== productId);
+        state.modified = true;
+        renderCatalogue();
+        updateSummary();
+        scheduleAutoSave();
+    });
+
+    byId("saveDraftButton").addEventListener("click", () => saveDraft(false));
+    byId("submitOrderButton").addEventListener("click", submitLpo);
+    byId("orderSearch").addEventListener("input", renderOrders);
+    byId("refreshOrdersButton").addEventListener("click", async () => {
+        const ok = await refreshData(currentBranchId());
+        if (ok) setStatus("Purchase order register refreshed.", "success");
+    });
+
+    byId("ordersBody").addEventListener("click", event => {
+        const continueButton = event.target.closest("[data-continue-draft]");
+        if (continueButton) { continueDraft(continueButton.dataset.continueDraft); return; }
+        const reviewButton = event.target.closest("[data-review-order]");
+        if (reviewButton) { reviewOrder(reviewButton.dataset.reviewOrder, reviewButton.dataset.reviewDecision); return; }
+        const detailButton = event.target.closest("[data-open-order]");
+        if (detailButton) openOrderDetail(detailButton.dataset.openOrder);
+    });
+
+    byId("printOrderButton").addEventListener("click", printCurrentLpo);
+    byId("closeOrderDetailButton").addEventListener("click", () => {
+        state.detailRequest++;
+        byId("orderDetailSection").hidden = true;
+    });
+
+    async function start() {
+        if (!await refreshData("", true)) return;
+        if (isRetailer()) activateView("register");
+        else activateView("register");
+        renderOrders();
+    }
+
+    start();
+})();

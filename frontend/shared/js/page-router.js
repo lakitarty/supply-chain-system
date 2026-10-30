@@ -246,6 +246,10 @@
             return;
         }
 
+        if (routeUrl.pathname.includes("/modules/purchasing/orders/")) {
+            return;
+        }
+
         const sections = activeTab?.sections ?? [];
 
         sectionBar.replaceChildren(
@@ -265,7 +269,8 @@
     function isPersistentNode(node) {
         return node.id === "shell"
             || node.tagName === "SCRIPT"
-            || node.classList?.contains("desktop-notice");
+            || node.classList?.contains("desktop-notice")
+            || node.classList?.contains("shell-status-footer");
     }
 
     async function renderRoute(value, addHistory) {

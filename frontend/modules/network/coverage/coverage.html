@@ -15,7 +15,7 @@
         <header class="coverage-page-header">
             <div>
                 <h1 class="page-title">Supplier coverage</h1>
-                <p class="coverage-intro">Declare the counties your organisation can serve. Coverage does not authorize distribution of a specific product; manufacturers manage product appointments separately.</p>
+                <p class="coverage-intro">Set the counties you serve. Coverage alone does not authorize product distribution; manufacturers manage product appointments separately.</p>
             </div>
             <span id="coverageCount" class="coverage-count">0 records</span>
         </header>
@@ -27,7 +27,13 @@
             <form id="coverageForm" novalidate>
                 <div class="coverage-form-grid">
                     <div class="form-group">
-                        <label for="areaId">County</label>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px">
+    <label for="areaId" style="margin:0">County</label>
+    <label for="selectAllCounties" style="display:flex;align-items:center;gap:6px;margin:0;font-weight:normal;cursor:pointer">
+        <input type="checkbox" id="selectAllCounties" style="width:auto;margin:0">
+        Select all counties
+    </label>
+</div>
                         <select id="areaId" required>
                             <option value="">Loading counties...</option>
                         </select>
@@ -39,7 +45,7 @@
                     <div class="form-group">
                         <label for="endDate">Effective until <span class="optional">(optional)</span></label>
                         <input type="date" id="endDate">
-                        <p class="field-hint">Leave blank if there is no planned end date.</p>
+                        <p class="field-hint">Leave blank for no planned end date.</p>
                     </div>
                 </div>
                 <div class="coverage-form-actions">
@@ -52,7 +58,7 @@
             <div class="coverage-section-header">
                 <div>
                     <h2 id="coverageHistoryTitle">Coverage history</h2>
-                    <p>Ended coverage stays here for reference and audit history.</p>
+                    <p>Ended coverage is retained for audit history.</p>
                 </div>
                 <button type="button" class="secondary-button" id="refreshCoverageButton">Refresh</button>
             </div>

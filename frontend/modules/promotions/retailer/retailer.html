@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <link rel="stylesheet" href="retailer.css">
+    <title>Branch Promotions | ChainBridge</title>
+</head>
+<body>
+    <div id="shell"></div>
+    <main class="page retailer-promotions-page">
+        <div class="retailer-promo-toolbar">
+            <h1>My branch promotions</h1>
+            <div class="retailer-promo-toolbar-actions">
+                <button id="retailerPromotionRefresh" class="secondary-button" type="button">Refresh</button>
+                <button id="retailerPromotionNew" class="primary-button" type="button">New promotion</button>
+            </div>
+        </div>
+        <p id="retailerPromotionStatus" class="retailer-promo-message" role="status" aria-live="polite" hidden></p>
+        <div class="retailer-promo-workspace">
+            <aside class="retailer-promo-index" aria-label="Your promotions">
+                <div class="retailer-promo-index-heading">Promotions</div>
+                <div id="retailerPromotionList" class="retailer-promo-list" aria-live="polite">
+                    <p class="retailer-promo-empty">Loading promotions…</p>
+                </div>
+            </aside>
+            <section id="retailerPromotionDetail" class="retailer-promo-detail" aria-live="polite">
+                <p class="retailer-promo-empty">Loading…</p>
+            </section>
+        </div>
+    </main>
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/form-helpers.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="../../../shared/js/page-router.js"></script>
+    <script src="retailer.js"></script>
+</body>
+</html>

@@ -168,3 +168,17 @@
     background: #c42b35 !important;
     color: #ffffff !important;
 }
+/* Compact integrated desktop title bar */
+.shell-main-row {
+    min-height: 48px !important;
+    padding-block: 4px !important;
+    box-sizing: border-box;
+}
+
+.shell-main-row #chainbridge-window-controls {
+    height: 40px !important;
+}
+
+.shell-main-row .chainbridge-window-button {
+    height: 40px !important;
+}

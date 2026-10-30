@@ -1,0 +1,140 @@
+.retailer-promotions-page,
+.retailer-promotions-page * { box-sizing: border-box; }
+
+.retailer-promotions-page {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    margin: 0;
+    padding: 12px 22px 14px;
+    display: flex;
+    flex-direction: column;
+    color: #111111;
+    background: #FFFFFF;
+    overflow: hidden;
+}
+
+.retailer-promo-toolbar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 0 0 12px;
+}
+
+.retailer-promo-toolbar h1 {
+    margin: 0;
+    color: #111111;
+    font-size: 20px;
+    font-weight: 650;
+    letter-spacing: -0.35px;
+}
+
+.retailer-promo-toolbar-actions { display: flex; gap: 8px; align-items: center; }
+.retailer-promo-toolbar button,
+.retailer-promotion-actions button,
+.retailer-promo-editor button {
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 4px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.retailer-promotions-page .primary-button { background: #0F766E; border: 1px solid #0F766E; color: #FFFFFF; }
+.retailer-promotions-page .secondary-button { background: #FFFFFF; border: 1px solid #C9D3D0; color: #111111; }
+.retailer-promotions-page button:focus-visible,
+.retailer-promotions-page input:focus-visible,
+.retailer-promotions-page select:focus-visible,
+.retailer-promotions-page textarea:focus-visible { outline: 2px solid #0F766E; outline-offset: 2px; }
+
+.retailer-promo-message { flex: 0 0 auto; margin: 0 0 10px; color: #111111; font-size: 12px; }
+.retailer-promo-message.is-success { color: #166342; }
+.retailer-promo-message.is-error { color: #B42318; }
+.retailer-promo-message[hidden] { display: none !important; }
+
+.retailer-promo-workspace {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(220px, 24%) minmax(0, 1fr);
+    border: 1px solid #D6DEDA;
+    overflow: hidden;
+}
+.retailer-promo-index { min-width: 0; min-height: 0; display: flex; flex-direction: column; border-right: 1px solid #D6DEDA; overflow: hidden; }
+.retailer-promo-index-heading { flex: 0 0 auto; padding: 12px 14px; color: #111111; font-size: 12px; font-weight: 650; }
+.retailer-promo-list { min-height: 0; overflow-y: auto; }
+.retailer-promo-list-item {
+    display: block;
+    width: 100%;
+    min-height: 58px;
+    padding: 10px 14px;
+    border: 0;
+    border-left: 3px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    color: #111111;
+    text-align: left;
+    cursor: pointer;
+}
+.retailer-promo-list-item:hover { background: #F6F9F7; }
+.retailer-promo-list-item[aria-current="true"] { border-left-color: #0F766E; background: #F0F7F4; }
+.retailer-promo-list-name { display: block; color: #111111; font-size: 13px; font-weight: 600; line-height: 1.4; }
+.retailer-promo-list-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; color: #111111; font-size: 11px; }
+
+.retailer-promo-detail { min-width: 0; min-height: 0; padding: 16px 20px; overflow: auto; background: #FFFFFF; }
+.retailer-promo-detail-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.retailer-promo-detail h2 { margin: 0; color: #111111; font-size: 18px; font-weight: 650; letter-spacing: -0.25px; }
+.retailer-promo-detail-meta { display: flex; flex-wrap: wrap; gap: 18px 28px; margin: 12px 0 16px; }
+.retailer-promo-detail-meta span { display: block; color: #111111; font-size: 11px; }
+.retailer-promo-detail-meta strong { display: block; margin-top: 3px; color: #111111; font-size: 13px; font-weight: 600; }
+.retailer-promo-section-title { margin: 18px 0 8px; color: #111111; font-size: 12px; font-weight: 650; }
+.retailer-promo-table-wrap { width: 100%; overflow: auto; }
+.retailer-promo-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.retailer-promo-table th,
+.retailer-promo-table td { padding: 9px 10px; border: 0; color: #111111; text-align: left; vertical-align: middle; }
+.retailer-promo-table th { font-size: 10px; font-weight: 650; }
+.retailer-promo-table .money { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.retailer-promo-table td.money { font-weight: 550; }
+.retailer-promo-table tbody tr:hover td { background: #F6F9F7; }
+.retailer-promo-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.retailer-promo-actions .danger-button { color: #B42318; background: #FFFFFF; border: 1px solid #D8B5B2; }
+.retailer-promo-empty { margin: 0; padding: 12px 14px; color: #111111; font-size: 12px; }
+.retailer-promo-status-text { display: inline-flex; align-items: center; gap: 6px; color: #111111; font-size: 11px; font-weight: 550; white-space: nowrap; }
+.retailer-promo-status-text::before { content: ""; width: 6px; height: 6px; flex: 0 0 6px; border-radius: 50%; background: #7D8883; }
+.retailer-promo-status-text.is-active::before { background: #16835D; }
+.retailer-promo-status-text.is-scheduled::before { background: #C28A18; }
+.retailer-promo-status-text.is-cancelled::before { background: #B42318; }
+.retailer-promo-status-text.is-completed::before { background: #64716B; }
+
+.retailer-promo-editor { display: flex; flex-direction: column; gap: 14px; }
+.retailer-promo-fields { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(150px, 1fr) minmax(150px, 1fr); gap: 12px 16px; }
+.retailer-promo-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.retailer-promo-field label { color: #111111; font-size: 11px; font-weight: 600; }
+.retailer-promo-field input,
+.retailer-promo-field select,
+.retailer-promo-field textarea { width: 100%; min-width: 0; min-height: 34px; padding: 7px 9px; border: 1px solid #C9D3D0; border-radius: 3px; background: #FFFFFF; color: #111111; font: inherit; font-size: 12px; }
+.retailer-promo-field input[readonly] { background: #FFFFFF; border-color: #E2E7E4; }
+.retailer-promo-field textarea { min-height: 56px; resize: vertical; }
+.retailer-promo-item-entry { display: grid; grid-template-columns: minmax(150px, 0.8fr) minmax(200px, 1.5fr) minmax(120px, 0.7fr) minmax(120px, 0.7fr) auto; align-items: end; gap: 8px; }
+.retailer-promo-item-entry .item-add { min-height: 34px; white-space: nowrap; }
+.retailer-promo-form-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.retailer-promo-remove { border: 0 !important; background: transparent !important; color: #B42318 !important; padding: 4px !important; min-height: auto !important; }
+
+@media (max-width: 980px) {
+    .retailer-promotions-page { padding: 10px; }
+    .retailer-promo-workspace { grid-template-columns: minmax(180px, 32%) minmax(0, 1fr); }
+    .retailer-promo-detail { padding: 13px; }
+    .retailer-promo-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .retailer-promo-item-entry { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 650px) {
+    .retailer-promo-toolbar { align-items: flex-start; flex-direction: column; }
+    .retailer-promo-workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(130px, 30%) minmax(0, 1fr); }
+    .retailer-promo-index { border-right: 0; border-bottom: 1px solid #D6DEDA; }
+    .retailer-promo-fields { grid-template-columns: minmax(0, 1fr); }
+    .retailer-promo-item-entry { grid-template-columns: minmax(0, 1fr); }
+}

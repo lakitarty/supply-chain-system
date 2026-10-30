@@ -1,0 +1,653 @@
+/*
+ * ChainBridge shared visual language
+ * Based on the open, information-led Products Catalogue design.
+ * Scope excludes the catalogue itself so its approved layout remains unchanged.
+ * Visual-only rules: no layout engine, routes, API calls or data logic are changed.
+ */
+
+:root {
+    --cb-workspace-ink: #17262b;
+    --cb-workspace-muted: #17262b;
+    --cb-workspace-white: #ffffff;
+    --cb-workspace-line: #dfe6e3;
+    --cb-workspace-line-soft: #edf1ef;
+    --cb-workspace-hover: #f7faf8;
+    --cb-workspace-teal: #0f766e;
+    --cb-workspace-teal-dark: #115e59;
+    --cb-workspace-teal-soft: #edf6f2;
+    --cb-workspace-amber: #a56d12;
+    --cb-workspace-amber-soft: #fff7e8;
+    --cb-workspace-red: #b42318;
+    --cb-workspace-red-soft: #fff4f2;
+    --cb-workspace-green: #176b58;
+    --cb-workspace-green-soft: #eef7f2;
+}
+
+/* White page canvas, matching the catalogue. The shared shell is untouched. */
+body:not(:has(.catalogue-container)) {
+    background: #ffffff !important;
+    color: var(--cb-workspace-ink) !important;
+}
+
+body:not(:has(.catalogue-container)) .page,
+body:not(:has(.catalogue-container)) main.page {
+    background: #ffffff !important;
+    color: var(--cb-workspace-ink) !important;
+    box-shadow: none !important;
+}
+
+/* Establish hierarchy with text and whitespace, not decorative containers. */
+body:not(:has(.catalogue-container)) .page-header,
+body:not(:has(.catalogue-container)) .page-heading,
+body:not(:has(.catalogue-container)) .section-header,
+body:not(:has(.catalogue-container)) .panel-header,
+body:not(:has(.catalogue-container)) .card-header,
+body:not(:has(.catalogue-container)) .content-header {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+body:not(:has(.catalogue-container)) .page-title,
+body:not(:has(.catalogue-container)) .page-header h1,
+body:not(:has(.catalogue-container)) .page-heading h1 {
+    color: #111111 !important;
+    font-weight: 650;
+    letter-spacing: -0.025em;
+}
+
+body:not(:has(.catalogue-container)) .page-description,
+body:not(:has(.catalogue-container)) .section-caption,
+body:not(:has(.catalogue-container)) .page-subtitle {
+    color: #111111 !important;
+}
+
+body:not(:has(.catalogue-container)) .section-title,
+body:not(:has(.catalogue-container)) .section-heading,
+body:not(:has(.catalogue-container)) .panel-title,
+body:not(:has(.catalogue-container)) .card-title,
+body:not(:has(.catalogue-container)) .table-title {
+    color: #111111 !important;
+    padding-bottom: 0 !important;
+    border-bottom: 0 !important;
+    box-shadow: none !important;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+}
+
+body:not(:has(.catalogue-container)) .page-section,
+body:not(:has(.catalogue-container)) .form-section,
+body:not(:has(.catalogue-container)) .content-section {
+    border-top: 0 !important;
+    box-shadow: none !important;
+}
+
+/* Unbox generic cards and panels. Existing spacing remains available to content. */
+body:not(:has(.catalogue-container)) .card,
+body:not(:has(.catalogue-container)) .panel,
+body:not(:has(.catalogue-container)) .content-card,
+body:not(:has(.catalogue-container)) .section-card,
+body:not(:has(.catalogue-container)) .info-card,
+body:not(:has(.catalogue-container)) .summary-card,
+body:not(:has(.catalogue-container)) .stat-card,
+body:not(:has(.catalogue-container)) .metric-card,
+body:not(:has(.catalogue-container)) .data-card,
+body:not(:has(.catalogue-container)) .form-card,
+body:not(:has(.catalogue-container)) .table-card,
+body:not(:has(.catalogue-container)) .record-card,
+body:not(:has(.catalogue-container)) .detail-card,
+body:not(:has(.catalogue-container)) .list-card,
+body:not(:has(.catalogue-container)) .workspace-card,
+body:not(:has(.catalogue-container)) .module-card,
+body:not(:has(.catalogue-container)) .finance-card,
+body:not(:has(.catalogue-container)) .account-card,
+body:not(:has(.catalogue-container)) .payment-card,
+body:not(:has(.catalogue-container)) .document-card,
+body:not(:has(.catalogue-container)) .content-panel,
+body:not(:has(.catalogue-container)) .section-panel,
+body:not(:has(.catalogue-container)) .table-panel,
+body:not(:has(.catalogue-container)) .form-panel,
+body:not(:has(.catalogue-container)) .list-panel,
+body:not(:has(.catalogue-container)) .detail-panel,
+body:not(:has(.catalogue-container)) .thread,
+body:not(:has(.catalogue-container)) .information-panel {
+    background: transparent !important;
+    border-color: transparent !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+/* Do not let nested components reintroduce grey slabs. */
+body:not(:has(.catalogue-container)) .page-section > .card,
+body:not(:has(.catalogue-container)) .page-section > .panel,
+body:not(:has(.catalogue-container)) .page-section > .content-card,
+body:not(:has(.catalogue-container)) .page-section > .section-card,
+body:not(:has(.catalogue-container)) .page-section > .content-panel,
+body:not(:has(.catalogue-container)) .page-section > .table-panel {
+    background: transparent !important;
+}
+
+/* Secondary copy and labels: dark text, not template-grey. */
+body:not(:has(.catalogue-container)) .page :is(
+    small,
+    label,
+    th,
+    dt,
+    dd,
+    .muted,
+    .text-muted,
+    .page-description,
+    .section-caption,
+    .subtitle,
+    .description,
+    .caption,
+    .footnote,
+    .hint,
+    .help-text,
+    .field-hint,
+    .form-help,
+    .message-meta,
+    .item-sub,
+    .meta-label,
+    .field-label,
+    .secondary-text,
+    .supporting-text,
+    .empty-state,
+    .empty-message
+):not([class*="status"]):not([class*="badge"]):not([class*="warning"]):not([class*="error"]):not([class*="danger"]):not([class*="success"]):not([class*="attention"]):not([class*="primary"]) {
+    color: #111111 !important;
+}
+
+body:not(:has(.catalogue-container)) .page h1,
+body:not(:has(.catalogue-container)) .page h2,
+body:not(:has(.catalogue-container)) .page h3,
+body:not(:has(.catalogue-container)) .page h4,
+body:not(:has(.catalogue-container)) .page h5,
+body:not(:has(.catalogue-container)) .page h6 {
+    color: #111111;
+}
+
+body:not(:has(.catalogue-container)) .page a:not(.btn):not(.button):not([role="button"]) {
+    color: var(--cb-workspace-teal);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+
+body:not(:has(.catalogue-container)) .page a:not(.btn):not(.button):not([role="button"]):hover {
+    color: var(--cb-workspace-teal-dark);
+}
+
+/* Inputs keep a recognizable edge. They are controls, unlike decorative cards. */
+body:not(:has(.catalogue-container)) .page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+body:not(:has(.catalogue-container)) .page select,
+body:not(:has(.catalogue-container)) .page textarea {
+    color: #111111;
+    background-color: #ffffff;
+    border-color: #dfe6e3;
+    border-radius: 4px;
+    box-shadow: none;
+}
+
+body:not(:has(.catalogue-container)) .page input::placeholder,
+body:not(:has(.catalogue-container)) .page textarea::placeholder {
+    color: #111111 !important;
+    opacity: 1;
+}
+
+body:not(:has(.catalogue-container)) .page input:focus,
+body:not(:has(.catalogue-container)) .page select:focus,
+body:not(:has(.catalogue-container)) .page textarea:focus {
+    border-color: var(--cb-workspace-teal) !important;
+    box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.10) !important;
+    outline: none;
+}
+
+body:not(:has(.catalogue-container)) .page :is(input, select, textarea, button, a):focus-visible {
+    outline-color: var(--cb-workspace-teal);
+    outline-offset: 2px;
+}
+
+/* Buttons remain functional, square-cornered and restrained, not pill-shaped. */
+body:not(:has(.catalogue-container)) .page :is(button, .btn, .button, [role="button"]) {
+    border-radius: 4px;
+    box-shadow: none;
+}
+
+body:not(:has(.catalogue-container)) .page :is(
+    .btn-primary,
+    .button-primary,
+    .primary-button,
+    button.primary,
+    button[type="submit"],
+    input[type="submit"]
+) {
+    background: var(--cb-workspace-teal);
+    border-color: var(--cb-workspace-teal);
+    color: #ffffff !important;
+}
+
+body:not(:has(.catalogue-container)) .page :is(
+    .btn-primary,
+    .button-primary,
+    .primary-button,
+    button.primary,
+    button[type="submit"],
+    input[type="submit"]
+):hover:not(:disabled) {
+    background: var(--cb-workspace-teal-dark);
+    border-color: var(--cb-workspace-teal-dark);
+}
+
+/* Open data tables: no boxed grid, very light horizontal row separators. */
+body:not(:has(.catalogue-container)) .page table {
+    width: 100%;
+    background: transparent !important;
+    border: 0 !important;
+    border-collapse: collapse;
+    box-shadow: none !important;
+}
+
+body:not(:has(.catalogue-container)) .page table thead,
+body:not(:has(.catalogue-container)) .page table th {
+    background: transparent !important;
+    color: #111111 !important;
+}
+
+body:not(:has(.catalogue-container)) .page table th {
+    border-top: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--cb-workspace-line) !important;
+    padding: 12px 13px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+}
+
+body:not(:has(.catalogue-container)) .page table td {
+    background: transparent !important;
+    color: #111111 !important;
+    border-top: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--cb-workspace-line-soft) !important;
+    padding: 13px;
+    vertical-align: middle;
+}
+
+body:not(:has(.catalogue-container)) .page table tbody tr:hover td {
+    background: var(--cb-workspace-hover) !important;
+}
+
+body:not(:has(.catalogue-container)) .page table tbody tr:last-child td {
+    border-bottom-color: transparent !important;
+}
+
+/* Plain-text status markers instead of rounded tags and filled pills. */
+body:not(:has(.catalogue-container)) .page :is(
+    .finance-status-pill,
+    .finance-status,
+    .finance-account-row-status,
+    .status-pill,
+    .status-badge,
+    .status-tag,
+    .status-chip,
+    .badge,
+    .badge-success,
+    .badge-warning,
+    .badge-danger,
+    .pill,
+    .tag
+) {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 7px;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #17262b !important;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.45;
+    white-space: normal;
+}
+
+body:not(:has(.catalogue-container)) .page :is(
+    .finance-status-pill,
+    .finance-status,
+    .finance-account-row-status,
+    .status-pill,
+    .status-badge,
+    .status-tag,
+    .status-chip,
+    .badge,
+    .badge-success,
+    .badge-warning,
+    .badge-danger,
+    .pill,
+    .tag
+)::before {
+    content: "";
+    display: inline-block;
+    flex: 0 0 6px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #87958f;
+}
+
+body:not(:has(.catalogue-container)) .page :is(
+    .finance-status-pill,
+    .finance-status,
+    .finance-account-row-status,
+    .status-pill,
+    .status-badge,
+    .status-tag,
+    .status-chip,
+    .badge,
+    .badge-success,
+    .badge-warning,
+    .badge-danger,
+    .pill,
+    .tag
+):is([class*="active"], [class*="success"], [class*="confirmed"], [class*="complete"], [class*="paid"], [class*="approved"], [class*="published"]) {
+    color: var(--cb-workspace-green) !important;
+}
+
+body:not(:has(.catalogue-container)) .page :is(
+    .finance-status-pill,
+    .finance-status,
+    .finance-account-row-status,
+    .status-pill,
+    .status-badge,
+    .status-tag,
+    .status-chip,
+    .badge,
+    .badge-success,
+    .badge-warning,
+    .badge-danger,
+    .pill,
+    .tag
+):is([class*="active"], [class*="success"], [class*="confirmed"], [class*="complete"], [class*="paid"], [class*="approved"], [class*="published"])::before {
+    background: #239579;
+}
+
+body:not(:has(.catalogue-container)) .page :is(
+    .finance-status-pill,
+    .finance-status,
+    .finance-account-row-status,
+    .status-pill,
+    .status-badge,
+    .status-tag,
+    .status-chip,
+    .badge,
+    .badge-success,
+    .badge-warning,
+    .badge-danger,
+    .pill,
+    .tag
+):is([class*="pending"], [class*="warning"], [class*="review"], [class*="draft"], [class*="awaiting"]) {
+    color: var(--cb-workspace-amber) !important;
+}
+
+body:not(:has(.catalogue-container)) .page :is(
+    .finance-status-pill,
+    .finance-status,
+    .finance-account-row-status,
+    .status-pill,
+    .status-badge,
+    .status-tag,
+    .status-chip,
+    .badge,
+    .badge-success,
+    .badge-warning,
+    .badge-danger,
+    .pill,
+    .tag
+):is([class*="pending"], [class*="warning"], [class*="review"], [class*="draft"], [class*="awaiting"])::before {
+    background: #c58a2a;
+}
+
+body:not(:has(.catalogue-container)) .page :is(
+    .finance-status-pill,
+    .finance-status,
+    .finance-account-row-status,
+    .status-pill,
+    .status-badge,
+    .status-tag,
+    .status-chip,
+    .badge,
+    .badge-success,
+    .badge-warning,
+    .badge-danger,
+    .pill,
+    .tag
+):is([class*="failed"], [class*="error"], [class*="danger"], [class*="overdue"], [class*="rejected"], [class*="blocked"], [class*="inactive"]) {
+    color: var(--cb-workspace-red) !important;
+}
+
+body:not(:has(.catalogue-container)) .page :is(
+    .finance-status-pill,
+    .finance-status,
+    .finance-account-row-status,
+    .status-pill,
+    .status-badge,
+    .status-tag,
+    .status-chip,
+    .badge,
+    .badge-success,
+    .badge-warning,
+    .badge-danger,
+    .pill,
+    .tag
+):is([class*="failed"], [class*="error"], [class*="danger"], [class*="overdue"], [class*="rejected"], [class*="blocked"], [class*="inactive"])::before {
+    background: #c43d32;
+}
+
+/* Remove redundant horizontal rules, but keep explicit alerts meaningful. */
+body:not(:has(.catalogue-container)) .page hr {
+    height: 0;
+    border: 0 !important;
+    border-top: 1px solid var(--cb-workspace-line-soft) !important;
+    background: transparent !important;
+}
+
+body:not(:has(.catalogue-container)) .page :is(.divider, .section-divider, .card-divider) {
+    border-color: transparent !important;
+    background: transparent !important;
+}
+
+body:not(:has(.catalogue-container)) .page :is(.empty-state, .empty-message, .zero-state) {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    color: #111111 !important;
+}
+
+/* Preserve warning/error surfaces and red/amber meaning. */
+body:not(:has(.catalogue-container)) .page :is(
+    .alert-warning,
+    .warning-message,
+    .dashboard-alert-warning
+) {
+    background: var(--cb-workspace-amber-soft) !important;
+    border-color: #e5c985 !important;
+    box-shadow: none !important;
+}
+
+body:not(:has(.catalogue-container)) .page :is(
+    .alert-error,
+    .error-message,
+    .form-message.error,
+    .dashboard-load-error
+) {
+    background: var(--cb-workspace-red-soft) !important;
+    border-color: #efc4c2 !important;
+    box-shadow: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body:not(:has(.catalogue-container)) .page *,
+    body:not(:has(.catalogue-container)) .page *::before,
+    body:not(:has(.catalogue-container)) .page *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+}
+/* CHAINBRIDGE COMPACT ALL-PAGES STANDARD v1 */
+/* Tighten common UI spacing while preserving each module's layout and behaviour. */
+body.shell-ready main.page {
+    min-width: 0;
+    max-width: 100%;
+    font-size: 12px !important;
+    line-height: 1.38 !important;
+}
+
+body.shell-ready main.page :is(h1, .page-title, .detail-title, .catalogue-title) {
+    margin: 0 0 5px !important;
+    font-size: 21px !important;
+    line-height: 1.2 !important;
+    font-weight: 650;
+}
+
+body.shell-ready main.page :is(h2, .section-title, .workspace-title, .panel-title, .card-title) {
+    margin-block: 0 6px !important;
+    font-size: 15px !important;
+    line-height: 1.25 !important;
+}
+
+body.shell-ready main.page :is(h3, .subsection-title, .detail-heading) {
+    margin-block: 0 5px !important;
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+}
+
+body.shell-ready main.page :is(
+    .page-header,
+    .page-heading,
+    .page-titlebar,
+    .detail-top,
+    .finance-page-header,
+    .stock-page-heading,
+    .purchasing-page-heading,
+    .conversations-heading,
+    .section-heading,
+    .panel-title-row
+) {
+    margin-block: 0 9px !important;
+    padding-block: 0 !important;
+    gap: 8px !important;
+}
+
+body.shell-ready main.page :is(
+    .page-description,
+    .page-subtitle,
+    .page-intro,
+    .section-description,
+    .workspace-description,
+    .panel-description,
+    .help-text
+) {
+    margin-block: 2px 7px !important;
+    font-size: 11px !important;
+    line-height: 1.3 !important;
+}
+
+body.shell-ready main.page :is(
+    .workspace-card,
+    .detail-card,
+    .list-card,
+    .module-card,
+    .finance-card,
+    .account-card,
+    .panel-card,
+    .content-card,
+    .summary-card,
+    .stat-card,
+    .form-card,
+    .table-card
+) {
+    padding: 11px !important;
+    margin-block: 0 9px !important;
+    gap: 9px !important;
+    border-radius: 4px !important;
+}
+
+body.shell-ready main.page :is(
+    .page-toolbar,
+    .table-toolbar,
+    .filter-bar,
+    .filters-row,
+    .action-bar,
+    .section-actions,
+    .catalogue-toolbar
+) {
+    gap: 7px !important;
+    margin-block: 0 8px !important;
+    padding-block: 4px !important;
+}
+
+body.shell-ready main.page table {
+    max-width: 100%;
+    font-size: 11px !important;
+    line-height: 1.3 !important;
+}
+
+body.shell-ready main.page table :is(th, td) {
+    padding: 7px 9px !important;
+    line-height: 1.3 !important;
+}
+
+body.shell-ready main.page :is(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+    select
+) {
+    min-height: 32px !important;
+    height: 32px !important;
+    padding-inline: 8px !important;
+    font-size: 12px !important;
+}
+
+body.shell-ready main.page textarea {
+    min-height: 64px;
+    padding: 7px 8px !important;
+    font-size: 12px !important;
+    line-height: 1.35 !important;
+}
+
+body.shell-ready main.page :is(button, .btn, .button, input[type="submit"], input[type="button"]) {
+    min-height: 30px !important;
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+}
+
+body.shell-ready main.page :is(.form-group, .form-field, .field-group, .form-row, .form-section) {
+    margin-block-end: 8px !important;
+    gap: 7px !important;
+}
+
+body.shell-ready main.page :is(.table-wrap, .table-container, .table-responsive, .table-scroll, .catalogue-table-wrap) {
+    min-width: 0;
+    max-width: 100%;
+    overscroll-behavior: contain;
+}
+
+@media (max-height: 800px) {
+    body.shell-ready main.page :is(.workspace-card, .detail-card, .list-card, .module-card, .finance-card, .account-card, .panel-card, .content-card, .summary-card, .stat-card, .form-card, .table-card) {
+        padding: 9px !important;
+        margin-block-end: 7px !important;
+        gap: 7px !important;
+    }
+
+    body.shell-ready main.page :is(.page-header, .page-heading, .page-titlebar, .detail-top, .finance-page-header, .stock-page-heading, .purchasing-page-heading, .conversations-heading, .section-heading, .panel-title-row) {
+        margin-block-end: 7px !important;
+    }
+
+    body.shell-ready main.page table :is(th, td) {
+        padding-block: 6px !important;
+    }
+}

@@ -1,7 +1,7 @@
-(function () {
+﻿(function () {
     "use strict";
 
-    const state = { products: [], selectedProductId: null, currentVersionId: null, pendingCascade: null, organizationId: null, organizationType: "" };
+    const state = { products: [], selectedProductId: null, currentVersionId: null, pendingCascade: null, organizationId: null, organizationType: "", recommendationData: null, activePromotions: [], cataloguePromotionsByVersion: {}, cataloguePromotionCache: {} };
 
     const el = {
         list: document.getElementById("productListContainer"),
@@ -26,6 +26,7 @@
         profit: document.getElementById("inlineProfit"),
         saveBtn: document.getElementById("saveInlinePriceBtn"),
         simulateBtn: document.getElementById("simulateHikeBtn"),
+        cascadeActions: document.querySelector(".detail-actions"),
         preview: document.getElementById("priceCascadePreview"),
         previewTitle: document.getElementById("priceCascadeTitle"),
         previewDescription: document.getElementById("priceCascadeDescription"),
@@ -45,10 +46,29 @@
         passwordMessage: document.getElementById("priceAdminPasswordMessage"),
         passwordCancelBtn: document.getElementById("priceAdminCancelBtn"),
         passwordVerifyBtn: document.getElementById("priceAdminVerifyBtn"),
-        passwordToggleBtn: document.getElementById("priceAdminPasswordToggle")
+        passwordToggleBtn: document.getElementById("priceAdminPasswordToggle"),
+        recommendationWorkspace: document.getElementById("priceRecommendationWorkspace"),
+        rrpRecommendationRow: document.getElementById("rrpRecommendationRow"),
+        rrpRecommendationAmount: document.getElementById("rrpRecommendationAmount"),
+        rrpRecommendationMeta: document.getElementById("rrpRecommendationMeta"),
+        rspRecommendationRow: document.getElementById("rspRecommendationRow"),
+        rspRecommendationAmount: document.getElementById("rspRecommendationAmount"),
+        rspRecommendationMeta: document.getElementById("rspRecommendationMeta"),
+        recommendationComparison: document.getElementById("priceRecommendationComparison"),
+        recommendationComparisonLabel: document.getElementById("priceRecommendationComparisonLabel"),
+        recommendationComparisonValue: document.getElementById("priceRecommendationComparisonValue"),
+        recommendationForm: document.getElementById("priceRecommendationForm"),
+        recommendationType: document.getElementById("priceRecommendationType"),
+        recommendationAmount: document.getElementById("priceRecommendationAmount"),
+        recommendationEffectiveFrom: document.getElementById("priceRecommendationEffectiveFrom"),
+        saveRecommendationBtn: document.getElementById("savePriceRecommendationBtn"),
+        recommendationStatus: document.getElementById("priceRecommendationStatus"),
+        recommendationHistoryWrap: document.getElementById("priceRecommendationHistoryWrap"),
+        recommendationHistory: document.getElementById("priceRecommendationHistory"),
+        activePromotionPrices: document.getElementById("activePromotionPrices"),
+        activePromotionList: document.getElementById("activePromotionList")
     };
 
-    const escapeHtml = (str) => (str || "").toString().replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
     let originalCostPrice = "";
     let originalSellingPrice = "";
@@ -90,15 +110,19 @@
         if (el.selling) el.selling.addEventListener("input", () => {
             calcMargin();
             updateSaveButtonState();
+            updateRecommendationComparison();
         });
         if (el.saveBtn) el.saveBtn.addEventListener("click", savePrices);
         if (el.simulateBtn) el.simulateBtn.addEventListener("click", simulatePriceHike);
         if (el.applyCascadeBtn) el.applyCascadeBtn.addEventListener("click", applyPriceCascade);
         if (el.cancelCascadeBtn) el.cancelCascadeBtn.addEventListener("click", closePriceCascadePreview);
         if (el.search) el.search.addEventListener("input", renderList);
+        if (el.recommendationForm) el.recommendationForm.addEventListener("submit", saveRecommendation);
+        if (el.recommendationType) el.recommendationType.addEventListener("change", updateRecommendationEditorAmount);
         
         await fetchProducts();
         startLivePriceRefresh();
+        startActivePromotionRefresh();
     }
 
     async function fetchProducts() {
@@ -107,39 +131,219 @@
             const data = response.data || response;
             state.organizationId = Number(data.organization_id) || null;
             state.organizationType = String(data.organization_type || "");
-            if (data && data.products && data.products.length > 0) {
+
+            const canInitiateManufacturerCascade = [
+                "MANUFACTURER",
+                "MANUFACTURER_SUPPLIER"
+            ].includes(state.organizationType);
+
+            if (el.cascadeActions) {
+                el.cascadeActions.style.display =
+                    canInitiateManufacturerCascade ? "" : "none";
+            }
+
+            if (!canInitiateManufacturerCascade && el.preview) {
+                el.preview.hidden = true;
+            }
+            if (data && Array.isArray(data.products)) {
                 state.products = data.products;
                 el.listCount.textContent = state.products.length;
                 renderList();
-                selectProduct(state.products[0].product_id);
+                loadCataloguePromotionSummaries().catch(error =>
+                    console.error("Unable to load catalogue promotion summaries:", error)
+                );
+
+                if (state.products.length > 0) {
+                    selectProduct(state.products[0].product_id);
+                }
             }
         } catch (e) { console.error(e); }
     }
 
+    function getCurrentProductVersion(product) {
+        const versions = Array.isArray(product?.versions) ? product.versions : [];
+        return versions.find(version => Number(version.is_current) === 1)
+            || versions[0]
+            || null;
+    }
     function renderList() {
-        el.list.innerHTML = "";
-        const query = el.search.value.toLowerCase();
-        state.products.forEach(p => {
-            const v = p.versions && p.versions.length > 0 ? p.versions[0] : null;
-            const text = `${p.product_name} ${p.manufacturer_name} ${v ? v.barcode : ''}`.toLowerCase();
-            if (query && !text.includes(query)) return;
+        if (!el.list) return;
 
-            const isActive = p.product_id === state.selectedProductId;
-            const barcode = v ? v.barcode : 'No Barcode';
-            
-            const div = document.createElement("div");
-            div.className = `product-item ${isActive ? 'active' : ''}`;
-            
-            div.innerHTML = `
-                <img class="item-img" src="${p.image_path ? '../../../' + p.image_path : ''}" onerror="this.style.display='none'">
-                <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
-                    <div class="item-title">${escapeHtml(p.product_name)}</div>
-                    <div class="item-sub">Stock: ${p.stock || 0}</div>
-                </div>
-            `;
-            div.addEventListener("click", () => selectProduct(p.product_id));
-            el.list.appendChild(div);
+        el.list.replaceChildren();
+        const query = String(el.search?.value || "").trim().toLowerCase();
+        const filtered = state.products.filter(product => {
+            const version = product.versions && product.versions.length > 0
+                ? product.versions[0]
+                : null;
+            const searchable = `${product.product_name || ""} ${product.stock ?? 0}`.toLowerCase();
+            return !query || searchable.includes(query);
         });
+
+        if (filtered.length === 0) {
+            const empty = document.createElement("p");
+            empty.className = "catalogue-empty-state";
+            empty.textContent = state.products.length
+                ? "No products match your search."
+                : "No products are available in this catalogue yet.";
+            el.list.appendChild(empty);
+            return;
+        }
+
+        const fragment = document.createDocumentFragment();
+
+        filtered.forEach(product => {
+            const isActive = String(product.product_id) === String(state.selectedProductId);
+            const item = document.createElement("button");
+            item.type = "button";
+            item.className = `product-item${isActive ? " active" : ""}`;
+            item.setAttribute("aria-pressed", String(isActive));
+            item.setAttribute(
+                "aria-label",
+                `${product.product_name || "Product"}, stock ${product.stock ?? 0}`
+            );
+
+            if (product.image_path) {
+                const image = document.createElement("img");
+                image.className = "item-img";
+                image.alt = "";
+                image.loading = "lazy";
+                image.src = "../../../" + String(product.image_path).replace(/^\/+/, "");
+                image.addEventListener("error", () => {
+                    const placeholder = document.createElement("span");
+                    placeholder.className = "item-img-placeholder";
+                    placeholder.setAttribute("aria-hidden", "true");
+                    placeholder.textContent = "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“";
+                    image.replaceWith(placeholder);
+                }, { once: true });
+                item.appendChild(image);
+            } else {
+                const placeholder = document.createElement("span");
+                placeholder.className = "item-img-placeholder";
+                placeholder.setAttribute("aria-hidden", "true");
+                placeholder.textContent = "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“";
+                item.appendChild(placeholder);
+            }
+
+            const copy = document.createElement("span");
+            copy.className = "item-copy";
+
+            const title = document.createElement("span");
+            title.className = "item-title";
+            title.textContent = product.product_name || "Unnamed product";
+
+            const stock = document.createElement("span");
+            stock.className = "item-sub";
+            stock.textContent = `${product.stock ?? 0} in stock`;
+
+            copy.append(title, stock);
+            item.appendChild(copy);
+            item.addEventListener("click", () => selectProduct(product.product_id));
+            fragment.appendChild(item);
+        });
+
+        el.list.appendChild(fragment);
+    }
+
+    function renderCataloguePromotionSummary(copy, version) {
+        if (state.organizationType !== "RETAILER" || !version) return;
+
+        const versionId = String(version.product_version_id);
+        const promotions = state.cataloguePromotionsByVersion[versionId];
+
+        if (!Array.isArray(promotions) || promotions.length === 0) return;
+
+        promotions.forEach(promotion => {
+            const price = Number(promotion.promotion_price);
+            const endDate = String(promotion.end_date || "");
+
+            if (!Number.isFinite(price) || price <= 0 || endDate < todayNairobiDate()) {
+                return;
+            }
+
+            const summary = document.createElement("span");
+            summary.className = "item-promotion";
+
+            const priceLabel = document.createElement("span");
+            priceLabel.className = "item-promotion-price";
+            priceLabel.textContent = `Promo KSh ${price.toLocaleString("en-KE", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            })}`;
+
+            const meta = document.createElement("span");
+            meta.className = "item-promotion-meta";
+
+            const dateParts = endDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            const formattedEndDate = dateParts
+                ? new Date(Number(dateParts[1]), Number(dateParts[2]) - 1, Number(dateParts[3]))
+                    .toLocaleDateString("en-KE", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric"
+                    })
+                : endDate;
+
+            const branchName = String(promotion.branch_name || "").trim();
+            const showBranch = promotions.length > 1 && branchName;
+            meta.textContent = `Ends ${formattedEndDate}${showBranch ? ` Ãƒâ€šÃ‚Â· ${branchName}` : ""}`;
+
+            summary.append(priceLabel, meta);
+            copy.appendChild(summary);
+        });
+    }
+
+    async function loadCataloguePromotionSummaries(forceRefresh = false) {
+        if (state.organizationType !== "RETAILER") return;
+
+        const versions = [...new Set(
+            state.products
+                .map(product => product.versions && product.versions.length > 0
+                    ? String(getCurrentProductVersion(product).product_version_id)
+                    : "")
+                .filter(Boolean)
+        )];
+
+        let nextIndex = 0;
+        const worker = async () => {
+            while (nextIndex < versions.length) {
+                const versionId = versions[nextIndex++];
+                const cached = state.cataloguePromotionCache[versionId];
+
+                if (!forceRefresh && cached && cached.expiresAt > Date.now()) {
+                    state.cataloguePromotionsByVersion[versionId] = cached.promotions;
+                    continue;
+                }
+
+                try {
+                    const response = await getJson(
+                        `products/active-promotions.php?product_version_id=${encodeURIComponent(versionId)}&_=${Date.now()}`
+                    );
+                    const data = response.data || response;
+                    if (response.ok === false || data.success !== true) {
+                        throw new Error(data.error || data.message || "Unable to load promotions.");
+                    }
+
+                    const today = String(data.today || todayNairobiDate());
+                    const promotions = (Array.isArray(data.promotions) ? data.promotions : [])
+                        .filter(item =>
+                            String(item.start_date || "") <= today &&
+                            String(item.end_date || "") >= today &&
+                            Number(item.promotion_price) > 0
+                        );
+
+                    state.cataloguePromotionsByVersion[versionId] = promotions;
+                    state.cataloguePromotionCache[versionId] = {
+                        promotions,
+                        expiresAt: Date.now() + 60000
+                    };
+                } catch (error) {
+                    console.error(`Unable to load list promotions for version ${versionId}:`, error);
+                }
+            }
+        };
+
+        await Promise.all(Array.from({ length: Math.min(3, versions.length) }, () => worker()));
+        renderList();
     }
 
     function selectProduct(id) {
@@ -150,10 +354,11 @@
         if (!p) return;
         updatePriceLabels(p);
 
-        const v = p.versions && p.versions.length > 0 ? p.versions[0] : null;
+        const v = getCurrentProductVersion(p);
         state.currentVersionId = v ? v.product_version_id : null;
 
-        el.name.textContent = p.product_name;
+        el.name.textContent = p.product_name || "Unnamed product";
+        el.image.alt = `${p.product_name || "Product"} image`;
         el.barcode.textContent = v ? v.barcode : 'N/A';
         el.manufacturer.textContent = p.manufacturer_name;
         el.category.textContent = p.category || 'N/A';
@@ -172,16 +377,32 @@
         el.stock.style.color = p.stock <= 0 ? '#dc2626' : '#202b38';
 
         if (p.image_path) {
-            el.image.src = "../../../" + p.image_path;
+            el.image.onerror = () => {
+                el.image.style.display = "none";
+                if (el.imageFallback) el.imageFallback.style.display = "flex";
+            };
+            el.image.onload = () => {
+                el.image.style.display = "block";
+                if (el.imageFallback) el.imageFallback.style.display = "none";
+            };
+            el.image.src = "../../../" + String(p.image_path).replace(/^\/+/, "");
             el.image.style.display = "block";
             if (el.imageFallback) el.imageFallback.style.display = "none";
         } else {
+            el.image.onerror = null;
+            el.image.onload = null;
             el.image.style.display = "none";
-            if (el.imageFallback) el.imageFallback.style.display = "block";
+            if (el.imageFallback) el.imageFallback.style.display = "flex";
         }
 
         if (state.currentVersionId) {
             loadPricing(state.currentVersionId);
+            loadPriceRecommendations(state.currentVersionId);
+            loadActivePromotions(state.currentVersionId);
+        } else {
+            state.recommendationData = null;
+            if (el.recommendationWorkspace) el.recommendationWorkspace.hidden = true;
+            clearActivePromotions();
         }
     }
 
@@ -263,6 +484,7 @@
             originalSellingPrice = latestSelling;
             calcMargin();
             updateSaveButtonState();
+            updateRecommendationComparison();
         } catch (error) {
             console.error("Automatic price refresh failed:", error);
         } finally {
@@ -285,6 +507,139 @@
             refreshCurrentPricing();
         }, 10000);
     }
+    function clearActivePromotions() {
+        state.activePromotions = [];
+        if (el.activePromotionList) el.activePromotionList.replaceChildren();
+        if (el.activePromotionPrices) el.activePromotionPrices.hidden = true;
+        if (state.organizationType === "RETAILER" && el.recordOfferStatus) {
+            el.recordOfferStatus.textContent = "No active promotion";
+        }
+    }
+
+    function formatPromotionEndDate(value) {
+        const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!match) return "date unavailable";
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        return `${Number(match[3])} ${months[Number(match[2]) - 1]} ${match[1]}`;
+    }
+
+    function formatPromotionMoney(value) {
+        const amount = Number(value);
+        if (!Number.isFinite(amount) || amount <= 0) return "Price unavailable";
+        return `KSh ${amount.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
+    function createElement(tagName, className = "", text = "") {
+        const element = document.createElement(tagName);
+
+        if (className) {
+            element.className = className;
+        }
+
+        if (text !== undefined && text !== null && text !== "") {
+            element.textContent = String(text);
+        }
+
+        return element;
+    }
+    function renderActivePromotions(promotions) {
+        if (!el.activePromotionPrices || !el.activePromotionList) return;
+
+        el.activePromotionList.replaceChildren();
+
+        const rows = Array.isArray(promotions) ? promotions : [];
+        state.activePromotions = rows;
+        el.activePromotionPrices.hidden = rows.length === 0;
+
+        if (el.recordOfferStatus && state.organizationType === "RETAILER") {
+            const branchCount = new Set(rows.map(item => String(item.branch_id))).size;
+            el.recordOfferStatus.textContent = rows.length
+                ? `Active at ${branchCount} branch${branchCount === 1 ? "" : "es"}`
+                : "No active promotion";
+        }
+
+        for (const promotion of rows) {
+            const row = createElement("div", "catalogue-active-promotion-row");
+            const amount = createElement("div", "catalogue-active-promotion-amount");
+            const promotionPrice = Number(promotion.promotion_price);
+
+            amount.appendChild(
+                createElement(
+                    "strong",
+                    "catalogue-active-promotion-price",
+                    formatPromotionMoney(promotionPrice)
+                )
+            );
+
+            row.appendChild(amount);
+            if (promotion.end_date) {
+                const endDate = createElement(
+                    "div",
+                    "catalogue-active-promotion-meta",
+                    `Ends ${String(promotion.end_date).slice(0, 10)}`
+                );
+                row.appendChild(endDate);
+            }
+
+            el.activePromotionList.appendChild(row);
+        }
+    }
+    async function loadActivePromotions(versionId) {
+        if (
+            !versionId ||
+            state.organizationType !== "RETAILER" ||
+            !el.activePromotionPrices ||
+            !el.activePromotionList
+        ) {
+            clearActivePromotions();
+            return;
+        }
+
+        el.activePromotionPrices.hidden = true;
+        el.activePromotionList.replaceChildren();
+        if (el.recordOfferStatus) el.recordOfferStatus.textContent = "No active promotion";
+
+        try {
+            const response = await getJson(
+                `products/active-promotions.php?product_version_id=${encodeURIComponent(versionId)}&_=${Date.now()}`
+            );
+            const data = response.data || response;
+            if (response.ok === false || data.success !== true) {
+                throw new Error(data.error || data.message || "Unable to load active promotions.");
+            }
+            if (Number(versionId) !== Number(state.currentVersionId)) return;
+
+            const today = String(data.today || todayNairobiDate());
+            const promotions = (Array.isArray(data.promotions) ? data.promotions : [])
+                .filter(item =>
+                    String(item.start_date || "") <= today &&
+                    String(item.end_date || "") >= today &&
+                    Number(item.promotion_price) > 0
+                );
+
+            renderActivePromotions(promotions);
+        } catch (error) {
+            if (Number(versionId) === Number(state.currentVersionId)) clearActivePromotions();
+            console.error("Unable to load active catalogue promotions:", error);
+        }
+    }
+
+    function startActivePromotionRefresh() {
+        if (window.__chainBridgeActivePromotionRefreshTimer) {
+            window.clearInterval(window.__chainBridgeActivePromotionRefreshTimer);
+        }
+        window.__chainBridgeActivePromotionRefreshTimer = window.setInterval(() => {
+            if (!document.body.contains(el.activePromotionPrices)) {
+                window.clearInterval(window.__chainBridgeActivePromotionRefreshTimer);
+                window.__chainBridgeActivePromotionRefreshTimer = null;
+                return;
+            }
+            if (document.visibilityState === "hidden" || !state.currentVersionId) return;
+            if (state.organizationType !== "RETAILER") return;
+            loadActivePromotions(state.currentVersionId);
+        }, 60000);
+    }
+
     async function loadPricing(versionId) {
         pricingLoaded = false;
         originalCostPrice = "";
@@ -316,12 +671,210 @@
 
             calcMargin();
             updateSaveButtonState();
+            updateRecommendationComparison();
             return true;
         } catch (e) {
             console.error(e);
             pricingLoaded = false;
             updateSaveButtonState();
             return false;
+        }
+    }
+
+    function recommendationMoney(value) {
+        const amount = Number(value);
+        if (!Number.isFinite(amount)) return "Unavailable";
+        return `KSh ${amount.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
+    function formatRecommendationDate(value) {
+        const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+        return match ? `${match[3]}/${match[2]}/${match[1]}` : "date unavailable";
+    }
+
+    function todayNairobiDate() {
+        const parts = new Intl.DateTimeFormat("en-CA", {
+            timeZone: "Africa/Nairobi", year: "numeric", month: "2-digit", day: "2-digit"
+        }).formatToParts(new Date()).reduce((out, part) => {
+            if (["year", "month", "day"].includes(part.type)) out[part.type] = part.value;
+            return out;
+        }, {});
+        return `${parts.year}-${parts.month}-${parts.day}`;
+    }
+
+    function setRecommendationStatus(message, isError = false) {
+        if (!el.recommendationStatus) return;
+        el.recommendationStatus.textContent = message || "";
+        el.recommendationStatus.classList.toggle("is-error", Boolean(isError));
+        el.recommendationStatus.hidden = !message;
+    }
+
+    async function loadPriceRecommendations(versionId) {
+        state.recommendationData = null;
+        if (el.recommendationWorkspace) el.recommendationWorkspace.hidden = true;
+        if (el.recommendationComparison) el.recommendationComparison.hidden = true;
+        if (!versionId || !el.recommendationWorkspace) return;
+
+        try {
+            const response = await getJson(
+                `products/price-recommendations-list.php?product_version_id=${encodeURIComponent(versionId)}`
+            );
+            const data = response.data || response;
+            console.log("RRP diagnostic", {
+                requestedVersionId: versionId,
+                currentVersionId: state.currentVersionId,
+                visibleTypes: data.visible_types,
+                rrp: data.recommendations?.RRP
+            });
+            if (response.ok === false || data.success !== true) {
+                throw new Error(data.error || data.message || "Unable to load pricing guidance.");
+            }
+            if (Number(versionId) !== Number(state.currentVersionId)) return;
+
+            state.recommendationData = data;
+            renderPriceRecommendations(data);
+        } catch (error) {
+            console.error("Unable to load pricing recommendations:", error);
+        }
+    }
+
+    function renderPriceRecommendations(data) {
+        const visibleTypes = Array.isArray(data.visible_types) ? data.visible_types : [];
+        const recommendations = data.recommendations || {};
+        const rrp = recommendations.RRP || null;
+        const rsp = recommendations.RSP || null;
+
+        const isRetailer = String(state.organizationType || "").toUpperCase() === "RETAILER";
+        const showRrp = visibleTypes.includes("RRP");
+        const showRsp = !isRetailer && visibleTypes.includes("RSP");
+
+        el.recommendationWorkspace.hidden = !showRrp && !showRsp;
+        el.rrpRecommendationRow.hidden = !showRrp;
+        el.rspRecommendationRow.hidden = !showRsp;
+
+        if (visibleTypes.includes("RRP")) {
+            el.rrpRecommendationAmount.textContent = rrp ? recommendationMoney(rrp.amount) : "Unavailable";
+            el.rrpRecommendationMeta.textContent = rrp
+                ? ""
+                : (data.can_manage ? "" : "");
+        }
+
+        if (showRsp) {
+            el.rspRecommendationAmount.textContent = rsp ? recommendationMoney(rsp.amount) : "Unavailable";
+            el.rspRecommendationMeta.textContent = rsp
+                ? ""
+                : (data.can_manage ? "" : "");
+        }
+
+        el.recommendationForm.hidden = !data.can_manage;
+        el.recommendationEffectiveFrom.min = data.today || todayNairobiDate();
+        if (!el.recommendationEffectiveFrom.value) {
+            el.recommendationEffectiveFrom.value = data.today || todayNairobiDate();
+        }
+        updateRecommendationEditorAmount();
+        updateRecommendationComparison();
+    }
+
+
+    function updateRecommendationEditorAmount() {
+        if (!el.recommendationType || !el.recommendationAmount) return;
+        const type = el.recommendationType.value;
+        const recommendation = state.recommendationData?.recommendations?.[type];
+        if (recommendation) {
+            el.recommendationAmount.value = Number(recommendation.amount).toFixed(2);
+        } else if (state.recommendationData?.can_manage) {
+            el.recommendationAmount.value = "";
+        }
+    }
+
+    function updateRecommendationComparison() {
+        el.recommendationComparison.hidden = true;
+        return;
+        const data = state.recommendationData;
+        if (!data || !el.recommendationComparison) return;
+        const type = data.comparison_type;
+        if (!type) {
+            el.recommendationComparison.hidden = true;
+            return;
+        }
+
+        const recommendation = data.recommendations?.[type];
+        if (!recommendation || !(Number(recommendation.amount) > 0)) {
+            el.recommendationComparison.hidden = true;
+            return;
+        }
+
+        const sellingText = pricingLoaded ? String(el.selling?.value ?? '').trim() : '';
+        const selling = sellingText === '' ? Number.NaN : Number(sellingText);
+        if (!Number.isFinite(selling) || selling <= 0) {
+            el.recommendationComparisonLabel.textContent = "Selling price";
+            el.recommendationComparisonValue.textContent = "";
+            el.recommendationComparison.className = "recommendation-comparison";
+            el.recommendationComparison.hidden = false;
+            return;
+        }
+
+        const reference = Number(recommendation.amount);
+        const delta = ((selling - reference) / reference) * 100;
+        const label = type === "RRP" ? "RRP" : "RSP";
+        el.recommendationComparisonLabel.textContent = `Selling price ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· ${recommendationMoney(selling)}`;
+
+        if (delta < -0.05) {
+            el.recommendationComparisonValue.textContent = `${Math.abs(delta).toFixed(1)}% below ${label}`;
+            el.recommendationComparison.className = "recommendation-comparison is-below";
+        } else if (delta > 30) {
+            el.recommendationComparisonValue.textContent = `${delta.toFixed(1)}% above ${label}`;
+            el.recommendationComparison.className = "recommendation-comparison is-high";
+        } else {
+            el.recommendationComparisonValue.textContent = Math.abs(delta) < 0.05
+                ? `At ${label}`
+                : `${delta.toFixed(1)}% above ${label}`;
+            el.recommendationComparison.className = "recommendation-comparison is-equal";
+        }
+        el.recommendationComparison.hidden = false;
+    }
+
+    async function saveRecommendation(event) {
+        event.preventDefault();
+        if (!state.currentVersionId || !state.recommendationData?.can_manage) return;
+
+        const amountText = String(el.recommendationAmount.value || "").trim();
+        const effectiveFrom = String(el.recommendationEffectiveFrom.value || "").trim();
+        if (!amountText || !Number.isFinite(Number(amountText)) || Number(amountText) <= 0) {
+            setRecommendationStatus("Enter a recommendation greater than zero.", true);
+            el.recommendationAmount.focus();
+            return;
+        }
+        if (!effectiveFrom || effectiveFrom < todayNairobiDate()) {
+            setRecommendationStatus("Choose today or a future effective date.", true);
+            el.recommendationEffectiveFrom.focus();
+            return;
+        }
+
+        const button = el.saveRecommendationBtn;
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = "Publishing...";
+        setRecommendationStatus("");
+
+        try {
+            const response = await postJson("products/price-recommendation-save.php", {
+                product_version_id: state.currentVersionId,
+                recommendation_type: el.recommendationType.value,
+                amount: amountText,
+                effective_from: effectiveFrom
+            });
+            const result = response.data || response;
+            if (response.ok === false || result.success !== true) {
+                throw new Error(result.error || result.message || "Unable to publish recommendation.");
+            }
+
+            await loadPriceRecommendations(state.currentVersionId);
+        } catch (error) {
+            setRecommendationStatus(error.message || "Unable to publish recommendation.", true);
+        } finally {
+            button.disabled = false;
+            button.textContent = originalText;
         }
     }
 
@@ -836,3 +1389,14 @@ async function applyPriceCascade() {
 
     if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", init); } else { init(); }
 })();
+
+
+
+
+
+
+
+
+
+
+

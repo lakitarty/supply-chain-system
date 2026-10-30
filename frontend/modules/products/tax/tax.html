@@ -16,7 +16,7 @@
             <div>
                 <p class="tax-eyebrow">PRODUCT COMPLIANCE</p>
                 <h1>Product tax classification</h1>
-                <p class="tax-subtitle">Record the manufacturer’s tax-category declaration for a specific package version and effective period.</p>
+                <p class="tax-subtitle">Record the manufacturer’s tax category for a package version and effective period.</p>
             </div>
             <button id="refreshTax" class="secondary-button" type="button">Refresh</button>
         </header>
@@ -25,7 +25,7 @@
 
         <section id="taxApp" class="tax-section" hidden>
             <h2>Declare a classification</h2>
-            <p class="tax-explainer">Select the appropriate category based on verified tax guidance. Zero-rated and exempt supplies are different categories. This declaration is not a substitute for confirming legal eligibility.</p>
+            <p class="tax-explainer">Choose a category using verified tax guidance. Zero-rated and exempt supplies differ; confirm legal eligibility separately.</p>
 
             <form id="taxForm" novalidate>
                 <div class="tax-form-grid">
@@ -45,7 +45,7 @@
                             <option value="ZERO_RATED">Zero-rated</option>
                             <option value="EXEMPT">Exempt</option>
                         </select>
-                        <p id="taxRateHint" class="tax-hint">Rates come from the configured effective-dated tax schedule.</p>
+                        <p id="taxRateHint" class="tax-hint">Rates follow the configured effective-dated tax schedule.</p>
                     </div>
                     <div class="tax-field">
                         <label for="effectiveFrom">Effective from</label>
@@ -54,7 +54,7 @@
                     <div class="tax-field">
                         <label for="effectiveTo">Effective to <span>(optional)</span></label>
                         <input id="effectiveTo" type="date">
-                        <p class="tax-hint">Leave blank only when the declaration has no planned end date.</p>
+                        <p class="tax-hint">Leave blank only if the declaration has no planned end date.</p>
                     </div>
                     <div class="tax-field tax-note-field">
                         <label for="declarationNote">Declaration note <span>(optional)</span></label>
@@ -78,7 +78,7 @@
             <div class="tax-section-heading">
                 <div>
                     <h2>Declaration history</h2>
-                    <p>Periods are kept separately. Overlapping dates for the same package version are not allowed.</p>
+                    <p>Periods remain in history; dates for the same package version cannot overlap.</p>
                 </div>
             </div>
             <div class="tax-table-wrap">
@@ -98,12 +98,12 @@
                     </tbody>
                 </table>
             </div>
-            <p class="tax-footnote">The displayed rate is the configured schedule rate at the declaration’s start date. A future rate change must be maintained in the tax-rate schedule. Existing sales history is not retroactively classified by this screen.</p>
+            <p class="tax-footnote">The displayed rate is the schedule rate at the declaration’s start date. Maintain future rate changes in the tax schedule. This screen does not reclassify historical sales.</p>
         </section>
 
         <section class="tax-section tax-rates-section">
             <h2>Configured tax-rate schedule</h2>
-            <p class="tax-explainer">Reference rates configured in this system. Verify rates and product eligibility against current official guidance before using them for tax reporting.</p>
+            <p class="tax-explainer">Reference rates are configured in ChainBridge. Verify official rates and product eligibility before tax reporting.</p>
             <div class="tax-table-wrap">
                 <table class="tax-table">
                     <thead>

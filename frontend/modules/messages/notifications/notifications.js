@@ -175,9 +175,11 @@ function closeNotificationPreview() {
     selectedNotificationId = null;
 }
 
-async function loadNotifications() {
-    refreshButton.disabled = true;
-    notificationStatus.textContent = "Loading notifications...";
+async function loadNotifications(silent = false) {
+    if (!silent) {
+        refreshButton.disabled = true;
+        notificationStatus.textContent = "Loading notifications...";
+    }
 
     try {
         const result = await getJson("messages/notifications-list.php");
@@ -192,7 +194,7 @@ async function loadNotifications() {
 
         renderNotifications();
 
-        if (selectedNotificationId) {
+        if (!silent && selectedNotificationId) {
             const selected = notifications.find(
                 item => String(item.notification_id) === selectedNotificationId
             );
@@ -207,10 +209,14 @@ async function loadNotifications() {
             }
         }
     } catch (error) {
-        notificationStatus.textContent =
-            error.message || "Unable to load notifications.";
+        if (!silent) {
+            notificationStatus.textContent =
+                error.message || "Unable to load notifications.";
+        }
     } finally {
-        refreshButton.disabled = false;
+        if (!silent) {
+            refreshButton.disabled = false;
+        }
     }
 }
 
@@ -272,6 +278,12 @@ async function initialiseNotifications() {
         if (!account) return;
 
         await loadNotifications();
+
+        window.setInterval(() => {
+            if (document.visibilityState === "visible") {
+                void loadNotifications(true);
+            }
+        }, 5000);
     } catch (error) {
         notificationStatus.textContent =
             error.message || "Unable to initialise notifications.";

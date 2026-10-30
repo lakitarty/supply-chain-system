@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <link rel="stylesheet" href="coverage.css">
+    <title>Supplier Coverage | Nexora MSRC</title>
+</head>
+<body>
+    <div id="shell"></div>
+
+    <main class="page supplier-coverage-page" id="coveragePage">
+        <header class="coverage-page-header">
+            <div>
+                <h1 class="page-title">Supplier coverage</h1>
+                <p class="coverage-intro">Declare the counties your organisation can serve. Coverage does not authorize distribution of a specific product; manufacturers manage product appointments separately.</p>
+            </div>
+            <span id="coverageCount" class="coverage-count">0 records</span>
+        </header>
+
+        <div id="coverageMessage" class="form-message" role="alert" aria-live="polite"></div>
+
+        <section class="coverage-panel" aria-labelledby="coverageFormTitle">
+            <h2 id="coverageFormTitle">Add county coverage</h2>
+            <form id="coverageForm" novalidate>
+                <div class="coverage-form-grid">
+                    <div class="form-group">
+                        <label for="areaId">County</label>
+                        <select id="areaId" required>
+                            <option value="">Loading counties...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="startDate">Effective from</label>
+                        <input type="date" id="startDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="endDate">Effective until <span class="optional">(optional)</span></label>
+                        <input type="date" id="endDate">
+                        <p class="field-hint">Leave blank if there is no planned end date.</p>
+                    </div>
+                </div>
+                <div class="coverage-form-actions">
+                    <button type="submit" class="primary-button" id="saveCoverageButton">Save coverage</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="coverage-panel coverage-history-panel" aria-labelledby="coverageHistoryTitle">
+            <div class="coverage-section-header">
+                <div>
+                    <h2 id="coverageHistoryTitle">Coverage history</h2>
+                    <p>Ended coverage stays here for reference and audit history.</p>
+                </div>
+                <button type="button" class="secondary-button" id="refreshCoverageButton">Refresh</button>
+            </div>
+            <div class="coverage-table-wrap">
+                <table class="coverage-table">
+                    <thead>
+                        <tr>
+                            <th>County</th>
+                            <th>Effective from</th>
+                            <th>Effective until</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="coverageTableBody"></tbody>
+                </table>
+            </div>
+            <p id="coverageEmpty" class="coverage-empty" hidden>No county coverage has been recorded yet.</p>
+        </section>
+    </main>
+
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/form-helpers.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="../../../shared/js/page-router.js"></script>
+    <script src="coverage.js"></script>
+</body>
+</html>

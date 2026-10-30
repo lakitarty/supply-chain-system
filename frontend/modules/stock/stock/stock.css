@@ -1,4 +1,4 @@
-.stock-page {
+Old Stock border reset is already absent; preserving existing CSS. .stock-page {
     color: var(--text-primary, #172b32);
 }
 
@@ -2089,5 +2089,700 @@ main.page.stock-page textarea:focus {
     height: 18px;
     margin: 0;
     cursor: pointer;
+} 
+ 
+ /* ChainBridge Stock: compact visual hierarchy and a strict footer-safe workspace */
+main.page.stock-page {
+    box-sizing: border-box;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    padding: 10px 14px 8px !important;
+    color: #17262b;
 }
 
+main.page.stock-page > .stock-page-heading {
+    flex: 0 0 auto;
+    margin: 0 0 7px !important;
+    padding: 0 0 8px !important;
+    border-bottom: 1px solid #dce7e2 !important;
+}
+
+main.page.stock-page .stock-page-heading h1 {
+    color: #17262b !important;
+    font-size: 22px !important;
+    line-height: 1.2;
+    letter-spacing: -0.35px;
+}
+
+main.page.stock-page .stock-toolbar {
+    flex: 0 0 auto;
+    grid-template-columns: minmax(150px, 0.8fr) minmax(220px, 1.5fr) minmax(135px, 0.8fr);
+    align-items: end;
+    gap: 10px;
+    margin: 0 0 7px !important;
+    padding: 0 0 9px !important;
+    border: 0 !important;
+    border-bottom: 1px solid #e1e9e5 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+}
+
+main.page.stock-page .stock-toolbar .stock-field {
+    gap: 4px;
+}
+
+main.page.stock-page .stock-field label {
+    color: #43565d !important;
+    font-size: 11px;
+    font-weight: 650;
+}
+
+main.page.stock-page .stock-field input,
+main.page.stock-page .stock-field select {
+    min-height: 34px !important;
+    padding: 6px 9px !important;
+    border: 1px solid #cbdad4 !important;
+    border-radius: 5px !important;
+    background: #ffffff !important;
+    color: #17262b !important;
+    font-size: 12px;
+}
+
+main.page.stock-page .stock-field input:focus,
+main.page.stock-page .stock-field select:focus {
+    border-color: #0f766e !important;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.13) !important;
+}
+
+main.page.stock-page .stock-status-message {
+    flex: 0 0 auto;
+    min-height: 0 !important;
+    margin: 0 0 5px !important;
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+main.page.stock-page .stock-metrics {
+    flex: 0 0 auto;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0 0 9px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+}
+
+main.page.stock-page .stock-metric,
+main.page.stock-page .stock-metric + .stock-metric {
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 58px !important;
+    padding: 9px 11px !important;
+    border: 1px solid #dfe9e4 !important;
+    border-radius: 7px !important;
+    background: #f3f8f5 !important;
+    box-shadow: none !important;
+}
+
+main.page.stock-page .stock-metric-label {
+    color: #64757a;
+    font-size: 10px;
+}
+
+main.page.stock-page .stock-metric-value {
+    color: #17262b;
+    font-size: 20px !important;
+    line-height: 1.2;
+}
+
+main.page.stock-page .stock-layout {
+    flex: 1 1 0% !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr) !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+}
+
+main.page.stock-page .stock-layout .stock-product-panel,
+main.page.stock-page .stock-layout .stock-editor {
+    box-sizing: border-box;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 12px !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain;
+    border: 1px solid #dce7e2 !important;
+    border-radius: 8px !important;
+    background: #ffffff !important;
+    box-shadow: 0 1px 3px rgba(23, 38, 43, 0.05) !important;
+}
+
+main.page.stock-page .stock-layout .stock-editor {
+    background: #f7faf8 !important;
+    border-color: #cbded5 !important;
+}
+
+main.page.stock-page .stock-layout .stock-section-heading,
+main.page.stock-page .stock-layout .stock-editor-heading {
+    margin: 0 0 9px !important;
+    padding: 0 0 8px !important;
+    border-bottom: 1px solid #e1e9e5 !important;
+}
+
+main.page.stock-page .stock-layout .stock-section-heading h2 {
+    color: #17262b !important;
+    font-size: 14px !important;
+    line-height: 1.3;
+}
+
+main.page.stock-page .stock-layout .stock-section-heading p {
+    margin-top: 3px !important;
+    color: #64757a !important;
+    font-size: 10px !important;
+    line-height: 1.35;
+}
+
+main.page.stock-page .stock-layout .stock-inline-alerts {
+    margin: 0 0 10px !important;
+    padding: 10px !important;
+    border: 1px solid #e6e5d9 !important;
+    border-radius: 7px !important;
+    background: #fbfaf4 !important;
+    box-shadow: none !important;
+}
+
+main.page.stock-page .stock-layout .stock-inline-alert-item {
+    padding: 9px !important;
+    border: 1px solid #e6ece8 !important;
+    border-radius: 6px !important;
+    background: #ffffff !important;
+}
+
+main.page.stock-page .stock-layout .stock-product-selector {
+    gap: 5px !important;
+    margin: 0 0 10px !important;
+    padding: 10px !important;
+    border: 1px solid #d8e8e0 !important;
+    border-radius: 7px !important;
+    background: #edf6f2 !important;
+}
+
+main.page.stock-page .stock-layout .stock-product-selector p {
+    color: #5f746d !important;
+    font-size: 10px !important;
+}
+
+main.page.stock-page .stock-layout .stock-product-summary {
+    min-width: 0;
+}
+
+main.page.stock-page .stock-layout .stock-product-details,
+main.page.stock-page .stock-layout .stock-product-guidance {
+    gap: 8px !important;
+}
+
+main.page.stock-page .stock-layout .stock-product-details > div,
+main.page.stock-page .stock-layout .stock-product-guidance > div {
+    padding: 10px !important;
+    border: 1px solid #e1ebe5 !important;
+    border-radius: 6px !important;
+    background: #f5f9f7 !important;
+}
+
+main.page.stock-page .stock-layout .stock-product-overview-heading h3 {
+    color: #17262b !important;
+    font-size: 18px !important;
+}
+
+main.page.stock-page .stock-layout .stock-form {
+    gap: 8px !important;
+    padding: 9px 0 !important;
+}
+
+main.page.stock-page .stock-layout .stock-form h3 {
+    color: #115e59 !important;
+    font-size: 12px !important;
+}
+
+main.page.stock-page .stock-layout .stock-form-help {
+    margin: -3px 0 0 !important;
+    color: #64757a !important;
+    font-size: 10px !important;
+    line-height: 1.4 !important;
+}
+
+main.page.stock-page .stock-layout .stock-form-grid {
+    gap: 8px !important;
+}
+
+main.page.stock-page .stock-layout .stock-form-divider {
+    display: block !important;
+    height: 1px !important;
+    margin: 2px 0 !important;
+    border: 0 !important;
+    background: #dce7e2 !important;
+}
+
+main.page.stock-page .stock-layout #stockSaleForm {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 9px !important;
+    row-gap: 8px !important;
+}
+
+main.page.stock-page .stock-layout #stockSaleForm > h3,
+main.page.stock-page .stock-layout #stockSaleForm > .stock-form-help,
+main.page.stock-page .stock-layout #stockSaleForm > #salesTaxContext,
+main.page.stock-page .stock-layout #stockSaleForm > #recordSaleButton,
+main.page.stock-page .stock-layout #stockSaleForm > .stock-field:has(#salesAmountOverride) {
+    grid-column: 1 / -1;
+}
+
+main.page.stock-page .stock-layout .stock-sales-tax-context {
+    padding: 9px 10px !important;
+    border: 1px solid #d3e8dc !important;
+    border-left: 3px solid #0f766e !important;
+    border-radius: 6px !important;
+    background: #edf7f1 !important;
+    color: #31594b !important;
+    font-size: 10px !important;
+    line-height: 1.45 !important;
+}
+
+main.page.stock-page .stock-layout .stock-form button {
+    width: 100%;
+    min-height: 34px !important;
+    padding: 7px 10px !important;
+    border-radius: 5px !important;
+    font-size: 11px !important;
+    font-weight: 650;
+}
+
+main.page.stock-page .stock-layout #recordSaleButton {
+    border: 1px solid #0f766e !important;
+    background: #0f766e !important;
+    color: #ffffff !important;
+}
+
+main.page.stock-page .stock-layout #recordSaleButton:hover:not(:disabled) {
+    border-color: #115e59 !important;
+    background: #115e59 !important;
+}
+
+main.page.stock-page .stock-layout #saveStockButton {
+    border: 1px solid #b8d2c7 !important;
+    background: #eaf4ef !important;
+    color: #115e59 !important;
+}
+
+main.page.stock-page .stock-layout #saveStockButton:hover:not(:disabled) {
+    background: #dceee5 !important;
+}
+
+main.page.stock-page .stock-layout .stock-editor-status {
+    margin: 0 !important;
+    padding-top: 5px;
+    font-size: 10px !important;
+    line-height: 1.4;
+}
+
+@media (max-height: 800px) and (min-width: 1051px) {
+    main.page.stock-page {
+        padding-top: 7px !important;
+        padding-bottom: 5px !important;
+    }
+    main.page.stock-page > .stock-page-heading {
+        margin-bottom: 5px !important;
+        padding-bottom: 6px !important;
+    }
+    main.page.stock-page .stock-toolbar {
+        margin-bottom: 5px !important;
+        padding-bottom: 6px !important;
+    }
+    main.page.stock-page .stock-metric,
+    main.page.stock-page .stock-metric + .stock-metric {
+        min-height: 50px !important;
+        padding: 6px 9px !important;
+    }
+    main.page.stock-page .stock-metrics {
+        margin-bottom: 6px !important;
+    }
+    main.page.stock-page .stock-layout .stock-product-panel,
+    main.page.stock-page .stock-layout .stock-editor {
+        padding: 9px !important;
+    }
+}
+
+@media (max-width: 1050px) {
+    main.page.stock-page {
+        overflow-y: auto !important;
+    }
+    main.page.stock-page .stock-layout {
+        flex: 0 0 auto !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-template-rows: auto !important;
+        overflow: visible !important;
+    }
+    main.page.stock-page .stock-layout .stock-product-panel,
+    main.page.stock-page .stock-layout .stock-editor {
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+    main.page.stock-page .stock-layout .stock-editor {
+        margin-top: 10px !important;
+    }
+}
+
+@media (max-width: 650px) {
+    main.page.stock-page .stock-toolbar {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+    main.page.stock-page .stock-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+    main.page.stock-page .stock-layout #stockSaleForm {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    main.page.stock-page .stock-layout #stockSaleForm > * {
+        grid-column: 1 / -1;
+    }
+}
+
+/* CHAINBRIDGE STOCK SALES REDESIGN START */
+
+.stock-page {
+    --stock-ink: #203338;
+    --stock-muted: #66777b;
+    --stock-line: #dce5e7;
+    --stock-accent: #0f766e;
+    --stock-accent-dark: #115e59;
+    --stock-accent-soft: #edf7f5;
+    color: var(--stock-ink) !important;
+}
+
+.stock-page .stock-toolbar,
+.stock-page #stockMetrics,
+.stock-page #stockSearch,
+.stock-page #stockStatusFilter,
+.stock-page #stockCountForm,
+.stock-page #saveStockButton,
+.stock-page #stockProductSummary,
+.stock-page #salesAmountHint,
+.stock-page #salesAmountOverride,
+.stock-page #salesAmountOverrideHint,
+.stock-page label[for="salesAmountOverride"],
+.stock-page #salesAmountBasis,
+.stock-page label[for="salesAmountBasis"],
+.stock-page #saleDate,
+.stock-page label[for="saleDate"],
+.stock-page #salesTaxContext,
+.stock-page .stock-inline-alerts,
+.stock-page [id*="stockInlineAlert"] {
+    display: none !important;
+}
+
+.stock-page .stock-layout {
+    display: grid !important;
+    grid-template-columns: minmax(230px, 0.34fr) minmax(0, 0.66fr) !important;
+    gap: 22px !important;
+    align-items: start !important;
+    min-height: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+.stock-page .stock-product-panel {
+    min-width: 0 !important;
+    padding: 12px 18px 12px 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-right: 1px solid var(--stock-line) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+.stock-page .stock-editor {
+    min-width: 0 !important;
+    padding: 12px 0 12px 4px !important;
+    margin: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+.stock-page .stock-product-picker {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+.stock-page .stock-product-picker label,
+.stock-page .stock-branch-picker label {
+    display: block !important;
+    margin: 0 !important;
+    color: var(--stock-muted) !important;
+    font-size: 12px !important;
+    font-weight: 650 !important;
+}
+
+.stock-page .stock-branch-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.stock-page #stockProductSelect,
+.stock-page #stockBranch {
+    display: block !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-height: 43px !important;
+    padding: 9px 11px !important;
+    background: #ffffff !important;
+    color: var(--stock-ink) !important;
+    border: 1px solid #cbd8db !important;
+    border-radius: 7px !important;
+    font-size: 14px !important;
+    box-shadow: none !important;
+}
+
+.stock-page #selectedProductLabel {
+    margin: 0 0 14px !important;
+    color: var(--stock-ink) !important;
+    font-size: 20px !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+}
+
+.stock-page .stock-product-details {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 0 !important;
+    width: 100% !important;
+    margin: 0 0 22px !important;
+    padding: 15px 0 !important;
+    background: transparent !important;
+    border-top: 1px solid var(--stock-line) !important;
+    border-bottom: 1px solid var(--stock-line) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+.stock-page .stock-product-detail {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 7px !important;
+    min-width: 0 !important;
+    padding: 2px 14px !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-left: 1px solid var(--stock-line) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+.stock-page .stock-product-detail:first-child {
+    padding-left: 0 !important;
+    border-left: 0 !important;
+}
+
+.stock-page .stock-product-detail-label {
+    color: var(--stock-muted) !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    line-height: 1.4 !important;
+}
+
+.stock-page .stock-product-detail-value {
+    color: var(--stock-ink) !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    line-height: 1.4 !important;
+    overflow-wrap: anywhere !important;
+}
+
+.stock-page #stockSaleForm {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 15px !important;
+    max-width: 660px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+.stock-page #stockSaleForm label {
+    display: block !important;
+    margin-bottom: 6px !important;
+    color: var(--stock-muted) !important;
+    font-size: 12px !important;
+    font-weight: 650 !important;
+    line-height: 1.4 !important;
+}
+
+.stock-page #stockSaleForm input[type="number"] {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-height: 48px !important;
+    padding: 10px 12px !important;
+    background: #ffffff !important;
+    color: var(--stock-ink) !important;
+    border: 1px solid #cbd8db !important;
+    border-radius: 7px !important;
+    font-size: 16px !important;
+    box-shadow: none !important;
+}
+
+.stock-page #stockSaleForm #salesAmount[readonly] {
+    background: var(--stock-accent-soft) !important;
+    border-color: #b9dcd5 !important;
+    color: var(--stock-accent-dark) !important;
+    font-weight: 750 !important;
+}
+
+.stock-page #stockSaleForm #recordSaleButton {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    min-height: 45px !important;
+    margin-top: 4px !important;
+    padding: 10px 14px !important;
+    background: var(--stock-accent) !important;
+    color: #ffffff !important;
+    border: 1px solid var(--stock-accent) !important;
+    border-radius: 7px !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    box-shadow: none !important;
+}
+
+.stock-page #stockSaleForm #recordSaleButton:hover:not(:disabled) {
+    background: var(--stock-accent-dark) !important;
+    border-color: var(--stock-accent-dark) !important;
+}
+
+.stock-page #stockSaleForm #recordSaleButton:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+}
+
+.stock-page h1,
+.stock-page h2,
+.stock-page h3 {
+    color: var(--stock-ink) !important;
+    letter-spacing: normal !important;
+}
+
+.stock-page #stockStatus {
+    margin-top: 10px !important;
+    padding: 0 !important;
+    background: transparent !important;
+    color: var(--stock-muted) !important;
+    border: 0 !important;
+    font-size: 12px !important;
+    box-shadow: none !important;
+}
+
+@media (max-width: 820px) {
+    .stock-page .stock-layout {
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 14px !important;
+    }
+
+    .stock-page .stock-product-panel {
+        padding: 0 0 14px !important;
+        border-right: 0 !important;
+        border-bottom: 1px solid var(--stock-line) !important;
+    }
+
+    .stock-page .stock-editor {
+        padding: 0 !important;
+    }
+}
+
+@media (max-width: 520px) {
+    .stock-page .stock-product-details {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .stock-page .stock-product-detail,
+    .stock-page .stock-product-detail:first-child {
+        padding: 10px 0 !important;
+        border-left: 0 !important;
+        border-bottom: 1px solid var(--stock-line) !important;
+    }
+
+    .stock-page #stockSaleForm {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .stock-page #stockSaleForm #recordSaleButton {
+        grid-column: auto !important;
+    }
+}
+
+/* CHAINBRIDGE STOCK SALES REDESIGN END */
+.stock-page .stock-workflow-message {
+    display: block;
+    margin: 10px 0 0;
+    padding: 9px 0;
+    color: #52666b;
+    background: transparent;
+    border: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.stock-page .stock-workflow-message[data-state="error"] {
+    color: #a33b32;
+}
+
+
+/* CHAINBRIDGE STOCK REMOVE SEPARATORS */
+
+.stock-page .stock-product-panel,
+.stock-page .stock-editor {
+    border: 0 !important;
+}
+
+.stock-page .stock-product-panel {
+    border-right: 0 !important;
+}
+
+.stock-page .stock-product-details {
+    border-top: 0 !important;
+    border-bottom: 0 !important;
+}
+
+.stock-page .stock-product-detail,
+.stock-page .stock-product-detail:first-child {
+    border-left: 0 !important;
+    border-bottom: 0 !important;
+}
+
+.stock-page .stock-product-choice {
+    border-bottom: 0 !important;
+}

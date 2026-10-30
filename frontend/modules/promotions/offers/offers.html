@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <link rel="stylesheet" href="offers.css">
+    <title>Manufacturer Campaigns | ChainBridge</title>
+</head>
+<body>
+    <div id="shell"></div>
+    <main class="page retailer-offers-page">
+        <div class="retailer-offers-toolbar">
+            <h1>Manufacturer campaigns</h1>
+            <button id="retailerOffersRefresh" class="secondary-button" type="button">Refresh</button>
+        </div>
+        <p id="retailerOffersStatus" class="retailer-offers-message" role="status" aria-live="polite" hidden></p>
+        <div class="retailer-offers-workspace">
+            <aside class="retailer-offers-index" aria-label="Campaign offers">
+                <div class="retailer-offers-index-heading">Campaign offers</div>
+                <div id="retailerOffersList" class="retailer-offers-list" aria-live="polite">
+                    <p class="retailer-offers-empty">Loading offers…</p>
+                </div>
+            </aside>
+            <section id="retailerOfferDetail" class="retailer-offer-detail" aria-live="polite">
+                <p class="retailer-offers-empty">Loading…</p>
+            </section>
+        </div>
+    </main>
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/form-helpers.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="../../../shared/js/page-router.js"></script>
+    <script src="offers.js"></script>
+</body>
+</html>

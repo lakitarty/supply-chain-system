@@ -53,7 +53,7 @@ function renderDashboardHeader() {
 
     return header;
 }
-function renderMetrics(summary) {
+function renderMetrics(summary, actionItems) {
     const strip = createElement("section", "dashboard-metric-strip");
     strip.setAttribute("aria-label", "Supply network summary");
 
@@ -64,74 +64,52 @@ function renderMetrics(summary) {
         "Products available"
     ];
 
-    const metricRoutes = {
+    const routes = {
         "Unread notifications": "modules/messages/notifications/notifications.html",
         "Active connections": "modules/network/relationships/relationships.html",
         "Products available": "modules/products/catalogue/catalogue.html"
     };
 
     const metrics = Array.isArray(summary) ? summary : [];
+    const actions = Array.isArray(actionItems) ? actionItems : [];
+
     const ordered = preferredOrder
         .map(label => metrics.find(metric => metric.label === label))
         .filter(Boolean);
 
     for (const metric of ordered) {
         const labelText = metric.label;
-        const numericValue = Number(metric.value ?? 0);
         const valueText = metric.value ?? 0;
-        const isAttention = labelText === "Needs your attention";
+        const attention = labelText === "Needs your attention";
 
-        let item;
+        const firstAction = attention
+            ? actions.find(action => action && action.path)
+            : null;
 
-        if (isAttention) {
-            item = createElement(
-                "button",
-                "dashboard-metric dashboard-metric-link dashboard-metric-attention"
-            );
+        const destination = attention ? firstAction?.path : routes[labelText];
 
-            item.type = "button";
-            item.setAttribute(
-                "aria-label",
-                `Needs your attention: ${valueText}. Focus the Action Queue.`
-            );
+        const item = destination
+            ? createElement("a", "dashboard-metric dashboard-metric-link")
+            : createElement("div", "dashboard-metric");
 
-            item.addEventListener("click", () => {
-                const target = document.querySelector(".dashboard-attention-panel");
-
-                if (!target) return;
-
-                target.setAttribute("tabindex", "-1");
-                target.scrollIntoView({
-                    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-                        ? "auto"
-                        : "smooth",
-                    block: "nearest"
-                });
-                target.focus({ preventScroll: true });
-            });
-        } else if (metricRoutes[labelText]) {
-            item = createElement("a", "dashboard-metric dashboard-metric-link");
-            item.href = pageUrl(metricRoutes[labelText]);
-            item.setAttribute(
-                "aria-label",
-                `${labelText}: ${valueText}. Open ${labelText}.`
-            );
-        } else {
-            item = createElement("div", "dashboard-metric");
+        if (destination) {
+            item.href = pageUrl(destination);
+            item.setAttribute("aria-label", `${labelText}: ${valueText}`);
         }
 
-        const label = createElement("span", "dashboard-metric-label", labelText);
-        const value = createElement("strong", "dashboard-metric-value", valueText);
-
-        if (isAttention && Number.isFinite(numericValue) && numericValue > 0) {
+        if (attention && Number(valueText) > 0) {
             item.classList.add("has-attention");
         }
 
-        item.append(label, value);
+        item.append(
+            createElement("span", "dashboard-metric-label", labelText),
+            createElement("strong", "dashboard-metric-value", valueText)
+        );
+
         strip.append(item);
     }
 
-    if (ordered.length === 0) {
+    if (!ordered.length) {
         strip.append(
             createElement(
                 "p",
@@ -293,24 +271,15 @@ function renderDashboard(data) {
 
     const summary = Array.isArray(data.summary) ? data.summary : [];
     const items = Array.isArray(data.items) ? data.items : [];
-    const activity = Array.isArray(data.activity) ? data.activity : [];
 
     const root = createElement("div", "dashboard-command-center");
-    const workspace = createElement("div", "dashboard-command-workspace");
 
     root.append(
         renderDashboardHeader(),
-        renderMetrics(summary)
+        renderMetrics(summary, items)
     );
 
-    workspace.append(
-        renderAttentionPanel(items),
-        renderActivityPanel(activity)
-    );
-
-    root.append(workspace);
     dashboardCardGrid.append(root);
-
     dashboardCardGrid.setAttribute("aria-busy", "false");
 }
 

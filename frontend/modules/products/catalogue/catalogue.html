@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="../../../shared/css/shell.css">
     <link rel="stylesheet" href="/supply-chain-system/frontend/modules/products/catalogue/catalogue.css">
 
-    <title>Product Catalogue | Nexora MSRC</title>
+    <title>Product Catalogue | ChainBridge</title>
 </head>
 <body>
     <div id="shell"></div>
@@ -45,7 +45,6 @@
                     <div class="detail-info">
                         <div class="title-row">
                             <h2 id="detailProductName">Select a product</h2>
-                            <span class="badge-active">Catalogue</span>
                         </div>
 
                         <p class="subtitle" id="detailManufacturer">Manufacturer</p>
@@ -124,7 +123,7 @@
                         <h4>Retail branch price impact</h4>
                         <ul id="priceCascadeBranchList" class="price-cascade-branch-list"></ul>
                         <p id="priceCascadeNoBranches" class="price-cascade-no-branches" hidden>
-                            No active branch price records were found for this product version. Organisation-level prices can be updated, but checkout will still require a branch selling price.
+                            No active branch price exists for this version. Organisation prices can be updated, but checkout still requires a branch selling price.
                         </p>
                     </div>
 
@@ -136,15 +135,10 @@
 
                 <div class="workspace-content">
 
-                    <div class="section-heading">
-                        <span>Product information</span>
-                        <span class="section-caption">Selected product</span>
-                    </div>
-
                     <div class="information-grid">
                         <section class="info-card">
                             <div class="card-heading">
-                                <h3>Pricing</h3>
+                                <h3>Price details</h3>
                                 <span class="card-caption">KSh</span>
                             </div>
 
@@ -174,12 +168,67 @@
                             <button id="saveInlinePriceBtn" class="btn-save" type="button" disabled aria-disabled="true">
                                 Save prices
                             </button>
+
+                            <!-- Unified price details workspace -->
+                            <section class="recommendation-workspace" id="priceRecommendationWorkspace" hidden aria-labelledby="priceRecommendationHeading">
+                                                    <header class="recommendation-workspace-heading">
+                                                        <h3 id="priceRecommendationHeading">Recommended prices</h3>
+                                                    </header>
+                            
+                                                    <div class="recommendation-values">
+                                                        <div class="recommendation-value" id="rrpRecommendationRow" hidden>
+                                                            <span class="recommendation-label">RRP</span>
+                                                            <strong id="rrpRecommendationAmount">Unavailable</strong>
+                                                            <small id="rrpRecommendationMeta"></small>
+                                                        </div>
+                                                        <div class="recommendation-value" id="rspRecommendationRow" hidden>
+                                                            <span class="recommendation-label">RSP (RSP)</span>
+                                                            <strong id="rspRecommendationAmount">Unavailable</strong>
+                                                            <small id="rspRecommendationMeta"></small>
+                                                        </div>
+                                                    </div>
+                            
+                                                    <div class="recommendation-comparison" id="priceRecommendationComparison" hidden aria-live="polite">
+                                                        <span id="priceRecommendationComparisonLabel">Selling price</span>
+                                                        <strong id="priceRecommendationComparisonValue"></strong>
+                                                    </div>
+                            
+                                                    <form class="recommendation-editor" id="priceRecommendationForm" hidden>
+                                                        <div class="recommendation-editor-fields">
+                                                            <label>
+                                                                Recommendation
+                                                                <select id="priceRecommendationType" required>
+                                                                    <option value="RRP">Manufacturer RRP</option>
+                                                                    <option value="RSP">Supplier RSP</option>
+                                                                </select>
+                                                            </label>
+                                                            <label>
+                                                                Amount (KSh)
+                                                                <input id="priceRecommendationAmount" type="number" min="0.01" step="0.01" inputmode="decimal" required>
+                                                            </label>
+                                                            <label>
+                                                                Effective from
+                                                                <input id="priceRecommendationEffectiveFrom" type="date" required>
+                                                            </label>
+                                                            <button type="submit" id="savePriceRecommendationBtn" class="btn-save">Publish</button>
+                                                        </div>
+                                                        <p id="priceRecommendationStatus" class="recommendation-status" role="status" aria-live="polite" hidden></p>
+                                                    </form>
+                            
+                                                    <div class="recommendation-history" id="priceRecommendationHistoryWrap" hidden>
+                                                        <h4>Recommendation history</h4>
+                                                        <ul id="priceRecommendationHistory"></ul>
+                                                    </div>
+                                                </section>
+                            <div class="catalogue-active-promotions" id="activePromotionPrices" hidden aria-live="polite">
+                                <div class="catalogue-active-promotions-heading">Promo Price</div>
+                                <div id="activePromotionList" class="catalogue-active-promotion-list"></div>
+                            </div>
                         </section>
 
                         <section class="info-card stock-card">
                             <div class="card-heading">
-                                <h3>Stock</h3>
-                                <span class="card-caption">Current quantity</span>
+                                <h3>Current quantity</h3>
                             </div>
 
                             <div class="stock-display">
@@ -193,8 +242,10 @@
                         </section>
                     </div>
 
+                    
+
                     <div class="section-heading secondary-heading">
-                        <span>Product record</span>
+                        <span>Product attributes</span>
                     </div>
 
                     <div class="record-grid">
@@ -214,10 +265,6 @@
 
                 </div>
 
-                <footer class="workspace-footer">
-                    <span>Product Catalogue</span>
-                    <span>Nexora MSRC</span>
-                </footer>
             </section>
         </div>
     </main>
@@ -267,3 +314,7 @@
     <script src="catalogue.js"></script>
 </body>
 </html>
+
+
+
+

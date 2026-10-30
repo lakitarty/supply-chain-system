@@ -8,7 +8,7 @@ const imageInput = document.getElementById("productImage");
 const previewContainer = document.getElementById("imagePreviewContainer");
 const previewImage = document.getElementById("imagePreview");
 const previewLabel = document.getElementById("imagePreviewLabel");
-
+const createOnlyGroups = document.querySelectorAll("[data-create-only]");
 const inputs = {
     name: document.getElementById("productName"),
     category: document.getElementById("category"),
@@ -17,8 +17,12 @@ const inputs = {
     packSize: document.getElementById("packSize"),
     packaging: document.getElementById("packaging"),
     effectiveDate: document.getElementById("effectiveDate"),
-    description: document.getElementById("description")
+    description: document.getElementById("description"),
+    sellingPrice: document.getElementById("sellingPrice"),
+    taxBasis: document.getElementById("taxBasis"),
+    taxCategory: document.getElementById("taxCategory")
 };
+
 
 let account = null;
 let products = [];
@@ -45,7 +49,15 @@ function showPreview(source, label) {
     previewLabel.textContent = label;
     previewContainer.hidden = false;
 }
+function setCreateOnlyFields(visible) {
+    for (const group of createOnlyGroups) {
+        group.hidden = !visible;
 
+        for (const control of group.querySelectorAll("input, select")) {
+            control.disabled = !visible;
+        }
+    }
+}
 function currentVersion(product) {
     return product.versions?.find(version => Number(version.is_current) === 1)
         ?? product.versions?.[0]
@@ -62,6 +74,7 @@ function updateBarcodeRequirement() {
 
 function setInitialFormState() {
     form.reset();
+    setCreateOnlyFields(true);
     selectedProduct = null;
     existingImagePath = null;
 
@@ -119,6 +132,7 @@ function selectProduct(productId) {
     const version = currentVersion(product);
 
     selectedProduct = product;
+    setCreateOnlyFields(false);
     existingImagePath = product.image_path || null;
 
     inputs.name.value = product.product_name || "";
@@ -180,6 +194,16 @@ function validateForm() {
         inputs.barcode.focus();
         return false;
     }
+        const sellingPrice = inputs.sellingPrice.value.trim();
+
+    if (
+        !selectedProduct
+        && (!/^\d{1,10}(\.\d{1,2})?$/.test(sellingPrice) || Number(sellingPrice) <= 0)
+    ) {
+        showProductMessage("Enter the selling price as an amount above zero with at most two decimal places.");
+        inputs.sellingPrice.focus();
+        return false;
+    }
 
     const image = imageInput.files[0];
 
@@ -230,6 +254,9 @@ async function submitProduct(event) {
         body.append("packSize", inputs.packSize.value.trim());
         body.append("packaging", inputs.packaging.value.trim());
         body.append("effectiveDate", inputs.effectiveDate.value);
+        body.append("sellingPrice", inputs.sellingPrice.value.trim());
+        body.append("taxBasis", inputs.taxBasis.value);
+        body.append("taxCategory", inputs.taxCategory.value);
     }
 
     const image = imageInput.files[0];

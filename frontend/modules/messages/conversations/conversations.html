@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <link rel="stylesheet" href="conversations.css">
+    <title>Conversations | ChainBridge</title>
+</head>
+<body>
+    <div id="shell"></div>
+
+    <main class="page conversations-page">
+        <header class="conversations-heading">
+            <div>
+                <h1>Conversations</h1>
+            </div>
+        </header>
+
+        <section class="messaging-workspace" aria-label="Organisation conversations">
+            <aside class="conversation-sidebar">
+                <div class="sidebar-heading">
+                    <h2 id="sidebarTitle">Messages</h2>
+                    <button id="newConversation" class="new-conversation-button" type="button">New conversation</button>
+                </div>
+
+                <label class="conversation-search-label" for="conversationSearch">Search</label>
+                <input id="conversationSearch" class="conversation-search" type="search"
+                       placeholder="Search conversations" autocomplete="off">
+
+                <div id="conversationList" class="conversation-list" aria-live="polite"></div>
+                <div id="directoryList" class="directory-list" hidden></div>
+            </aside>
+
+            <section class="conversation-panel" aria-label="Active conversation">
+                <div id="conversationEmpty" class="conversation-empty">
+                    <div class="empty-symbol" aria-hidden="true">CB</div>
+                    <button id="emptyNewConversation" class="primary-conversation-button" type="button">
+                        Start a conversation
+                    </button>
+                </div>
+
+                <div id="activeConversation" class="active-conversation" hidden>
+                    <header class="active-conversation-header">
+                        <div class="organisation-avatar" id="activeAvatar" aria-hidden="true"></div>
+                        <div class="active-organisation-details">
+                            <h2 id="activeOrganisationName"></h2>
+                            <p id="activeOrganisationType"></p>
+                        </div>
+                    </header>
+
+                    <div id="messageList" class="message-list" aria-live="polite"></div>
+
+                    <form id="messageForm" class="message-composer">
+                        <label class="visually-hidden" for="messageInput">Write a message</label>
+                        <textarea id="messageInput" rows="1" maxlength="2000"
+                                  placeholder="Write a message..." required></textarea>
+                        <button id="sendMessage" type="submit">Send</button>
+                    </form>
+                    
+                </div>
+            </section>
+        </section>
+
+        <p id="conversationNotice" class="conversation-notice" role="status" aria-live="polite"></p>
+    </main>
+
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/form-helpers.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="../../../shared/js/page-router.js"></script>
+    <script src="conversations.js"></script>
+</body>
+</html>

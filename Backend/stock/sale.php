@@ -237,14 +237,10 @@ try {
         ]);
         $currentStock = $stockStatement->fetch(PDO::FETCH_ASSOC);
 
-        if (!$currentStock) {
-            $pdo->rollBack();
-            respond_error(409, 'Set an opening stock count before saving today\'s sales summary.');
-        }
-        // Negative stock is allowed: real-world sales outpace recorded stock.
-        // The negative quantity_on_hand serves as the indicator and triggers OUT_OF_STOCK alerts.
-
-        if ($unitDelta !== 0) {
+        // Sales history can be recorded without an opening stock balance.
+        // Do not invent inventory quantities for a product that has not been counted.
+        // If an inventory row exists, continue updating it for the units sold.
+        if ($currentStock && $unitDelta !== 0) {
             $stockUpdate = $pdo->prepare(
                 'UPDATE retailer_stock
                  SET quantity_on_hand = quantity_on_hand - ?, last_updated = NOW()
@@ -324,8 +320,20 @@ try {
     $displayMessage = $baseMessage . ' ' . $taxCalculationMessage;
 
     $stockWarning = null;
+    $stockWarningType = null;
+
     if ($updated !== null && isset($updated['on_hand']) && (int)$updated['on_hand'] < 0) {
-        $stockWarning = " WARNING: Stock is now negative ({$updated['on_hand']} units). Please check physical stock accuracy and update the count.";
+        $stockWarning = " WARNING: Stock is now negative ({$updated['on_hand']} units). Please check physical stock accuracy.";
+        $stockWarningType = 'NEGATIVE_STOCK';
+        $displayMessage .= $stockWarning;
+    } elseif (
+        $isToday &&
+        !$currentStock &&
+        $updated !== null &&
+        empty($updated['retailer_stock_id'])
+    ) {
+        $stockWarning = " WARNING: Sales were recorded, but available stock is not tracked because no inventory balance exists.";
+        $stockWarningType = 'STOCK_NOT_RECORDED';
         $displayMessage .= $stockWarning;
     }
     if ($preservedPrevious) {
@@ -335,7 +343,7 @@ try {
     respond(200, [
         'success' => true,
         'message' => $displayMessage,
-        'stock_warning' => $stockWarning !== null ? 'NEGATIVE_STOCK' : null,
+        'stock_warning' => $stockWarningType,
         'branch' => $branch,
         'sale_summary' => [
             'sales_history_id' => $savedSaleId,

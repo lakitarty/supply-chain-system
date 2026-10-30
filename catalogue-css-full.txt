@@ -1,0 +1,2404 @@
+/* ChainBridge Product Catalogue
+   Open, information-led workspace. Intentionally avoids nested cards and pill tags. */
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+.catalogue-container {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    padding: 14px 22px 48px;
+    box-sizing: border-box;
+    overflow: hidden;
+    background: #ffffff;
+    color: #17262b;
+    font-family: inherit;
+}
+
+.main-split {
+    display: grid;
+    grid-template-columns: minmax(260px, 22%) minmax(0, 1fr);
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid #dfe6e3;
+}
+
+/* Product index: an open list, not a stack of cards. */
+.list-panel {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    background: #ffffff;
+    border: 0;
+    border-right: 1px solid #e5ebe8;
+    border-radius: 0;
+}
+
+.list-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 19px 18px 14px;
+    color: #293b38;
+    font-size: 14px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+}
+
+.list-count {
+    display: inline;
+    min-width: 0;
+    height: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #778681;
+    font-size: 11px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.search-box {
+    padding: 0 16px 14px;
+    border: 0;
+}
+
+.search-box input {
+    display: block;
+    width: 100%;
+    height: 40px;
+    padding: 0 11px;
+    box-sizing: border-box;
+    border: 1px solid #e0e7e2;
+    border-radius: 5px;
+    background: #ffffff;
+    color: #17262b;
+    font: inherit;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.search-box input::placeholder {
+    color: #87958f;
+}
+
+.search-box input:focus {
+    border-color: #0f766e;
+    box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.10);
+}
+
+.list-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 3px 8px 12px;
+    scrollbar-width: thin;
+    scrollbar-color: #c8d5cf transparent;
+}
+
+.product-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 69px;
+    gap: 12px;
+    padding: 10px 10px 10px 12px;
+    margin: 0;
+    box-sizing: border-box;
+    border: 0;
+    border-left: 3px solid transparent;
+    border-radius: 0;
+    appearance: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.product-item:hover {
+    background: #f7faf8;
+}
+
+.product-item.active {
+    border-left-color: #0f766e;
+    background: #edf6f2;
+}
+
+.product-item:focus-visible {
+    outline: 2px solid #0f766e;
+    outline-offset: -2px;
+}
+
+.item-img {
+    display: block;
+    flex: 0 0 46px;
+    width: 46px;
+    height: 46px;
+    padding: 0;
+    box-sizing: border-box;
+    border: 0;
+    border-radius: 4px;
+    background: #f6f4ee;
+    object-fit: contain;
+}
+
+.item-img-placeholder {
+    display: inline-flex;
+    flex: 0 0 46px;
+    width: 46px;
+    height: 46px;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    border-radius: 4px;
+    background: #f6f4ee;
+    color: #a0ada7;
+    font-size: 0;
+    font-weight: 400;
+}
+
+.item-copy {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    gap: 5px;
+}
+
+.item-title {
+    display: block;
+    overflow: hidden;
+    color: #20312d;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.item-sub {
+    display: block;
+    color: #75847e;
+    font-size: 10px;
+    line-height: 1.35;
+    font-variant-numeric: tabular-nums;
+}
+
+.catalogue-empty-state {
+    margin: 20px 10px;
+    color: #778681;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+/* Selected product workspace: one continuous surface. */
+.detail-panel {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    background: #ffffff;
+}
+
+.detail-top {
+    display: grid;
+    grid-template-columns: 140px minmax(0, 1fr) minmax(190px, 220px);
+    align-items: center;
+    gap: 25px;
+    flex: 0 0 auto;
+    padding: 22px 26px 21px;
+    border-bottom: 1px solid #e7ece9;
+}
+
+.detail-image-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 140px;
+    height: 140px;
+    overflow: hidden;
+    box-sizing: border-box;
+    border: 0;
+    border-radius: 6px;
+    background: #f6f4ee;
+}
+
+.detail-image-box img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+#imageFallbackText {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    padding: 12px;
+    box-sizing: border-box;
+    color: #87958f;
+    font-size: 11px;
+    line-height: 1.45;
+    text-align: center;
+}
+
+
+#imageFallbackText::before {
+    content: "";
+    display: block;
+    width: 34px;
+    height: 27px;
+    margin: 0 auto 9px;
+    border: 1px solid #c7d1cb;
+    border-radius: 4px;
+    box-sizing: border-box;
+    background:
+        linear-gradient(140deg, transparent 45%, #b7c5bd 46% 51%, transparent 52%) 4px 7px / 25px 16px no-repeat,
+        linear-gradient(40deg, transparent 45%, #d1dbd4 46% 55%, transparent 56%) 3px 7px / 24px 16px no-repeat;
+}
+
+.item-img-placeholder::before {
+    content: "";
+    display: block;
+    width: 20px;
+    height: 16px;
+    box-sizing: border-box;
+    border: 1px solid #c7d1cb;
+    border-radius: 3px;
+    background:
+        linear-gradient(140deg, transparent 43%, #b7c5bd 44% 52%, transparent 53%) 2px 4px / 15px 9px no-repeat,
+        linear-gradient(40deg, transparent 42%, #d1dbd4 43% 53%, transparent 54%) 2px 4px / 15px 9px no-repeat;
+}
+
+.detail-info {
+    align-self: center;
+    min-width: 0;
+}
+
+.title-row {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    margin-bottom: 5px;
+}
+
+.title-row h2 {
+    margin: 0;
+    color: #1b302b;
+    font-size: clamp(21px, 1.8vw, 26px);
+    font-weight: 650;
+    letter-spacing: -0.035em;
+    line-height: 1.22;
+    overflow-wrap: anywhere;
+}
+
+.subtitle {
+    margin: 5px 0 18px;
+    color: #71817a;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 25px;
+}
+
+.meta-grid > div {
+    min-width: 0;
+}
+
+.meta-grid span,
+.record-grid span {
+    display: block;
+    margin: 0 0 3px;
+    color: #7d8b85;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.055em;
+    line-height: 1.4;
+    text-transform: uppercase;
+}
+
+.meta-grid strong {
+    display: block;
+    overflow-wrap: anywhere;
+    color: #273b35;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
+.detail-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    min-width: 0;
+    padding-left: 4px;
+}
+
+.price-change-heading {
+    color: #293b35;
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.4;
+}
+
+.detail-actions input {
+    width: 100%;
+    height: 40px;
+    padding: 0 1px;
+    box-sizing: border-box;
+    border: 0;
+    border-bottom: 1px solid #cfdad5;
+    border-radius: 0;
+    background: #ffffff;
+    color: #20312d;
+    font: inherit;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+
+.detail-actions input:focus {
+    outline: none;
+    border-bottom-color: #0f766e;
+    box-shadow: 0 1px 0 #0f766e;
+}
+
+.btn-outline,
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 35px;
+    padding: 8px 13px;
+    box-sizing: border-box;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.25;
+    cursor: pointer;
+    transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.btn-outline {
+    border-color: #d2ddd7;
+    background: #ffffff;
+    color: #31443d;
+}
+
+.btn-outline:hover:not(:disabled) {
+    border-color: #91b4a7;
+    background: #f7faf8;
+}
+
+.btn-primary {
+    border-color: #0f766e;
+    background: #0f766e;
+    color: #ffffff;
+}
+
+.btn-primary:hover:not(:disabled) {
+    border-color: #115e59;
+    background: #115e59;
+}
+
+.btn-primary:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+/* Price impact preview: a distinct working state, not nested cards. */
+.price-cascade-preview {
+    flex: 0 1 auto;
+    max-height: 45%;
+    margin: 0 24px;
+    padding: 17px 0 15px;
+    overflow: auto;
+    border: 0;
+    border-bottom: 1px solid #dfe8e3;
+    border-radius: 0;
+    background: #ffffff;
+    color: #20312d;
+    box-sizing: border-box;
+}
+
+.price-cascade-preview[hidden],
+.price-cascade-warnings[hidden],
+.price-cascade-no-branches[hidden] {
+    display: none !important;
+}
+
+.price-cascade-preview-heading,
+.price-cascade-preview-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.price-cascade-eyebrow {
+    display: block;
+    margin-bottom: 5px;
+    color: #0f766e;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.11em;
+}
+
+.price-cascade-preview-heading h3 {
+    margin: 0;
+    color: #1b302b;
+    font-size: 17px;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+}
+
+.price-cascade-description {
+    margin: 6px 0 0;
+    color: #71817a;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.price-cascade-preview-status {
+    flex: 0 0 auto;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #98630d;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.price-cascade-preview-status::before {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin: 0 7px 1px 0;
+    border-radius: 50%;
+    background: #d99a26;
+    content: "";
+}
+
+.price-cascade-warnings {
+    margin-top: 12px;
+    padding: 9px 12px;
+    border: 0;
+    border-left: 3px solid #c58a22;
+    border-radius: 0;
+    background: #fff8e9;
+    color: #74521b;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.price-cascade-warnings ul {
+    margin: 7px 0 0;
+    padding-left: 19px;
+}
+
+.price-cascade-warnings li + li {
+    margin-top: 4px;
+}
+
+.price-cascade-table-wrap {
+    width: 100%;
+    margin-top: 14px;
+    overflow-x: auto;
+}
+
+.price-cascade-table {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+    font-size: 11px;
+    text-align: left;
+}
+
+.price-cascade-table th,
+.price-cascade-table td {
+    padding: 9px 10px;
+    border: 0;
+    border-bottom: 1px solid #e8eeea;
+    vertical-align: top;
+    white-space: nowrap;
+}
+
+.price-cascade-table th {
+    background: transparent;
+    color: #687a72;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+}
+
+.price-cascade-table td {
+    color: #273b35;
+    font-variant-numeric: tabular-nums;
+}
+
+.price-cascade-branch-section {
+    margin-top: 14px;
+}
+
+.price-cascade-branch-section h4 {
+    margin: 0 0 8px;
+    color: #273b35;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.price-cascade-branch-list {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.price-cascade-branch-list li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 7px 14px;
+    padding: 9px 0;
+    border: 0;
+    border-bottom: 1px solid #e8eeea;
+    border-radius: 0;
+    font-size: 11px;
+}
+
+.price-cascade-branch-list strong {
+    color: #273b35;
+    font-variant-numeric: tabular-nums;
+}
+
+.price-cascade-no-branches {
+    margin: 0;
+    color: #71817a;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.price-cascade-preview-actions {
+    justify-content: flex-end;
+    margin-top: 14px;
+    padding-top: 0;
+    border-top: 0;
+}
+
+.price-cascade-cancel,
+#applyPriceCascadeBtn {
+    min-height: 35px;
+    padding: 8px 13px;
+    border-radius: 3px;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.price-cascade-cancel {
+    border: 1px solid #d2ddd7;
+    background: #ffffff;
+    color: #31443d;
+}
+
+.price-cascade-cancel:hover:not(:disabled) {
+    background: #f7faf8;
+}
+
+.price-cascade-cancel:disabled,
+#applyPriceCascadeBtn:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+/* Pricing and stock are open sections, not nested cards. */
+.workspace-content {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 20px;
+    min-height: 0;
+    padding: 20px 27px 25px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #c8d5cf transparent;
+}
+
+.section-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex: 0 0 auto;
+    color: #293b35;
+    font-size: 13px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+}
+
+.section-caption {
+    color: #829088;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0;
+}
+
+.information-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(180px, 0.65fr);
+    align-items: stretch;
+    gap: 36px;
+    flex: 0 0 auto;
+}
+
+.info-card {
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.card-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.info-card h3 {
+    margin: 0;
+    color: #273b35;
+    font-size: 16px;
+    font-weight: 650;
+    letter-spacing: -0.015em;
+}
+
+.card-caption {
+    color: #829088;
+    font-size: 10px;
+}
+
+.price-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 26px;
+}
+
+.price-fields label {
+    display: block;
+    min-width: 0;
+    color: #66776f;
+    font-size: 12px;
+    font-weight: 550;
+}
+
+.price-fields input {
+    display: block;
+    width: 100%;
+    height: 42px;
+    margin-top: 5px;
+    padding: 0 2px;
+    box-sizing: border-box;
+    border: 0;
+    border-bottom: 1px solid #cfdad5;
+    border-radius: 0;
+    color: #20312d;
+    background: transparent;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.price-fields input:focus {
+    outline: none;
+    border-bottom-color: #0f766e;
+    box-shadow: 0 1px 0 #0f766e;
+}
+
+.profit-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 34px;
+    margin: 18px 0 16px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.profit-row > div {
+    min-width: 92px;
+}
+
+.profit-row span {
+    display: block;
+    margin-bottom: 3px;
+    color: #829088;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+}
+
+.profit-row strong {
+    color: #273b35;
+    font-size: 19px;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+}
+
+.text-green {
+    color: #16804a !important;
+}
+
+.btn-save {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    min-width: 142px;
+    min-height: 40px;
+    padding: 9px 16px;
+    border: 1px solid #0f766e;
+    border-radius: 4px;
+    background: #0f766e;
+    color: #ffffff;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-save:hover:not(:disabled) {
+    border-color: #115e59;
+    background: #115e59;
+}
+
+.btn-save:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.stock-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding-left: 10px;
+}
+
+.stock-display {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    min-height: 116px;
+    padding: 8px 0 0;
+}
+
+.stock-display strong {
+    color: #1b302b;
+    font-size: clamp(40px, 4vw, 52px);
+    font-weight: 650;
+    letter-spacing: -0.05em;
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+}
+
+.stock-display span {
+    margin-top: 8px;
+    color: #71817a;
+    font-size: 11px;
+    font-weight: 550;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+}
+
+.stock-footnote {
+    margin-top: 8px;
+    padding-top: 0;
+    border: 0;
+    color: #87958f;
+    font-size: 10px;
+    line-height: 1.5;
+    text-align: left;
+}
+
+.secondary-heading {
+    padding-top: 7px;
+}
+
+.record-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 28px;
+    flex: 0 0 auto;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.record-grid > div {
+    min-width: 0;
+}
+
+.record-grid strong {
+    display: block;
+    overflow-wrap: anywhere;
+    color: #273b35;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+/* Dialogs remain bounded because they are temporary decision surfaces. */
+.price-change-confirm-dialog,
+.price-admin-password-dialog {
+    width: min(440px, calc(100% - 32px));
+    max-width: 440px;
+    padding: 0;
+    border: 1px solid #d5e0da;
+    border-radius: 5px;
+    color: #20312d;
+    background: #ffffff;
+    box-shadow: 0 18px 55px rgba(25, 48, 39, 0.2);
+}
+
+.price-admin-password-dialog {
+    width: min(420px, calc(100% - 32px));
+    max-width: 420px;
+}
+
+.price-change-confirm-dialog::backdrop,
+.price-admin-password-dialog::backdrop {
+    background: rgba(19, 35, 29, 0.42);
+}
+
+.price-change-confirm-content {
+    padding: 23px;
+}
+
+.price-change-confirm-content h2,
+.price-admin-password-content h2 {
+    margin: 0 0 11px;
+    color: #1b302b;
+    font-size: 18px;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+}
+
+.price-change-confirm-content p,
+.price-admin-password-content p {
+    margin: 0;
+    color: #62746b;
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.price-change-confirm-actions,
+.price-admin-password-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 22px;
+}
+
+.price-change-confirm-actions button,
+.price-admin-password-actions button {
+    min-height: 36px;
+    padding: 8px 14px;
+    border: 1px solid #d2ddd7;
+    border-radius: 3px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.price-change-confirm-cancel {
+    color: #31443d;
+    background: #ffffff;
+}
+
+.price-change-confirm-cancel:hover {
+    background: #f7faf8;
+}
+
+.price-change-confirm-proceed {
+    border-color: #0f766e !important;
+    color: #ffffff;
+    background: #0f766e;
+}
+
+.price-change-confirm-proceed:hover {
+    border-color: #115e59 !important;
+    background: #115e59;
+}
+
+.price-admin-password-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 23px;
+}
+
+.price-admin-password-label {
+    color: #31443d;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+#priceAdminPasswordInput {
+    width: 100%;
+    min-height: 39px;
+    padding: 8px 2px;
+    box-sizing: border-box;
+    border: 0;
+    border-bottom: 1px solid #cfdad5;
+    border-radius: 0;
+    color: #20312d;
+    background: #ffffff;
+    font: inherit;
+}
+
+#priceAdminPasswordInput:focus {
+    outline: none;
+    border-bottom-color: #0f766e;
+    box-shadow: 0 1px 0 #0f766e;
+}
+
+.price-admin-password-field {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    width: 100%;
+}
+
+.price-admin-password-field #priceAdminPasswordInput {
+    flex: 1 1 auto;
+    width: 0;
+    min-width: 0;
+}
+
+.price-admin-password-toggle {
+    flex: 0 0 auto;
+    min-width: 58px;
+    padding: 6px 8px;
+    border: 0;
+    border-bottom: 1px solid #cfdad5;
+    border-radius: 0;
+    color: #0f766e;
+    background: #ffffff;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.price-admin-password-toggle:hover {
+    color: #115e59;
+    background: #f7faf8;
+}
+
+.price-change-confirm-proceed:focus-visible,
+.price-change-confirm-cancel:focus-visible,
+.price-admin-password-toggle:focus-visible,
+#priceAdminPasswordInput:focus-visible,
+#priceAdminVerifyBtn:focus-visible,
+#applyPriceCascadeBtn:focus-visible,
+.price-cascade-cancel:focus-visible {
+    outline: 2px solid #0f766e;
+    outline-offset: 3px;
+}
+
+/* Overall interaction and scroll behaviour */
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media (max-width: 1180px) {
+    .catalogue-container {
+        padding: 10px 14px 48px;
+    }
+
+    .main-split {
+        grid-template-columns: minmax(215px, 235px) minmax(0, 1fr);
+    }
+
+    .detail-top {
+        grid-template-columns: 100px minmax(180px, 1fr) minmax(150px, 170px);
+        gap: 16px;
+        padding: 17px 18px;
+    }
+
+    .detail-image-box {
+        width: 100px;
+        height: 106px;
+    }
+
+    .workspace-content {
+        padding: 16px 18px 22px;
+    }
+
+    .information-grid {
+        gap: 24px;
+    }
+
+    .stock-card {
+        padding-left: 18px;
+    }
+}
+
+@media (max-width: 900px) {
+    html,
+    body {
+        height: auto;
+        min-height: 100%;
+        overflow: auto;
+    }
+
+    .catalogue-container {
+        height: auto;
+        min-height: calc(100vh - 120px);
+        max-height: none;
+        padding: 12px 12px 52px;
+        overflow: visible;
+    }
+
+    .main-split {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: visible;
+    }
+
+    .list-panel {
+        flex: 0 0 auto;
+        max-height: 220px;
+        border-right: 0;
+        border-bottom: 1px solid #e5ebe8;
+    }
+
+    .list-scroll {
+        flex: 0 1 auto;
+        max-height: 135px;
+    }
+
+    .detail-panel {
+        overflow: visible;
+    }
+
+    .detail-top {
+        grid-template-columns: 90px minmax(0, 1fr);
+        gap: 15px;
+        padding: 17px;
+    }
+
+    .detail-image-box {
+        width: 90px;
+        height: 94px;
+    }
+
+    .detail-actions {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(125px, 170px);
+        align-items: center;
+        gap: 8px 14px;
+    }
+
+    .price-change-heading {
+        grid-column: 1 / -1;
+    }
+
+    .price-cascade-preview {
+        max-height: none;
+        margin: 0 17px;
+        overflow: visible;
+    }
+
+    .workspace-content {
+        overflow: visible;
+        padding: 17px;
+    }
+
+    .information-grid {
+        gap: 22px;
+    }
+
+    .stock-card {
+        padding-left: 18px;
+    }
+}
+
+@media (max-width: 560px) {
+    .title-row h2 {
+        font-size: 20px;
+    }
+
+    .meta-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 13px;
+    }
+
+    .information-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    .stock-card {
+        padding: 0;
+    }
+
+    .stock-display {
+        min-height: 62px;
+    }
+
+    .record-grid {
+        grid-template-columns: 1fr;
+        gap: 13px;
+    }
+
+    .price-fields {
+        gap: 14px;
+    }
+
+    .profit-row {
+        gap: 22px;
+    }
+
+    .price-cascade-preview-heading,
+    .price-cascade-preview-actions {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .price-cascade-preview-actions {
+        align-items: stretch;
+    }
+
+    .price-cascade-preview-actions button {
+        width: 100%;
+    }
+
+    .detail-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .price-change-heading {
+        grid-column: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Catalogue: make secondary text black */
+.list-count,
+.search-box input::placeholder,
+.item-img-placeholder,
+.item-sub,
+.catalogue-empty-state,
+#imageFallbackText,
+.subtitle,
+.meta-grid span,
+.record-grid span,
+.price-cascade-description,
+.price-cascade-table th,
+.price-cascade-no-branches,
+.section-caption,
+.card-caption,
+.price-fields label,
+.profit-row span,
+.stock-display span,
+.stock-footnote,
+.price-change-confirm-content p,
+.price-admin-password-content p {
+    color: #111111 !important;
+}
+
+/* Manufacturer RRP/RSP guidance and own-price comparison */
+
+/* Manufacturer RRP/RSP guidance and own-price comparison */
+.recommendation-workspace {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-light, #e2e8ea);
+    color: #111111;
+}
+
+.recommendation-workspace[hidden],
+.recommendation-value[hidden],
+.recommendation-comparison[hidden],
+.recommendation-editor[hidden],
+.recommendation-history[hidden] {
+    display: none !important;
+}
+
+.recommendation-workspace-heading h3,
+.recommendation-history h4 {
+    margin: 0;
+    color: #111111;
+    font-size: 15px;
+    font-weight: 650;
+}
+
+.recommendation-values {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    margin-top: 16px;
+}
+
+.recommendation-value {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+}
+
+.recommendation-label {
+    color: #111111;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.recommendation-value strong {
+    color: #111111;
+    font-size: 22px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.recommendation-value small {
+    color: #111111;
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.recommendation-comparison {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px 18px;
+    margin-top: 18px;
+    padding: 10px 0;
+    border-top: 1px solid var(--border-light, #e2e8ea);
+    color: #111111;
+    font-size: 12px;
+}
+
+.recommendation-comparison strong,
+.recommendation-comparison span {
+    color: inherit;
+}
+
+.recommendation-comparison.is-below strong {
+    color: #0f766e;
+}
+
+.recommendation-comparison.is-above strong {
+    color: #8a5200;
+}
+
+.recommendation-comparison.is-equal strong {
+    color: #111111;
+}
+
+.recommendation-editor {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-light, #e2e8ea);
+}
+
+.recommendation-editor-fields {
+    display: grid;
+    grid-template-columns: minmax(160px, 1fr) minmax(130px, 0.8fr) minmax(150px, 0.9fr) auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.recommendation-editor-fields label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: #111111;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.recommendation-editor-fields select,
+.recommendation-editor-fields input {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    height: 38px;
+    padding: 0 10px;
+    border: 1px solid #c9d3d6;
+    border-radius: 4px;
+    background: #ffffff;
+    color: #111111;
+    font: inherit;
+}
+
+.recommendation-editor-fields select:focus-visible,
+.recommendation-editor-fields input:focus-visible {
+    outline: 2px solid var(--brand, #0f766e);
+    outline-offset: 2px;
+}
+
+.recommendation-editor-fields .btn-save {
+    min-height: 38px;
+    white-space: nowrap;
+}
+
+.recommendation-status {
+    margin: 10px 0 0;
+    color: #111111;
+    font-size: 12px;
+}
+
+.recommendation-status.is-error {
+    color: #b42318;
+}
+
+.recommendation-history {
+    margin-top: 18px;
+}
+
+.recommendation-history ul {
+    display: grid;
+    gap: 8px;
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.recommendation-history li {
+    color: #111111;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+@media (max-width: 800px) {
+    .recommendation-editor-fields {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .recommendation-editor-fields .btn-save {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 520px) {
+    .recommendation-values,
+    .recommendation-editor-fields {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* Catalogue price details: one aligned pricing workspace */
+.information-grid {
+    align-items: start;
+    gap: 30px;
+}
+
+.info-card:first-child .card-heading {
+    margin-bottom: 16px;
+}
+
+.info-card:first-child .price-fields,
+.info-card:first-child .recommendation-values {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 26px;
+    align-items: start;
+}
+
+.info-card:first-child .price-fields label {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    min-width: 0;
+    min-height: 68px;
+    gap: 5px;
+    color: #111111;
+}
+
+.info-card:first-child .price-fields input {
+    margin-top: auto;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.info-card:first-child .profit-row {
+    gap: 32px;
+    margin: 15px 0 16px;
+}
+
+.info-card:first-child .recommendation-workspace {
+    margin-top: 21px;
+    padding-top: 0;
+    border-top: 0;
+}
+
+.info-card:first-child .recommendation-workspace-heading {
+    margin-bottom: 12px;
+}
+
+.info-card:first-child .recommendation-workspace-heading h3 {
+    color: #111111;
+    font-size: 13px;
+    font-weight: 650;
+    letter-spacing: 0;
+}
+
+.info-card:first-child .recommendation-values {
+    margin-top: 0;
+}
+
+.info-card:first-child .recommendation-value {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 0;
+    gap: 5px;
+}
+
+.info-card:first-child .recommendation-label {
+    min-height: 2.6em;
+    color: #111111;
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.info-card:first-child .recommendation-value strong {
+    display: block;
+    width: 100%;
+    color: #111111;
+    font-size: 19px;
+    line-height: 1.3;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.info-card:first-child .recommendation-value small {
+    min-height: 2.8em;
+    color: #111111;
+    font-size: 10px;
+    line-height: 1.45;
+}
+
+.info-card:first-child #rrpRecommendationRow:not([hidden]):has(+ #rspRecommendationRow[hidden]),
+.info-card:first-child .recommendation-values > .recommendation-value[hidden] + .recommendation-value:not([hidden]) {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    gap: 4px 18px;
+}
+
+.info-card:first-child #rrpRecommendationRow:not([hidden]):has(+ #rspRecommendationRow[hidden]) .recommendation-label,
+.info-card:first-child .recommendation-values > .recommendation-value[hidden] + .recommendation-value:not([hidden]) .recommendation-label {
+    grid-column: 1;
+    grid-row: 1;
+    min-height: 0;
+}
+
+.info-card:first-child #rrpRecommendationRow:not([hidden]):has(+ #rspRecommendationRow[hidden]) strong,
+.info-card:first-child .recommendation-values > .recommendation-value[hidden] + .recommendation-value:not([hidden]) strong {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    align-self: center;
+}
+
+.info-card:first-child #rrpRecommendationRow:not([hidden]):has(+ #rspRecommendationRow[hidden]) small,
+.info-card:first-child .recommendation-values > .recommendation-value[hidden] + .recommendation-value:not([hidden]) small {
+    grid-column: 1;
+    grid-row: 2;
+    min-height: 0;
+}
+
+.info-card:first-child .recommendation-comparison {
+    margin-top: 15px;
+    padding: 0;
+    border-top: 0;
+    gap: 8px 18px;
+}
+
+.info-card:first-child .recommendation-comparison strong {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.info-card:first-child .recommendation-editor {
+    margin-top: 18px;
+    padding-top: 0;
+    border-top: 0;
+}
+
+.info-card:first-child .recommendation-editor-fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px 16px;
+}
+
+.info-card:first-child .recommendation-editor-fields .btn-save {
+    grid-column: 1 / -1;
+    justify-self: start;
+}
+
+.info-card:first-child .recommendation-editor-fields input {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.info-card:first-child .recommendation-history {
+    margin-top: 18px;
+}
+
+.info-card:first-child .recommendation-history ul {
+    gap: 6px;
+}
+
+@media (max-width: 900px) {
+    .information-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(155px, 0.38fr);
+        gap: 22px;
+    }
+
+    .info-card:first-child .recommendation-editor-fields {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .information-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 24px;
+    }
+
+    .info-card:first-child .recommendation-editor-fields {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 560px) {
+    .info-card:first-child .price-fields,
+    .info-card:first-child .recommendation-values {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 16px;
+    }
+
+    .info-card:first-child #rrpRecommendationRow:not([hidden]):has(+ #rspRecommendationRow[hidden]),
+    .info-card:first-child .recommendation-values > .recommendation-value[hidden] + .recommendation-value:not([hidden]) {
+        grid-column: auto;
+    }
+}
+
+/* Catalogue pricing: compact aligned single workspace */
+/* One concise pricing panel; its values share one grid rather than separate blocks. */
+.information-grid > .info-card:first-child {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-content: start;
+    align-items: stretch;
+    gap: 8px 12px;
+    min-width: 0;
+    padding: 12px 14px 13px !important;
+    border: 1px solid #D8E2DE !important;
+    border-radius: 5px !important;
+    background: #FFFFFF !important;
+    box-shadow: none !important;
+}
+
+.information-grid > .info-card:first-child > .card-heading {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    align-self: center;
+    margin: 0 0 2px !important;
+}
+
+.information-grid > .info-card:first-child > .card-heading h3 {
+    font-size: 13px !important;
+    line-height: 1.25;
+    font-weight: 650;
+}
+
+.information-grid > .info-card:first-child > .card-heading .card-caption {
+    font-size: 10px !important;
+}
+
+/* Allow the two actual price fields to sit in the same compact row as RRP/RSP. */
+.information-grid > .info-card:first-child > .price-fields {
+    display: contents !important;
+}
+
+.information-grid > .info-card:first-child > .price-fields > label {
+    min-width: 0;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 3px !important;
+    color: #111111 !important;
+    font-size: 10.5px !important;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.information-grid > .info-card:first-child > .price-fields > label:nth-child(1) {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.information-grid > .info-card:first-child > .price-fields > label:nth-child(2) {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.information-grid > .info-card:first-child > .price-fields input {
+    width: 100%;
+    height: 30px !important;
+    min-width: 0;
+    margin: 0 !important;
+    padding: 0 2px !important;
+    border: 0 !important;
+    border-bottom: 1px solid #C9D3CF !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: #111111 !important;
+    font-size: 13px !important;
+    font-weight: 650;
+    line-height: 1.2;
+    text-align: right !important;
+    font-variant-numeric: tabular-nums;
+    box-shadow: none !important;
+}
+
+.information-grid > .info-card:first-child > .price-fields input:focus-visible {
+    outline: 2px solid #0F766E !important;
+    outline-offset: 2px;
+    border-bottom-color: #0F766E !important;
+}
+
+/* RRP and RSP share the same parent grid as purchase/selling price. */
+.information-grid > .info-card:first-child > .recommendation-workspace:not([hidden]) {
+    display: contents !important;
+}
+
+.information-grid > .info-card:first-child .recommendation-workspace-heading {
+    display: none !important;
+}
+
+.information-grid > .info-card:first-child .recommendation-values {
+    display: contents !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.information-grid > .info-card:first-child .recommendation-value:not([hidden]) {
+    display: flex !important;
+    flex-direction: column;
+    align-items: stretch !important;
+    justify-content: flex-start;
+    min-width: 0;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 3px !important;
+}
+
+.information-grid > .info-card:first-child #rrpRecommendationRow:not([hidden]) {
+    grid-column: 3;
+    grid-row: 2;
+}
+
+.information-grid > .info-card:first-child #rspRecommendationRow:not([hidden]) {
+    grid-column: 4;
+    grid-row: 2;
+}
+
+
+
+.information-grid > .info-card:first-child .recommendation-label {
+    min-height: 0 !important;
+    color: #111111 !important;
+    font-size: 10.5px !important;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.information-grid > .info-card:first-child .recommendation-value strong {
+    display: block;
+    width: 100%;
+    margin: 0 !important;
+    color: #111111 !important;
+    font-size: 15px !important;
+    font-weight: 700;
+    line-height: 1.25;
+    text-align: right !important;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.information-grid > .info-card:first-child .recommendation-value small {
+    min-height: 0 !important;
+    color: #111111 !important;
+    font-size: 9px !important;
+    line-height: 1.25;
+}
+
+/* Margin/profit and comparison occupy one short row beneath the prices. */
+.information-grid > .info-card:first-child > .profit-row {
+    grid-column: 1 / 3;
+    grid-row: 3;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start;
+    gap: 20px !important;
+    min-width: 0;
+    margin: 0 !important;
+    padding: 3px 0 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+}
+
+.information-grid > .info-card:first-child .profit-row > div {
+    min-width: 0 !important;
+}
+
+.information-grid > .info-card:first-child .profit-row span {
+    margin: 0 0 2px !important;
+    color: #111111 !important;
+    font-size: 9px !important;
+    letter-spacing: 0 !important;
+}
+
+.information-grid > .info-card:first-child .profit-row strong {
+    font-size: 13px !important;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+
+.information-grid > .info-card:first-child #priceRecommendationComparison:not([hidden]) {
+    grid-column: 3 / 5;
+    grid-row: 3;
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 12px;
+    min-width: 0;
+    margin: 0 !important;
+    padding: 3px 0 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    color: #111111 !important;
+    font-size: 10px !important;
+    line-height: 1.3;
+}
+
+.information-grid > .info-card:first-child #priceRecommendationComparison strong {
+    color: inherit;
+    font-size: 12px !important;
+    font-weight: 700;
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Actions sit below the compact values, not between the prices. */
+.information-grid > .info-card:first-child > #saveInlinePriceBtn {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    justify-self: start;
+    min-height: 30px !important;
+    min-width: 0 !important;
+    margin: 2px 0 0 !important;
+    padding: 6px 11px !important;
+    border-radius: 3px !important;
+    font-size: 11px !important;
+}
+
+.information-grid > .info-card:first-child .recommendation-editor:not([hidden]) {
+    grid-column: 1 / -1;
+    grid-row: 5;
+    min-width: 0;
+    margin: 2px 0 0 !important;
+    padding: 7px 0 0 !important;
+    border: 0 !important;
+}
+
+.information-grid > .info-card:first-child .recommendation-editor-fields {
+    display: grid !important;
+    grid-template-columns: minmax(100px, 0.9fr) minmax(100px, 0.9fr) minmax(120px, 1fr) auto;
+    align-items: end;
+    gap: 8px !important;
+}
+
+.information-grid > .info-card:first-child .recommendation-editor-fields label {
+    min-width: 0;
+    gap: 4px !important;
+    color: #111111 !important;
+    font-size: 10px !important;
+}
+
+.information-grid > .info-card:first-child .recommendation-editor-fields input,
+.information-grid > .info-card:first-child .recommendation-editor-fields select {
+    width: 100%;
+    min-width: 0;
+    height: 30px !important;
+    padding: 0 7px !important;
+    border: 0 !important;
+    border-bottom: 1px solid #C9D3CF !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: #111111 !important;
+    font-size: 11px !important;
+}
+
+.information-grid > .info-card:first-child .recommendation-editor-fields .btn-save {
+    min-width: 0 !important;
+    min-height: 30px !important;
+    padding: 6px 9px !important;
+    font-size: 10px !important;
+    white-space: nowrap;
+}
+
+.information-grid > .info-card:first-child .recommendation-status {
+    grid-column: 1 / -1;
+    margin: 5px 0 0 !important;
+    font-size: 10px !important;
+}
+
+.information-grid > .info-card:first-child .recommendation-history:not([hidden]) {
+    grid-column: 1 / -1;
+    grid-row: 6;
+    min-width: 0;
+    margin: 3px 0 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+}
+
+.information-grid > .info-card:first-child .recommendation-history h4 {
+    margin: 0 !important;
+    font-size: 11px !important;
+    font-weight: 650;
+}
+
+.information-grid > .info-card:first-child .recommendation-history ul {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 3px 12px !important;
+    margin: 5px 0 0 !important;
+}
+
+.information-grid > .info-card:first-child .recommendation-history li {
+    min-width: 0;
+    color: #111111 !important;
+    font-size: 9px !important;
+    line-height: 1.35;
+}
+
+/* Tablet: two compact columns; preserve the same order and one outer boundary. */
+@media (max-width: 900px) {
+    .information-grid > .info-card:first-child {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px 14px;
+    }
+
+    .information-grid > .info-card:first-child > .price-fields > label:nth-child(1) {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    .information-grid > .info-card:first-child > .price-fields > label:nth-child(2) {
+        grid-column: 2;
+        grid-row: 2;
+    }
+
+    .information-grid > .info-card:first-child #rrpRecommendationRow:not([hidden]),
+    .information-grid > .info-card:first-child #rspRecommendationRow:not([hidden]) {
+        grid-row: 3;
+        grid-column: auto;
+    }
+
+    .information-grid > .info-card:first-child #priceRecommendationComparison:not([hidden]) {
+        grid-column: 1 / -1;
+        grid-row: 4;
+    }
+
+    .information-grid > .info-card:first-child > .profit-row {
+        grid-column: 1 / -1;
+        grid-row: 5;
+    }
+
+    .information-grid > .info-card:first-child > #saveInlinePriceBtn {
+        grid-row: 6;
+    }
+
+    .information-grid > .info-card:first-child .recommendation-editor:not([hidden]) {
+        grid-row: 7;
+    }
+
+    .information-grid > .info-card:first-child .recommendation-history:not([hidden]) {
+        grid-row: 8;
+    }
+
+    .information-grid > .info-card:first-child .recommendation-editor-fields {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 560px) {
+    .information-grid > .info-card:first-child {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 11px 12px !important;
+    }
+
+    .information-grid > .info-card:first-child > .price-fields > label:nth-child(1),
+    .information-grid > .info-card:first-child > .price-fields > label:nth-child(2),
+    .information-grid > .info-card:first-child #rrpRecommendationRow:not([hidden]),
+    .information-grid > .info-card:first-child #rspRecommendationRow:not([hidden]),
+    .information-grid > .info-card:first-child > .profit-row,
+    .information-grid > .info-card:first-child #priceRecommendationComparison:not([hidden]),
+    .information-grid > .info-card:first-child > #saveInlinePriceBtn,
+    .information-grid > .info-card:first-child .recommendation-editor:not([hidden]),
+    .information-grid > .info-card:first-child .recommendation-history:not([hidden]) {
+        grid-column: 1;
+        grid-row: auto;
+    }
+
+    .information-grid > .info-card:first-child .recommendation-editor-fields,
+    .information-grid > .info-card:first-child .recommendation-history ul {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+/* Catalogue: live, date-bounded promotion prices */
+.catalogue-active-promotions[hidden] {
+    display: none !important;
+}
+
+.catalogue-active-promotions {
+    width: 100%;
+    margin: 12px 0 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #111111;
+}
+
+.catalogue-active-promotions-heading {
+    margin: 0 0 7px;
+    color: #0F766E;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.catalogue-active-promotion-list {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+}
+
+.catalogue-active-promotion-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(112px, auto);
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 4px 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.catalogue-active-promotion-copy {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.catalogue-active-promotion-name {
+    overflow-wrap: anywhere;
+    color: #111111;
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.35;
+}
+
+.catalogue-active-promotion-meta {
+    color: #111111;
+    font-size: 10.5px;
+    font-weight: 400;
+    line-height: 1.4;
+}
+
+.catalogue-active-promotion-amount {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+    min-width: 0;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.catalogue-active-promotion-price-label {
+    color: #111111;
+    font-size: 10px;
+    line-height: 1.25;
+}
+
+.catalogue-active-promotion-price {
+    color: #0F766E;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+    .catalogue-active-promotion-row {
+        grid-template-columns: minmax(0, 1fr) minmax(100px, auto);
+        gap: 8px;
+    }
+
+    .catalogue-active-promotion-price {
+        font-size: 13px;
+    }
+}
+
+/* Catalogue promotion prices */
+.item-promotion {
+    display: grid;
+    gap: 5px;
+    margin-top: 5px;
+    min-width: 0;
+}
+
+.item-promotion-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+}
+
+.item-promotion-price {
+    color: #0F766E;
+    font-size: 12px;
+    font-weight: 750;
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+}
+
+.item-promotion-meta {
+    display: block;
+    color: #64746e;
+    font-size: 10px;
+    font-weight: 400;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.catalogue-active-promotion-reference {
+    color: #444444;
+    font-size: 10.5px;
+    line-height: 1.35;
+}
+
+.catalogue-active-promotion-saving {
+    color: #0F766E;
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+/* Promo layout: prevent campaign details and prices from overlapping */
+.catalogue-active-promotion-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 10px;
+    min-width: 0;
+}
+
+.catalogue-active-promotion-copy {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.catalogue-active-promotion-meta {
+    overflow-wrap: anywhere;
+}
+
+.catalogue-active-promotion-amount {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 4px;
+    width: 100%;
+    min-width: 0;
+    position: static;
+}
+
+.catalogue-active-promotion-price-label,
+.catalogue-active-promotion-price,
+.catalogue-active-promotion-reference,
+.catalogue-active-promotion-saving {
+    display: block;
+    position: static;
+    transform: none;
+    max-width: 100%;
+}
+
+.catalogue-active-promotion-price {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+}
+
+/* Keep promotions below the four aligned price sections. */
+.information-grid > .info-card:first-child > .catalogue-active-promotions:not([hidden]) {
+    display: flex !important;
+    flex-direction: column;
+    grid-column: 1 / -1;
+    grid-row: 4;
+    align-self: start;
+    justify-content: flex-start;
+    gap: 3px;
+    min-width: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.information-grid > .info-card:first-child .catalogue-active-promotions-heading {
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #111111 !important;
+    font-size: 10.5px !important;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.information-grid > .info-card:first-child .catalogue-active-promotion-list {
+    display: grid;
+    gap: 0;
+    min-width: 0;
+}
+
+.information-grid > .info-card:first-child .catalogue-active-promotion-row {
+    display: flex !important;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 3px;
+    min-width: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+}
+
+.information-grid > .info-card:first-child .catalogue-active-promotion-copy {
+    display: none !important;
+}
+
+.information-grid > .info-card:first-child .catalogue-active-promotion-amount {
+    display: flex !important;
+    align-items: stretch !important;
+    width: 100%;
+    min-width: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.information-grid > .info-card:first-child .catalogue-active-promotion-price-label {
+    display: none !important;
+}
+
+.information-grid > .info-card:first-child .catalogue-active-promotion-price {
+    display: block;
+    width: 100%;
+    margin: 0 !important;
+    color: #111111 !important;
+    font-size: 15px !important;
+    font-weight: 700;
+    line-height: 1.25;
+    text-align: right !important;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+
+
+/* Narrow layouts: two aligned columns. */
+@media (max-width: 760px) {
+    .information-grid > .info-card:first-child {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .information-grid > .info-card:first-child > .price-fields > label:nth-child(1) {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    .information-grid > .info-card:first-child > .price-fields > label:nth-child(2) {
+        grid-column: 2;
+        grid-row: 2;
+    }
+
+    .information-grid > .info-card:first-child #rrpRecommendationRow:not([hidden]) {
+        grid-column: 1;
+        grid-row: 3;
+    }
+
+    .information-grid > .info-card:first-child > .catalogue-active-promotions:not([hidden]) {
+        grid-column: 2;
+        grid-row: 3;
+    }
+
+    .information-grid > .info-card:first-child #rspRecommendationRow:not([hidden]) {
+        grid-column: 1 / -1;
+        grid-row: 4;
+    }
+}
+
+/* Restore individual boxes for all catalogue prices */
+.information-grid > .info-card:first-child > .price-fields > label,
+.information-grid > .info-card:first-child .recommendation-value:not([hidden]),
+.information-grid > .info-card:first-child > .catalogue-active-promotions:not([hidden]) {
+    box-sizing: border-box;
+    min-width: 0;
+    padding: 9px 10px !important;
+    border: 1px solid #D8E2DE !important;
+    border-radius: 5px !important;
+    background: #FFFFFF !important;
+}
+
+.information-grid > .info-card:first-child > .price-fields > label {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 6px !important;
+}
+
+.information-grid > .info-card:first-child > .price-fields input {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 5px 0 !important;
+    border: 0 !important;
+    border-bottom: 1px solid #C9D3CF !important;
+    background: transparent !important;
+    text-align: right !important;
+    font-variant-numeric: tabular-nums;
+}
+
+.information-grid > .info-card:first-child .recommendation-value:not([hidden]) {
+    display: flex !important;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 6px !important;
+}
+
+.information-grid > .info-card:first-child .recommendation-value strong {
+    text-align: right !important;
+    font-variant-numeric: tabular-nums;
+}
+
+.information-grid > .info-card:first-child > .catalogue-active-promotions:not([hidden]) {
+    align-self: stretch;
+    justify-content: flex-start;
+    gap: 6px !important;
+}
+
+.information-grid > .info-card:first-child .catalogue-active-promotions-heading {
+    margin: 0 !important;
+}
+
+.information-grid > .info-card:first-child .catalogue-active-promotion-price {
+    text-align: right !important;
+    font-variant-numeric: tabular-nums;
+}
+
+
+/* Keep catalogue price boxes visible when the desktop viewport changes */
+.information-grid > .info-card:first-child {
+    min-width: 0;
+    overflow: visible;
+}
+
+.information-grid > .info-card:first-child .recommendation-value strong {
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+
+
+
+/* Catalogue decision: remove RRP from the visible pricing panel. */
+.information-grid > .info-card:first-child #rrpRecommendationRow,
+.information-grid > .info-card:first-child #priceRecommendationComparison {
+    display: none !important;
+}

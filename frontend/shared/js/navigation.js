@@ -16,6 +16,7 @@ const BUILT_PATHS = [
     "modules/messages/announcements/announcements.html",
     "modules/messages/notifications/notifications.html",
     "modules/messages/branch-communications/branch-communications.html",
+    "modules/messages/conversations/conversations.html",
     "modules/admin/users/users.html",
     "modules/admin/branches/branches.html",
     "modules/admin/organisation-profile/organisation-profile.html",
@@ -26,6 +27,7 @@ const BUILT_PATHS = [
     "modules/network/distribution/distribution.html",
     "modules/stock/stock/stock.html",
     "modules/stock/sales/sales.html",
+    "modules/purchasing/orders/orders.html",
     "modules/network/offers/offers.html",
     "modules/stock/prices/prices.html",
     "modules/finance/accounts/accounts.html",
@@ -33,6 +35,9 @@ const BUILT_PATHS = [
     "modules/finance/accounts/documents.html",
     "modules/finance/accounts/payments.html",
     "modules/finance/accounts/ledger.html",
+    "modules/promotions/campaigns/campaigns.html",
+    "modules/promotions/retailer/retailer.html",
+    "modules/promotions/offers/offers.html",
 ];
 function page(module, name) {
     return `modules/${module}/${name}/${name}.html`;
@@ -75,10 +80,27 @@ const TABS = [
     {
         id: "promotions",
         label: "Promotions",
+        types: ["RETAILER", "MANUFACTURER", "MANUFACTURER_SUPPLIER"],
         sections: [
-            { label: "Campaigns", path: page("promotions", "campaigns") },
-            { label: "Claims", path: page("promotions", "claims") }
+            { label: "Campaigns", path: page("promotions", "campaigns"), types: ["MANUFACTURER", "MANUFACTURER_SUPPLIER"], roles: ["ADMIN"] },
+            { label: "My branch promotions", path: page("promotions", "retailer"), types: ["RETAILER"], roles: ["ADMIN", "BRANCH_ADMIN", "STAFF"] },
+            { label: "Manufacturer campaigns", path: page("promotions", "offers"), types: ["RETAILER"], roles: ["ADMIN", "BRANCH_ADMIN", "STAFF"] },
+            { label: "Claims", path: page("promotions", "claims"), types: ["MANUFACTURER", "MANUFACTURER_SUPPLIER"], roles: ["ADMIN"] }
         ]
+    },
+    {
+        id: "purchasing-retailer",
+        label: "Purchasing",
+        types: ["RETAILER"],
+        roles: ["ADMIN", "BRANCH_ADMIN"],
+        path: page("purchasing", "orders")
+    },
+    {
+        id: "purchasing-supplier",
+        label: "Purchasing",
+        types: ["SUPPLIER", "MANUFACTURER_SUPPLIER"],
+        roles: ["ADMIN"],
+        path: page("purchasing", "orders")
     },
     {
         id: "stock",

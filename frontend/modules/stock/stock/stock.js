@@ -101,7 +101,15 @@
         else if (priorValue && state.branches.some(branch => String(branch.branch_id) === priorValue)) select.value = priorValue;
 
         select.disabled = state.branches.length <= 1;
-        select.closest(".stock-field").hidden = state.branches.length === 0;
+        const branchField = select.closest(".stock-field");
+        if (branchField) {
+            branchField.hidden = state.branches.length === 0;
+        }
+
+        const branchPicker = byId("stockBranchPicker");
+        if (branchPicker) {
+            branchPicker.style.display = state.branches.length > 1 ? "" : "none";
+        }
     }
 
     function renderMetrics(rows) {
@@ -131,103 +139,278 @@
     }
 
     function clearSelectedProductForm() {
+        state.selectedKey = null;
         state.salesContext = null;
         state.contextKey = null;
         state.contextBranchId = null;
         state.contextRequest += 1;
 
-        byId("selectedProductLabel").textContent = "No product package selected.";
-        ["countOnHand", "countReorderLevel", "unitsSold", "salesAmount", "salesAmountBasis", "salesAmountOverride"].forEach(id => {
-            byId(id).value = "";
+        const label = byId("selectedProductLabel");
+        if (label) label.textContent = "Select a product to begin.";
+
+        ["unitsSold", "salesAmount", "salesAmountBasis"].forEach(id => {
+            const field = byId(id);
+            if (field) field.value = "";
         });
+
+        const override = byId("salesAmountOverride");
+        if (override) {
+            override.checked = false;
+            override.disabled = true;
+        }
+
+        const context = byId("salesTaxContext");
+        if (context) context.textContent = "";
+
+        renderStockProductDetails(null);
         updateFormAvailability(null);
-        setEditorStatus("Choose a product package to manage its stock.", "");
-        byId("salesTaxContext").textContent = "Select a product version, branch, and sale date to check its effective branch price and manufacturer tax declaration.";
         renderSalesAmountHint();
     }
 
     function renderRows() {
-        const rows = filteredRows();
+        const rows = state.rows;
         const previousKey = state.selectedKey;
 
-        if (previousKey && !rows.some(row => `${row.product_id}:${row.product_version_id}` === previousKey)) {
+        if (
+            previousKey &&
+            !rows.some(row =>
+                `${row.product_id}:${row.product_version_id}` === previousKey
+            )
+        ) {
             state.selectedKey = null;
             clearSelectedProductForm();
         }
 
-        const select = byId("stockProductSelect");
-        const options = rows.map(row => {
-            const key = `${row.product_id}:${row.product_version_id}`;
-            const packageName = row.pack_size || row.packaging_description || "Package not specified";
-            const status = stockStatusLabels[row.status] || row.status || "Unknown";
-            const label = `${row.product_name} | ${packageName} | Version ${row.version_number} | ${status}`;
-            return `<option value="${escapeHtml(key)}">${escapeHtml(label)}</option>`;
-        });
-        select.innerHTML = `<option value="">Choose a product package</option>${options.join("")}`;
-        select.value = state.selectedKey && rows.some(row => `${row.product_id}:${row.product_version_id}` === state.selectedKey)
-            ? state.selectedKey
-            : "";
-        byId("stockRowCount").textContent = `${rows.length} matching package${rows.length === 1 ? "" : "s"}`;
+        const selector = byId("stockProductSelect");
 
-        const summary = byId("stockProductSummary");
-        const row = selectedRow();
-        if (!row) {
-            summary.innerHTML = `<div class="stock-product-empty">
-                <strong>Choose a product to begin</strong>
-                <p>Select a product and package version above. Its stock count, demand, supplier guidance, and status will appear here.</p>
-                <small>${rows.length.toLocaleString("en-KE")} matching product package${rows.length === 1 ? "" : "s"} available.</small>
-            </div>`;
-            return;
+        if (selector) {
+            selector.replaceChildren();
+
+            const placeholder = document.createElement("option");
+            placeholder.value = "";
+            placeholder.textContent = rows.length ? "Choose a product/package" : "No product packages found in Catalogue";
+            selector.appendChild(placeholder);
+
+            rows.forEach(row => {
+                const option = document.createElement("option");
+                option.value = `${row.product_id}:${row.product_version_id}`;
+
+                const packageName =
+                    row.pack_size ||
+                    row.packaging_description ||
+                    `Version ${row.version_number || "?"}`;
+
+                option.textContent = [
+                    row.product_name || "Unnamed product",
+                    packageName,
+                    `Version ${row.version_number || "?"}`
+                ].filter(Boolean).join(" · ");
+
+                selector.appendChild(option);
+            });
+
+            selector.value = state.selectedKey || "";
+            selector.style.display = "";
+            selector.removeAttribute("aria-hidden");
         }
 
-        const packageName = row.pack_size || row.packaging_description || "Package not specified";
-        const onHand = row.stock_recorded ? Number(row.on_hand).toLocaleString("en-KE") : "Not counted";
-        const reorder = Number(row.reorder_level || 0).toLocaleString("en-KE");
-        const average = Number(row.average_daily_sales || 0).toFixed(2);
-        const days = row.days_left === null || row.days_left === undefined
-            ? "Not available"
-            : `${Number(row.days_left).toFixed(1)} days`;
-        const supplier = row.supplier_name || "No applicable regional supplier";
-        const leadTime = `${Number(row.lead_time_days || 0)} day lead time${row.lead_time_is_estimate ? " (estimate)" : ""}`;
-        const suggested = Number(row.recommended_quantity || 0);
-        const suggestion = suggested > 0
-            ? `${suggested.toLocaleString("en-KE")} units`
-            : "No order suggested";
-        const suggestionDetail = suggested > 0
-            ? `MOQ ${Number(row.minimum_order_quantity || 0)} | Order multiple ${Number(row.order_multiple || 0)}`
-            : row.status === "NOT_TRACKED"
-                ? "Count stock to enable analysis"
-                : row.status === "NORMAL"
-                    ? "No reorder indicated"
-                    : "Review stock and supplier availability";
-
-        summary.innerHTML = `<div class="stock-product-overview">
-            <div class="stock-product-overview-heading">
-                <div class="stock-product-overview-copy">
-                    <p class="stock-product-kicker">PRODUCT OVERVIEW</p>
-                    <h3>${escapeHtml(row.product_name)}</h3>
-                    <p>${escapeHtml(row.manufacturer_name || "Manufacturer not recorded")}</p>
-                </div>
-                ${statusChip(row.status)}
-            </div>
-            <dl class="stock-product-details">
-                <div><dt>Package</dt><dd>${escapeHtml(packageName)}</dd></div>
-                <div><dt>Version / barcode</dt><dd>Version ${escapeHtml(row.version_number)}<small>${escapeHtml(row.barcode || "No barcode")}</small></dd></div>
-                <div><dt>Units on hand</dt><dd>${escapeHtml(onHand)}<small>Reorder level: ${escapeHtml(reorder)}</small></dd></div>
-                <div><dt>Average daily sales</dt><dd>${escapeHtml(average)}<small>${escapeHtml(days)} remaining</small></dd></div>
-            </dl>
-            <div class="stock-product-guidance">
-                <div><span>Regional supplier</span><strong>${escapeHtml(supplier)}</strong><small>${escapeHtml(leadTime)}</small></div>
-                <div><span>Suggested order</span><strong>${escapeHtml(suggestion)}</strong><small>${escapeHtml(suggestionDetail)}</small></div>
-            </div>
-        </div>`;
+        const list = byId("stockProductSummary");
+        if (list) {
+            list.replaceChildren();
+            list.style.display = "none";
+        }
     }
+
+    function prepareSalesOnlyLayout() {
+        const productPanel = document.querySelector(".stock-product-panel");
+        const selector = byId("stockProductSelect");
+
+        if (productPanel && selector) {
+            let picker = byId("stockProductPicker");
+
+            if (!picker) {
+                picker = document.createElement("div");
+                picker.id = "stockProductPicker";
+                picker.className = "stock-product-picker";
+                productPanel.prepend(picker);
+            }
+
+            let productLabel = byId("stockProductPickerLabel");
+
+            if (!productLabel) {
+                productLabel = document.createElement("label");
+                productLabel.id = "stockProductPickerLabel";
+                productLabel.htmlFor = "stockProductSelect";
+                productLabel.textContent = "Product / package";
+            }
+
+            const oldProductLabel =
+                document.querySelector('label[for="stockProductSelect"]');
+
+            if (oldProductLabel && oldProductLabel !== productLabel) {
+                oldProductLabel.style.display = "none";
+            }
+
+            let branchGroup = byId("stockBranchPicker");
+
+            if (!branchGroup) {
+                branchGroup = document.createElement("div");
+                branchGroup.id = "stockBranchPicker";
+                branchGroup.className = "stock-branch-picker";
+            }
+
+            const branchSelect = byId("stockBranch");
+            let branchLabel = byId("stockBranchPickerLabel");
+
+            if (branchSelect) {
+                if (!branchLabel) {
+                    branchLabel = document.createElement("label");
+                    branchLabel.id = "stockBranchPickerLabel";
+                    branchLabel.htmlFor = "stockBranch";
+                    branchLabel.textContent = "Branch";
+                }
+
+                const oldBranchLabel =
+                    document.querySelector('label[for="stockBranch"]');
+
+                if (oldBranchLabel && oldBranchLabel !== branchLabel) {
+                    oldBranchLabel.style.display = "none";
+                }
+
+                branchGroup.replaceChildren(branchLabel, branchSelect);
+
+                const branchCount = Array.isArray(state.branches)
+                    ? state.branches.length
+                    : 0;
+
+                branchGroup.style.display = branchCount > 1 ? "" : "none";
+                branchSelect.style.display = "";
+            }
+
+            picker.replaceChildren();
+
+            if (branchSelect) picker.appendChild(branchGroup);
+
+            picker.append(productLabel, selector);
+
+            Array.from(productPanel.children).forEach(child => {
+                if (child !== picker) child.style.display = "none";
+            });
+        }
+
+        const toolbar = document.querySelector(".stock-toolbar");
+        if (toolbar) toolbar.style.display = "none";
+
+        const metrics = byId("stockMetrics");
+        if (metrics) metrics.style.display = "none";
+
+        const search = byId("stockSearch");
+        if (search) search.style.display = "none";
+
+        const statusFilter = byId("stockStatusFilter");
+        if (statusFilter) statusFilter.style.display = "none";
+
+        const countForm = byId("stockCountForm");
+        if (countForm) {
+            countForm.style.display = "none";
+
+            const editor = document.querySelector(".stock-editor");
+            let ancestor = countForm.parentElement;
+
+            while (ancestor && ancestor !== editor) {
+                const forms = ancestor.querySelectorAll("form");
+
+                if (forms.length === 1 && forms[0] === countForm) {
+                    ancestor.style.display = "none";
+                    break;
+                }
+
+                ancestor = ancestor.parentElement;
+            }
+        }
+
+        const saveButton = byId("saveStockButton");
+        if (saveButton) saveButton.style.display = "none";
+
+        // These values still exist internally, but are no longer extra
+        // user-facing controls. Sale date remains today's date automatically.
+        function hideFieldGroup(id) {
+            const field = byId(id);
+            if (!field) return;
+
+            field.style.display = "none";
+
+            const label = document.querySelector(`label[for="${id}"]`);
+            if (label) label.style.display = "none";
+
+            let group = field.parentElement;
+            const form = field.closest("form");
+
+            for (let i = 0; group && group !== form && i < 4; i++) {
+                const controls = group.querySelectorAll(
+                    "input, select, textarea, button"
+                );
+
+                if (controls.length === 1 && controls[0] === field) {
+                    group.style.display = "none";
+                    group = group.parentElement;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        hideFieldGroup("saleDate");
+        hideFieldGroup("salesAmountBasis");
+        hideFieldGroup("salesAmountOverride");
+
+        ["salesAmountHint", "salesAmountOverrideHint", "salesTaxContext"].forEach(id => {
+            const element = byId(id);
+            if (element) element.style.display = "none";
+        });
+
+        const override = byId("salesAmountOverride");
+        if (override) {
+            override.checked = false;
+            override.disabled = true;
+        }
+
+        const amount = byId("salesAmount");
+        if (amount) amount.readOnly = true;
+
+        const saleDate = byId("saleDate");
+        if (saleDate && !saleDate.value) {
+            saleDate.value = localDateValue();
+        }
+    }
+
     function updateFormAvailability(row) {
         const hasSelection = Boolean(row);
-        byId("saveStockButton").disabled = !hasSelection || state.busy;
+        const button = byId("recordSaleButton");
+        const unitsText = byId("unitsSold").value.trim();
+        const unitsValid = /^\d{1,9}$/.test(unitsText);
         const saleDate = byId("saleDate").value;
-        const historicalSale = saleDate && saleDate < localDateValue();
-        byId("recordSaleButton").disabled = !hasSelection || state.busy || (!row.stock_recorded && !historicalSale);
+        const priceInfo = state.salesContext && state.salesContext.price;
+
+        const hasPrice = Boolean(
+            priceInfo &&
+            priceInfo.status === "EFFECTIVE" &&
+            Number.isFinite(Number(priceInfo.selling_price)) &&
+            Number(priceInfo.selling_price) >= 0 &&
+            ["VAT_INCLUSIVE", "VAT_EXCLUSIVE"].includes(priceInfo.price_basis)
+        );
+
+        if (byId("saveStockButton")) {
+            byId("saveStockButton").disabled = true;
+        }
+
+        button.disabled =
+            !hasSelection ||
+            state.busy ||
+            !hasPrice ||
+            !unitsValid ||
+            !saleDate ||
+            saleDate > localDateValue();
     }
 
     function formatSalesMoney(value) {
@@ -238,122 +421,203 @@
         }).format(Number.isFinite(amount) ? amount : 0);
     }
 
-    function renderSalesAmountHint() {
-        const hint = byId("salesAmountHint");
-        const overrideEl = byId("salesAmountOverride");
-        const overrideHintEl = byId("salesAmountOverrideHint");
-        const context = state.salesContext;
+    function renderStockProductDetails(row) {
+        let panel = byId("stockProductDetails");
+        const form = byId("stockSaleForm");
+        const editor = document.querySelector(".stock-editor");
 
-        function resetOverride() {
-            if (overrideEl) { overrideEl.checked = false; overrideEl.disabled = true; }
-            if (overrideHintEl) { overrideHintEl.style.display = "none"; }
+        if (!panel) {
+            panel = document.createElement("div");
+            panel.id = "stockProductDetails";
+            panel.className = "stock-product-details";
         }
 
-        function maybeShowOverride() {
-            if (!overrideEl || !overrideHintEl) return;
-            if (!context || !context.price || context.price.status !== "EFFECTIVE") { resetOverride(); return; }
-            const basis = byId("salesAmountBasis").value;
-            if (!basis || context.price.price_basis !== basis) { resetOverride(); return; }
-            const unitsRaw = byId("unitsSold").value;
-            const amountRaw = byId("salesAmount").value;
-            if (!/^\d{1,9}$/.test(unitsRaw)) { resetOverride(); return; }
-            if (!/^\d{1,10}(?:\.\d{1,2})?$/.test(amountRaw)) { resetOverride(); return; }
-            const expected = Math.round(Number(context.price.selling_price) * Number(unitsRaw) * 100) / 100;
-            const entered = Number(amountRaw);
-            const diff = Math.abs(expected - entered);
-            if (diff > 0.01) {
-                overrideEl.disabled = false;
-                overrideHintEl.style.display = "";
-                overrideHintEl.textContent = `Expected KSh ${expected.toFixed(2)} (${unitsRaw} × ${Number(context.price.selling_price).toFixed(2)}). You entered KSh ${entered.toFixed(2)}. Tick above to save anyway; the override is recorded in the audit trail.`;
-            } else {
-                resetOverride();
-            }
+        if (form && form.parentElement) {
+            form.parentElement.insertBefore(panel, form);
+        } else if (editor && panel.parentElement !== editor) {
+            editor.prepend(panel);
         }
-        const unitsText = byId("unitsSold").value;
-        if (!context || !context.price || context.price.status !== "EFFECTIVE") {
-            hint.textContent = "Enter the actual total for the selected day, including any promotions or discounts. A current branch selling price is not available for this date.";
+
+        panel.replaceChildren();
+
+        if (!row) {
+            panel.style.display = "none";
             return;
         }
-        const price = Number(context.price.selling_price);
-        const basis = context.price.price_basis === "VAT_EXCLUSIVE" ? "VAT-exclusive" : "VAT-inclusive";
-        const units = Number(unitsText);
-        if (unitsText !== "" && Number.isFinite(units) && units >= 0 && Number.isFinite(price)) {
-            hint.textContent = `Reference only: ${units.toLocaleString("en-KE")} units at the current listed price would total ${formatSalesMoney(units * price)} (${basis}), before promotions or discounts. Enter the actual daily total.`;
-        } else {
-            hint.textContent = `Current listed price is ${formatSalesMoney(price)} per unit (${basis}). Enter the actual daily total, including any promotions or discounts.`;
+
+        const context = state.salesContext || {};
+        const priceInfo = context.price || {};
+        const taxInfo = context.tax || {};
+
+        const priceIsEffective =
+            priceInfo.status === "EFFECTIVE" &&
+            Number.isFinite(Number(priceInfo.selling_price));
+
+        const stockAmount = Number(row.on_hand);
+        const stockText = !row.stock_recorded
+            ? "Not recorded"
+            : Number.isFinite(stockAmount)
+                ? `${new Intl.NumberFormat("en-KE", {
+                    maximumFractionDigits: 2
+                }).format(stockAmount)} units`
+                : "Not recorded";
+
+        const priceText = priceIsEffective
+            ? `${formatSalesMoney(priceInfo.selling_price)} / unit`
+            : "Not set";
+
+        const taxCode = String(
+            taxInfo.tax_category ||
+            taxInfo.tax_category_code ||
+            taxInfo.category_code ||
+            taxInfo.category ||
+            ""
+        ).toUpperCase();
+
+        const taxLabels = {
+            STANDARD_RATED: "Standard-rated",
+            VAT_STANDARD: "Standard-rated",
+            ZERO_RATED: "Zero-rated",
+            VAT_ZERO_RATED: "Zero-rated",
+            EXEMPT: "Exempt",
+            VAT_EXEMPT: "Exempt",
+            NON_TAXABLE: "Non-taxable",
+            OUT_OF_SCOPE: "Out of scope"
+        };
+
+        const taxText = taxCode
+            ? (taxLabels[taxCode] ||
+                taxCode.toLowerCase().replace(/_/g, " ").replace(/\b[a-z]/g, c => c.toUpperCase()))
+            : "Not declared";
+
+        const details = [
+            ["Available stock", stockText],
+            ["Selling price", priceText],
+            ["Tax category", taxText]
+        ];
+
+        details.forEach(([labelText, valueText]) => {
+            const item = document.createElement("div");
+            item.className = "stock-product-detail";
+
+            const label = document.createElement("span");
+            label.className = "stock-product-detail-label";
+            label.textContent = labelText;
+
+            const value = document.createElement("strong");
+            value.className = "stock-product-detail-value";
+            value.textContent = valueText;
+
+            item.append(label, value);
+            panel.appendChild(item);
+        });
+
+        panel.style.display = "";
+    }
+
+    function renderSalesAmountHint() {
+        const amount = byId("salesAmount");
+        const unitsText = byId("unitsSold").value.trim();
+        const priceInfo = state.salesContext && state.salesContext.price;
+        const basis = byId("salesAmountBasis");
+        const override = byId("salesAmountOverride");
+
+        if (override) {
+            override.checked = false;
+            override.disabled = true;
         }
 
-        maybeShowOverride();
+        const hasPrice = Boolean(
+            priceInfo &&
+            priceInfo.status === "EFFECTIVE" &&
+            Number.isFinite(Number(priceInfo.selling_price)) &&
+            Number(priceInfo.selling_price) >= 0 &&
+            ["VAT_INCLUSIVE", "VAT_EXCLUSIVE"].includes(priceInfo.price_basis)
+        );
+
+        amount.readOnly = true;
+        basis.value = hasPrice ? priceInfo.price_basis : "";
+
+        if (!hasPrice) {
+            amount.value = "";
+            updateFormAvailability(selectedRow());
+            return;
+        }
+
+        if (!/^\d{1,9}$/.test(unitsText)) {
+            amount.value = "";
+            updateFormAvailability(selectedRow());
+            return;
+        }
+
+        const price = Number(priceInfo.selling_price);
+        const total = Math.round(Number(unitsText) * price * 100) / 100;
+
+        amount.value = total.toFixed(2);
+        updateFormAvailability(selectedRow());
     }
 
     async function loadSalesPricingContext(row, setDefaultBasis) {
         const requestId = ++state.contextRequest;
-        const node = byId("salesTaxContext");
-        if (!row || !state.branch || !byId("saleDate").value) {
-            state.salesContext = null;
-            node.textContent = "Select a product version, branch, and sale date to check its effective price and tax declaration.";
+        const message = byId("salesTaxContext");
+        const saleDate = byId("saleDate").value || localDateValue();
+
+        state.salesContext = null;
+
+        if (!row || !state.branch || !saleDate) {
+            if (message) message.textContent = "";
+            renderStockProductDetails(row);
             renderSalesAmountHint();
             return;
         }
 
-        node.textContent = "Checking the effective branch selling price and manufacturer tax declaration...";
+        renderStockProductDetails(row);
+        renderSalesAmountHint();
+
         const query = new URLSearchParams({
             branchId: String(state.branch.branch_id),
             productId: String(row.product_id),
             productVersionId: String(row.product_version_id),
-            saleDate: byId("saleDate").value
+            saleDate
         });
 
         try {
-            const response = await getJson(`stock/sales-pricing-context.php?${query.toString()}`);
-            const data = unwrapApiResponse(response, "Unable to check the effective price and tax declaration.");
+            const response = await getJson(
+                `stock/sales-pricing-context.php?${query.toString()}`
+            );
+
+            const data = unwrapApiResponse(
+                response,
+                "Unable to load selling price."
+            );
+
             if (requestId !== state.contextRequest) return;
+
             state.salesContext = data;
 
             if (data.price && data.price.status === "EFFECTIVE") {
-                if (setDefaultBasis || !byId("salesAmountBasis").value) {
-                    byId("salesAmountBasis").value = data.price.price_basis;
-                }
-            } else if (setDefaultBasis) {
+                byId("salesAmountBasis").value = data.price.price_basis;
+            } else {
                 byId("salesAmountBasis").value = "";
             }
 
-            const parts = [];
-            if (data.price && data.price.status === "EFFECTIVE") {
-                const basisLabel = data.price.price_basis === "VAT_EXCLUSIVE" ? "VAT-exclusive" : "VAT-inclusive";
-                const endLabel = data.price.effective_to ? ` through ${data.price.effective_to}` : " with no planned end date";
-                parts.push(`Effective branch selling price: ${formatSalesMoney(data.price.selling_price)} per unit (${basisLabel}), from ${data.price.effective_from}${endLabel}.`);
-            } else if (data.price && data.price.status === "AMBIGUOUS_PRICE") {
-                parts.push("Price review needed: more than one active selling price period overlaps this date. The listed price cannot be chosen safely.");
-            } else {
-                parts.push("No effective branch selling price is recorded for this product version and date. You can still record the actual sales total, but there is no price reference.");
-            }
+            if (message) message.textContent = "";
 
-            const categories = {
-                STANDARD_RATED: "Standard-rated",
-                ZERO_RATED: "Zero-rated",
-                EXEMPT: "Exempt"
-            };
-            if (data.tax && data.tax.status === "CALCULATED") {
-                parts.push(`Manufacturer declaration: ${categories[data.tax.tax_category] || data.tax.tax_category}, rate ${Number(data.tax.rate_percent).toFixed(2)}%. The server will calculate and snapshot tax for this sale date.`);
-            } else if (data.tax && data.tax.status === "AMBIGUOUS_CLASSIFICATION") {
-                parts.push("Tax review needed: multiple manufacturer declarations overlap this date. Tax and net sales will be left uncalculated until the declarations are reconciled.");
-            } else if (data.tax && data.tax.status === "AMBIGUOUS_RATE") {
-                parts.push("Tax review needed: multiple tax-rate periods overlap this date. Tax and net sales will be left uncalculated until the rate schedule is reconciled.");
-            } else if (data.tax && data.tax.status === "MISSING_RATE") {
-                parts.push(`Manufacturer category ${categories[data.tax.tax_category] || data.tax.tax_category} exists, but no effective tax rate is configured for this date.`);
-            } else {
-                parts.push("No effective manufacturer tax declaration exists for this date. Nexora will save the sales amount but leave tax and net sales uncalculated.");
-            }
-            node.textContent = parts.join(" ");
+            renderStockProductDetails(row);
             renderSalesAmountHint();
         } catch (error) {
             if (requestId !== state.contextRequest) return;
+
             state.salesContext = null;
-            node.textContent = `Price and tax context could not be loaded: ${apiMessage(error)} You may still enter an amount basis explicitly.`;
+
+            if (message) message.textContent = "";
+
+            renderStockProductDetails(row);
             renderSalesAmountHint();
+            setEditorStatus("Selling price could not be loaded. Refresh and try again.", "error");
         }
     }
+
     function selectRow(key) {
         state.selectedKey = key;
         const row = selectedRow();
@@ -371,6 +635,8 @@
         byId("countOnHand").value = row.stock_recorded ? row.on_hand : 0;
         byId("countReorderLevel").value = row.reorder_level || 0;
         byId("unitsSold").value = "";
+        byId("salesAmount").value = "";
+        byId("salesAmountOverride").checked = false;
         setEditorStatus(row.stock_recorded ? `Last counted: ${formatDate(row.last_updated)}.` : "This branch/version is not tracked yet. Save an opening count before recording today's sales.");
         updateFormAvailability(row);
         renderRows();
@@ -496,16 +762,142 @@
             </p>`;
         }
     }
+    function setStockWorkflowMessage(message, type) {
+        let host = byId("stockProductPicker") ||
+            document.querySelector(".stock-product-panel");
+
+        if (!host) host = byId("stockStatus");
+        if (!host) return;
+
+        let note = byId("stockWorkflowMessage");
+
+        if (!note) {
+            note = document.createElement("p");
+            note.id = "stockWorkflowMessage";
+            note.className = "stock-workflow-message";
+            host.appendChild(note);
+        }
+
+        note.textContent = message || "";
+        note.dataset.state = type || "";
+        note.style.display = message ? "" : "none";
+    }
+
+    async function loadCatalogueStockRows(stockRows) {
+        try {
+            const response = await getJson("products/list.php");
+
+            const candidates = [
+                response,
+                response && response.data,
+                response && response.data && response.data.data,
+                response && response.payload,
+                response && response.payload && response.payload.data,
+                response && response.result,
+                response && response.result && response.result.data
+            ];
+
+            const data = candidates.find(
+                candidate => candidate &&
+                    Array.isArray(candidate.products)
+            );
+
+            if (!data) {
+                const shapes = candidates
+                    .filter(candidate => candidate && typeof candidate === "object")
+                    .map(candidate => Object.keys(candidate).join(", "))
+                    .filter(Boolean);
+
+                throw new Error(
+                    "Catalogue response has no products array. Response fields: " +
+                    (shapes.join(" | ") || "none")
+                );
+            }
+
+            const stockByKey = new Map(
+                (Array.isArray(stockRows) ? stockRows : []).map(row => [
+                    `${Number(row.product_id)}:${Number(row.product_version_id)}`,
+                    row
+                ])
+            );
+
+            const catalogueRows = [];
+
+            data.products.forEach(product => {
+                const productId = Number(product.product_id);
+                const versions = Array.isArray(product.versions)
+                    ? product.versions
+                    : [];
+
+                versions.forEach(version => {
+                    const versionId = Number(version.product_version_id);
+                    if (!productId || !versionId) return;
+
+                    const key = `${productId}:${versionId}`;
+                    const actual = stockByKey.get(key) || null;
+
+                    catalogueRows.push({
+                        ...product,
+                        ...version,
+                        ...(actual || {}),
+                        product_id: productId,
+                        product_version_id: versionId,
+                        product_name: product.product_name,
+                        category: product.category || "",
+                        manufacturer_name: product.manufacturer_name || "",
+                        version_number: version.version_number,
+                        barcode: version.barcode || "",
+                        pack_size: version.pack_size || "",
+                        packaging_description: version.packaging_description || "",
+                        on_hand: actual ? Number(actual.on_hand || 0) : 0,
+                        reorder_level: actual ? Number(actual.reorder_level || 0) : 0,
+                        stock_recorded: actual
+                            ? Boolean(actual.stock_recorded || actual.retailer_stock_id)
+                            : false,
+                        last_updated: actual ? actual.last_updated : null,
+                        sold_recently: actual ? Number(actual.sold_recently || 0) : 0,
+                        status: actual ? actual.status : "NOT_TRACKED"
+                    });
+                });
+            });
+
+            if (catalogueRows.length === 0) {
+                const productsCount = data.products.length;
+                setStockWorkflowMessage(
+                    productsCount === 0
+                        ? "The Catalogue returned no products. Open Catalogue and confirm products are visible for this account."
+                        : `The Catalogue returned ${productsCount} products, but none has a package version available.`,
+                    "error"
+                );
+            } else {
+                setStockWorkflowMessage("", "");
+            }
+
+            return catalogueRows;
+        } catch (error) {
+            setStockWorkflowMessage(
+                `Could not load Catalogue products: ${apiMessage(error)}`,
+                "error"
+            );
+            throw error;
+        }
+    }
     async function loadStock() {
         setStatus("Loading stock...", "");
         try {
+            setStockWorkflowMessage("Loading Catalogue products...", "");
+            state.rows = await loadCatalogueStockRows([]);
+            renderRows();
+
             const selectedBranchId = byId("stockBranch").value;
             const path = "stock/list.php" + (selectedBranchId ? `?branchId=${encodeURIComponent(selectedBranchId)}` : "");
             const response = await getJson(path);
             const data = unwrapApiResponse(response, "Unable to load stock.");
             state.branch = data.branch || null;
             state.branches = Array.isArray(data.branches) ? data.branches : [];
-            state.rows = Array.isArray(data.stock) ? data.stock : [];
+            prepareSalesOnlyLayout();
+            const stockRows = Array.isArray(data.stock) ? data.stock : [];
+            state.rows = await loadCatalogueStockRows(stockRows);
             void loadInlineAlerts(state.branch ? state.branch.branch_id : selectedBranchId);
             renderBranches();
             renderMetrics(state.rows);
@@ -516,6 +908,10 @@
             setStatus("", "");
         } catch (error) {
             setStatus(apiMessage(error), "error");
+            setStockWorkflowMessage(
+                `Stock loading failed: ${apiMessage(error)}`,
+                "error"
+            );
             byId("stockProductSummary").innerHTML = '<div class="stock-product-empty"><strong>Stock could not be loaded</strong><p>Refresh to try again.</p></div>';
         } finally {
         }
@@ -557,39 +953,51 @@
 
     async function submitSale(event) {
         event.preventDefault();
+
         const row = selectedRow();
         if (!row || state.busy) return;
 
-        const unitsSold = byId("unitsSold").value;
-        const salesAmount = byId("salesAmount").value;
-        const salesAmountBasis = byId("salesAmountBasis").value;
-        const saleDate = byId("saleDate").value;
+        const unitsSold = byId("unitsSold").value.trim();
+        const saleDate = byId("saleDate").value || localDateValue();
+        const priceInfo = state.salesContext && state.salesContext.price;
+
         if (!/^\d{1,9}$/.test(unitsSold)) {
-            setEditorStatus("Enter total units sold as a whole number from zero upwards.", "error");
-            return;
-        }
-        if (!/^\d{1,10}(?:\.\d{1,2})?$/.test(salesAmount)) {
-            setEditorStatus("Enter the total sales amount in KSh, with no more than two decimal places.", "error");
-            return;
-        }
-        if (!["VAT_INCLUSIVE", "VAT_EXCLUSIVE"].includes(salesAmountBasis)) {
-            setEditorStatus("Choose whether the entered sales amount includes or excludes VAT.", "error");
-            byId("salesAmountBasis").focus();
-            return;
-        }
-        if (!saleDate || saleDate > localDateValue()) {
-            setEditorStatus("Choose a valid sale date that is not in the future.", "error");
-            return;
-        }
-        if (saleDate === localDateValue() && !row.stock_recorded) {
-            setEditorStatus("Save an opening stock count before recording today's sale.", "error");
+            setEditorStatus("Enter units sold as a whole number.", "error");
+            byId("unitsSold").focus();
             return;
         }
 
+        if (
+            !priceInfo ||
+            priceInfo.status !== "EFFECTIVE" ||
+            !Number.isFinite(Number(priceInfo.selling_price)) ||
+            Number(priceInfo.selling_price) < 0
+        ) {
+            setEditorStatus("An effective selling price is required before recording sales.", "error");
+            return;
+        }
+
+        if (!["VAT_INCLUSIVE", "VAT_EXCLUSIVE"].includes(priceInfo.price_basis)) {
+            setEditorStatus("The selling price's VAT basis is not configured.", "error");
+            return;
+        }
+
+        if (!saleDate || saleDate > localDateValue()) {
+            setEditorStatus("The sale date cannot be in the future.", "error");
+            return;
+        }
+
+        const salesAmount = (
+            Math.round(Number(unitsSold) * Number(priceInfo.selling_price) * 100) / 100
+        ).toFixed(2);
+
+        byId("salesAmount").value = salesAmount;
+        byId("salesAmountBasis").value = priceInfo.price_basis;
 
         state.busy = true;
         updateFormAvailability(row);
-        setEditorStatus("Saving daily sales summary...", "");
+        setEditorStatus("Recording sales...", "");
+
         try {
             const response = await postJson("stock/sale.php", {
                 productId: Number(row.product_id),
@@ -597,17 +1005,27 @@
                 branchId: Number(state.branch.branch_id),
                 unitsSold: Number(unitsSold),
                 salesAmount: Number(salesAmount),
-                salesAmountBasis,
+                salesAmountBasis: priceInfo.price_basis,
                 saleDate,
-                salesAmountOverride: byId("salesAmountOverride").checked === true
+                salesAmountOverride: false
             });
-            const data = unwrapApiResponse(response, "Unable to record sale.");
+
+            const data = unwrapApiResponse(response, "Unable to record sales.");
+
             byId("unitsSold").value = "";
             byId("salesAmount").value = "";
+
             await loadStockAfterAction();
-            let toastStatus = data.tax_calculation_status === "CALCULATED" ? "success" : "warning";
-            if (data.stock_warning) { toastStatus = "warning"; }
-            setEditorStatus((data.message || "Daily sales summary saved.") + " Stock refreshed.", toastStatus);
+
+            let toastStatus =
+                data.tax_calculation_status === "CALCULATED" ? "success" : "warning";
+
+            if (data.stock_warning) toastStatus = "warning";
+
+            setEditorStatus(
+                (data.message || "Sales recorded.") + " Stock refreshed.",
+                toastStatus
+            );
         } catch (error) {
             setEditorStatus(apiMessage(error), "error");
         } finally {
@@ -673,12 +1091,17 @@
     byId("stockSaleForm").addEventListener("submit", submitSale);
     byId("saleDate").value = localDateValue();
     byId("saleDate").addEventListener("change", () => {
+        byId("salesAmount").value = "";
+        byId("salesAmountOverride").checked = false;
+        state.salesContext = null;
+        renderSalesAmountHint();
         updateFormAvailability(selectedRow());
         loadSalesPricingContext(selectedRow(), false);
     });
-    byId("unitsSold").addEventListener("input", renderSalesAmountHint);
-byId("salesAmount").addEventListener("input", renderSalesAmountHint);
+    byId("unitsSold").addEventListener("input", () => { renderSalesAmountHint(); updateFormAvailability(selectedRow()); });
+    byId("salesAmount").addEventListener("input", renderSalesAmountHint);
+    byId("salesAmountOverride").addEventListener("change", renderSalesAmountHint);
     byId("salesAmountBasis").addEventListener("change", renderSalesAmountHint);
-
+    prepareSalesOnlyLayout();
     loadStock();
 }());

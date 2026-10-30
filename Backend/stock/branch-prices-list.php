@@ -34,24 +34,42 @@ try {
     $branchStatement->execute($branchParams);
     $branches = $branchStatement->fetchAll(PDO::FETCH_ASSOC);
 
-    $manufacturerIds = visible_manufacturer_ids($pdo, $actor);
-    $manufacturerPlaceholders = sql_placeholders($manufacturerIds);
-    $versionStatement = $pdo->prepare(
-        "SELECT p.product_id, p.product_name, p.manufacturer_id,
-                manufacturer.organization_name AS manufacturer_name,
-                pv.product_version_id, pv.version_number, pv.barcode,
-                pv.pack_size, pv.packaging_description,
-                pv.effective_from AS version_effective_from,
-                pv.effective_to AS version_effective_to, pv.is_current
-         FROM products p
-         INNER JOIN organizations manufacturer ON manufacturer.organization_id = p.manufacturer_id
-         INNER JOIN product_versions pv ON pv.product_id = p.product_id
-         WHERE p.status = 'ACTIVE' AND manufacturer.status = 'ACTIVE'
-           AND p.manufacturer_id IN ({$manufacturerPlaceholders})
-         ORDER BY p.product_name, pv.version_number DESC"
-    );
-    $versionStatement->execute($manufacturerIds);
+    // Use the same product/package-version membership as the retailer Catalogue.
+    $catalogueProducts = fetch_visible_products($pdo, $actor);
+    $catalogueVersionIds = [];
 
+    foreach ($catalogueProducts as $catalogueProduct) {
+        foreach (($catalogueProduct['versions'] ?? []) as $catalogueVersion) {
+            $versionId = (int)($catalogueVersion['product_version_id'] ?? 0);
+            if ($versionId > 0) {
+                $catalogueVersionIds[$versionId] = $versionId;
+            }
+        }
+    }
+
+    $catalogueVersionIds = array_values($catalogueVersionIds);
+    $versions = [];
+
+    if ($catalogueVersionIds !== []) {
+        $versionStatement = $pdo->prepare(
+            "SELECT p.product_id, p.product_name, p.manufacturer_id,
+                    manufacturer.organization_name AS manufacturer_name,
+                    pv.product_version_id, pv.version_number, pv.barcode,
+                    pv.pack_size, pv.packaging_description,
+                    pv.effective_from AS version_effective_from,
+                    pv.effective_to AS version_effective_to, pv.is_current
+             FROM products p
+             INNER JOIN organizations manufacturer
+                ON manufacturer.organization_id = p.manufacturer_id
+             INNER JOIN product_versions pv ON pv.product_id = p.product_id
+             WHERE p.status = 'ACTIVE'
+               AND pv.product_version_id IN (" . sql_placeholders($catalogueVersionIds) . ")
+             ORDER BY p.product_name, pv.version_number DESC"
+        );
+
+        $versionStatement->execute($catalogueVersionIds);
+        $versions = $versionStatement->fetchAll(PDO::FETCH_ASSOC);
+    }
     $priceSql =
         "SELECT bp.retailer_branch_price_id, bp.retailer_id, bp.branch_id,
                 bp.product_id, bp.product_version_id, bp.selling_price,
@@ -79,7 +97,7 @@ try {
         'success' => true,
         'can_manage_all_branches' => $actor['role'] === 'ADMIN',
         'branches' => $branches,
-        'versions' => $versionStatement->fetchAll(PDO::FETCH_ASSOC),
+        'versions' => $versions,
         'prices' => $priceStatement->fetchAll(PDO::FETCH_ASSOC)
     ]);
 } catch (PDOException $e) {

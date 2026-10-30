@@ -166,14 +166,14 @@
         }
     }
 
-    function statusPill(value) {
+    function statusLabel(value) {
         const status = String(value || "UNKNOWN").toUpperCase();
         const type = ["CONFIRMED", "PAID", "POSTED", "ISSUED"].includes(status)
             ? "success"
             : ["PENDING", "DRAFT", "PARTIALLY_PAID", "OVERDUE"].includes(status)
                 ? "warning"
                 : ["FAILED", "VOID", "CANCELLED", "REVERSED"].includes(status) ? "danger" : "";
-        return `<span class="finance-status-pill ${type}">${esc(status.replaceAll("_", " "))}</span>`;
+        return `<span class="finance-status-text ${type}"><span class="finance-status-dot" aria-hidden="true"></span><span>${esc(status.replaceAll("_", " "))}</span></span>`;
     }
 
     function stat(label, value, note = "") {
@@ -194,7 +194,7 @@
                 <td>${esc(payment.counterparty_name || (direction === "OUTGOING" ? payment.payee_name : payment.payer_name) || "—")}</td>
                 <td>${esc(String(payment.payment_method || "OTHER").replaceAll("_", " "))}</td>
                 <td class="finance-number">${esc(money(payment.amount, payment.currency_code || "KES"))}</td>
-                <td>${statusPill(payment.status)}</td>
+                <td>${statusLabel(payment.status)}</td>
                 ${dashboard ? "" : `<td>${esc(dateText(payment.payment_date))}</td><td><div class="finance-inline-actions">${action}</div></td>`}
                 ${dashboard ? `<td>${esc(dateText(payment.payment_date))}</td>` : ""}
             </tr>`;
@@ -259,7 +259,7 @@
             return `<button type="button" class="finance-account-row${selected ? " active" : ""}" data-action="select-account" data-id="${Number(account.account_id)}" data-account-search="${esc(`${account.account_code} ${account.account_name} ${account.account_type} ${account.normal_balance}`.toLowerCase())}">
                 <span class="finance-account-mark" aria-hidden="true">${esc(String(account.account_name || "A").trim().slice(0, 1).toUpperCase())}</span>
                 <span class="finance-account-row-copy"><strong>${esc(account.account_name)}</strong><small>${esc(account.account_code)} · ${esc(account.account_type)}</small></span>
-                <span class="finance-account-row-status">${statusPill(account.status)}</span>
+                <span class="finance-account-row-status">${statusLabel(account.status)}</span>
                 <span class="finance-account-row-balance">${esc(money(account.balance))}</span>
             </button>`;
         }).join("") || `<div class="finance-empty finance-account-list-empty">${state.accounts.length ? "No accounts match your search." : "No active financial accounts were found."}</div>`;
@@ -279,7 +279,7 @@
                 <header class="finance-account-detail-heading">
                     <span class="finance-account-mark finance-account-mark-large" aria-hidden="true">${esc(String(selectedAccount.account_name || "A").trim().slice(0, 1).toUpperCase())}</span>
                     <div class="finance-account-detail-title"><h2>${esc(selectedAccount.account_name)}</h2><p>Account code ${esc(selectedAccount.account_code)}</p></div>
-                    ${statusPill(selectedAccount.status)}
+                    ${statusLabel(selectedAccount.status)}
                 </header>
                 <div class="finance-account-summary-strip">
                     <div><span>Account type</span><strong>${esc(selectedAccount.account_type)}</strong></div>
@@ -293,7 +293,7 @@
                         <div><dt>Account name</dt><dd>${esc(selectedAccount.account_name)}</dd></div>
                         <div><dt>Account type</dt><dd>${esc(selectedAccount.account_type)}</dd></div>
                         <div><dt>Normal balance</dt><dd>${esc(selectedAccount.normal_balance)}</dd></div>
-                        <div><dt>Status</dt><dd>${statusPill(selectedAccount.status)}</dd></div>
+                        <div><dt>Status</dt><dd>${statusLabel(selectedAccount.status)}</dd></div>
                     </dl>
                     
                 </section>
@@ -327,7 +327,7 @@
                 <td>${esc(dateText(document.issue_date))}</td>
                 <td class="finance-number">${esc(money(document.total_amount, document.currency_code || "KES"))}</td>
                 <td class="finance-number">${esc(money(document.balance_due, document.currency_code || "KES"))}</td>
-                <td>${statusPill(documentStatus)}</td>
+                <td>${statusLabel(documentStatus)}</td>
                 <td><div class="finance-inline-actions">${issue}<button type="button" class="finance-button finance-button-secondary finance-button-small" data-action="view-document" data-id="${Number(document.document_id)}">Details</button></div></td>
             </tr>`;
         }).join("");
@@ -400,7 +400,7 @@
             <td>${esc(line.entry_description || line.description || line.line_description || "—")}</td>
             <td class="finance-number">${esc(money(line.debit_amount))}</td>
             <td class="finance-number">${esc(money(line.credit_amount))}</td>
-            <td>${statusPill(line.status || "POSTED")}</td>
+            <td>${statusLabel(line.status || "POSTED")}</td>
         </tr>`).join("") || emptyRow("No posted ledger entries yet. Issued documents and confirmed payments will appear here.", 7);
         el.content.innerHTML = `<section class="finance-panel"><div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>Entry</th><th>Date</th><th>Account</th><th>Description</th><th>Debit</th><th>Credit</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div></section>
             `;
@@ -547,7 +547,7 @@
 
     async function submitPaymentAction(event) {
         event.preventDefault();
-        const form = event.currentTarget;
+        const form = event.target;
         const payment = state.activePayment;
         if (!payment) return;
         const purpose = form.dataset.purpose;

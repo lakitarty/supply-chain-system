@@ -31,44 +31,14 @@ try {
     $branch = stock_resolve_branch($pdo, $actor, $branchId);
     $product = stock_validate_product_version($pdo, $actor, $productId, $versionId);
 
-    $priceStatement = $pdo->prepare(
-        "SELECT retailer_branch_price_id, selling_price, price_basis, effective_from, effective_to
-         FROM retailer_branch_prices
-         WHERE retailer_id = ? AND branch_id = ? AND product_id = ? AND product_version_id = ?
-           AND status = 'ACTIVE' AND effective_from <= ?
-           AND (effective_to IS NULL OR effective_to >= ?)
-         ORDER BY effective_from DESC
-         LIMIT 2"
-    );
-    $priceStatement->execute([
+    $price = stock_effective_price(
+        $pdo,
         (int)$actor['organization_id'],
         (int)$branch['branch_id'],
         $productId,
         $versionId,
-        $saleDate,
         $saleDate
-    ]);
-    $priceRows = $priceStatement->fetchAll(PDO::FETCH_ASSOC);
-
-    $price = [
-        'status' => 'MISSING_PRICE',
-        'selling_price' => null,
-        'price_basis' => null,
-        'effective_from' => null,
-        'effective_to' => null
-    ];
-    if (count($priceRows) > 1) {
-        $price['status'] = 'AMBIGUOUS_PRICE';
-    } elseif (count($priceRows) === 1) {
-        $priceRow = $priceRows[0];
-        $price = [
-            'status' => 'EFFECTIVE',
-            'selling_price' => (string)$priceRow['selling_price'],
-            'price_basis' => (string)$priceRow['price_basis'],
-            'effective_from' => (string)$priceRow['effective_from'],
-            'effective_to' => $priceRow['effective_to'] !== null ? (string)$priceRow['effective_to'] : null
-        ];
-    }
+    );
 
     $classificationStatement = $pdo->prepare(
         "SELECT product_tax_classification_id, tax_category

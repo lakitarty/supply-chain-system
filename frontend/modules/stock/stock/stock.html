@@ -48,7 +48,7 @@
             <header class="stock-section-heading">
                 <div>
                     <h2 id="stockTableTitle">Selected product</h2>
-                    <p>Search and choose one product package to view its inventory and supply guidance.</p>
+                    <p>Search for a product package to view inventory and supply guidance.</p>
                 </div>
                 <span id="stockRowCount" class="stock-row-count">0 matching packages</span>
             </header>
@@ -71,13 +71,13 @@
                 <select id="stockProductSelect" aria-describedby="stockProductSelectHint">
                     <option value="">Choose a product package</option>
                 </select>
-                <p id="stockProductSelectHint">Use the search and status filters above to narrow the choices.</p>
+                <p id="stockProductSelectHint">Use search and status filters to narrow results.</p>
             </div>
 
             <div id="stockProductSummary" class="stock-product-summary" aria-live="polite">
                 <div class="stock-product-empty">
                     <strong>Choose a product to begin</strong>
-                    <p>Its stock count, demand, supplier guidance, and status will appear here.</p>
+                    <p>Stock, demand, supplier guidance and status appear here.</p>
                 </div>
             </div>
         </section>
@@ -92,7 +92,7 @@
 
                 <form id="stockCountForm" class="stock-form">
                     <h3>Count stock</h3>
-                    <p class="stock-form-help">Enter a physical count and the level that should trigger a reorder.</p>
+                    <p class="stock-form-help">Enter the physical count and reorder alert threshold.</p>
                     <div class="stock-form-grid">
                         <div class="stock-field">
                             <label for="countOnHand">Units on hand</label>
@@ -110,7 +110,7 @@
 
                 <form id="stockSaleForm" class="stock-form">
                     <h3>Daily sales summary</h3>
-                    <p class="stock-form-help">Enter one daily total for this branch, product version, and date. Saving the same date again corrects the existing summary rather than duplicating it.</p>
+                    <p class="stock-form-help">Enter one daily total per branch, product version and date. Saving that date again updates its existing summary.</p>
                     <div class="stock-field">
                         <label for="unitsSold">Units sold</label>
                         <input id="unitsSold" name="unitsSold" type="number" min="0" max="999999999" step="1" inputmode="numeric" required>
@@ -118,14 +118,14 @@
                     <div class="stock-field">
                         <label for="salesAmount">Total sales amount (KSh)</label>
                         <input id="salesAmount" name="salesAmount" type="number" min="0" max="9999999999.99" step="0.01" inputmode="decimal" required>
-                        <p id="salesAmountHint" class="stock-form-help">Enter the actual total for the selected day, including any promotions or discounts.</p>
+                        <p id="salesAmountHint" class="stock-form-help">Enter the actual daily total, including promotions and discounts.</p>
                     </div>
                     <div class="stock-field">
                         <label class="stock-checkbox">
                             <input id="salesAmountOverride" name="salesAmountOverride" type="checkbox">
                             <span>Save anyway (price override)</span>
                         </label>
-                        <p id="salesAmountOverrideHint" class="stock-form-help" style="display:none;">The amount differs from the listed price × units. Tick above to save anyway; the override will be recorded in the audit trail.</p>
+                        <p id="salesAmountOverrideHint" class="stock-form-help" style="display:none;">This differs from listed price &#215; units. Tick above to save anyway; the override is logged in the audit trail.</p>
                     </div>
                     <div class="stock-field">
                         <label for="salesAmountBasis">Amount basis</label>
@@ -134,7 +134,7 @@
                             <option value="VAT_INCLUSIVE">Amount includes VAT</option>
                             <option value="VAT_EXCLUSIVE">Amount excludes VAT</option>
                         </select>
-                        <p class="stock-form-help">Choose how the entered total is recorded. Nexora will not guess this.</p>
+                        <p class="stock-form-help">Choose how to record the total. ChainBridge will not infer this.</p>
                     </div>
                     <div id="salesTaxContext" class="stock-sales-tax-context" role="status" aria-live="polite">Select a product version and sale date to check its effective branch price and manufacturer tax declaration.</div>
                     <div class="stock-field">

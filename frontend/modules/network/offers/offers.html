@@ -15,7 +15,7 @@
             <div>
                 <p class="pricing-eyebrow">SUPPLY NETWORK</p>
                 <h1>Supplier offers</h1>
-                <p class="pricing-subtitle">Publish effective-dated product prices for counties covered by your regional product appointments.</p>
+                <p class="pricing-subtitle">Publish prices with effective dates for appointed counties.</p>
             </div>
             <button id="refreshOffers" class="secondary-button" type="button">Refresh</button>
         </header>
@@ -24,7 +24,7 @@
 
         <section class="pricing-section" id="offerApp" hidden>
             <h2>Publish an offer</h2>
-            <p class="pricing-explainer">An offer is a quoted supply price, not proof of the retailer's actual purchase cost. The full offer period must fit inside an active product appointment for the selected county.</p>
+            <p class="pricing-explainer">An offer is a quote, not proof of a retailer&#39;s purchase cost. Its dates must fit within an active product appointment for that county.</p>
             <form id="offerForm" novalidate>
                 <div class="pricing-grid">
                     <div class="pricing-field">
@@ -53,7 +53,7 @@
                     <div class="pricing-field">
                         <label for="offerTo">Effective to <span>(optional)</span></label>
                         <input id="offerTo" type="date">
-                        <p class="pricing-hint">Leave blank only if the authorising appointment has no planned end date.</p>
+                        <p class="pricing-hint">Leave blank only if the appointment has no planned end date.</p>
                     </div>
                     <div class="pricing-field pricing-note-field">
                         <label for="offerNote">Offer note <span>(optional)</span></label>
@@ -71,7 +71,7 @@
             <div class="pricing-section-heading">
                 <div>
                     <h2>Offer history</h2>
-                    <p>Price periods are retained for reference. End an open offer before creating a replacement period that overlaps it.</p>
+                    <p>Price history is retained. End an open offer before creating an overlapping replacement.</p>
                 </div>
             </div>
             <div class="pricing-table-wrap">
@@ -81,7 +81,7 @@
                 </table>
             </div>
         </section>
-        <p class="pricing-footnote">Supplier offers are not automatically copied into supply-order purchase costs. Historical offers and their dates are not overwritten when a new price is introduced.</p>
+        <p class="pricing-footnote">Offers do not automatically set LPO costs. Previous offers and dates remain unchanged when a new price is added.</p>
     </main>
     <script src="../../../shared/js/api.js"></script>
     <script src="../../../shared/js/navigation.js"></script>

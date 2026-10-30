@@ -1,0 +1,460 @@
+/* ChainBridge Promotions: open workspace, full available width, no template cards */
+.campaigns-page,
+.campaigns-page * {
+    box-sizing: border-box;
+}
+
+body.shell-ready .campaigns-page {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 10px clamp(16px, 2vw, 28px) 82px;
+    overflow-x: hidden;
+    color: #111111;
+    background: #FFFFFF;
+    font-family: var(--font, "IBM Plex Sans", "Segoe UI", sans-serif);
+}
+
+.campaigns-page {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    margin: 0;
+    color: #111111;
+    background: #FFFFFF;
+    font-family: var(--font, "IBM Plex Sans", "Segoe UI", sans-serif);
+    font-size: 13px;
+}
+
+/* Compact controls replace the page title, intro and footnote */
+.campaign-toolbar {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) auto;
+    align-items: end;
+    gap: 16px;
+    width: 100%;
+    margin: 0 0 16px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.campaign-picker {
+    width: 100%;
+    max-width: 680px;
+}
+
+.campaign-toolbar-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.campaigns-page .pricing-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.campaigns-page .pricing-field label {
+    display: block;
+    margin: 0;
+    color: #111111;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.campaigns-page .pricing-field input,
+.campaigns-page .pricing-field select,
+.campaigns-page .pricing-field textarea {
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    padding: 8px 10px;
+    border: 1px solid #D5DAD7;
+    border-radius: 4px;
+    background: #FFFFFF;
+    color: #111111;
+    font: inherit;
+}
+
+.campaigns-page .pricing-field input,
+.campaigns-page .pricing-field select {
+    height: 40px;
+}
+
+.campaigns-page .pricing-field textarea {
+    min-height: 84px;
+    line-height: 1.45;
+    resize: vertical;
+}
+
+.campaigns-page .pricing-field input:focus-visible,
+.campaigns-page .pricing-field select:focus-visible,
+.campaigns-page .pricing-field textarea:focus-visible,
+.campaigns-page button:focus-visible,
+.campaigns-page a:focus-visible {
+    outline: 2px solid #0F766E;
+    outline-offset: 2px;
+}
+
+.campaigns-page .pricing-field select:disabled,
+.campaigns-page .pricing-field input:disabled {
+    color: #111111;
+    background: #FFFFFF;
+    opacity: 0.65;
+}
+
+.campaigns-page .primary-button,
+.campaigns-page .secondary-button {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    min-height: 40px;
+    padding: 0 14px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    box-shadow: none;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.campaigns-page .primary-button {
+    border-color: #0F766E;
+    background: #0F766E;
+    color: #FFFFFF;
+}
+
+.campaigns-page .primary-button:hover:not(:disabled) {
+    border-color: #115E59;
+    background: #115E59;
+}
+
+.campaigns-page .secondary-button {
+    border-color: transparent;
+    background: transparent;
+    color: #111111;
+}
+
+.campaigns-page .secondary-button:hover:not(:disabled) {
+    background: #F2F7F5;
+    color: #0F766E;
+}
+
+.campaigns-page .secondary-button.is-danger {
+    color: #B42318;
+}
+
+.campaigns-page .secondary-button.is-danger:hover:not(:disabled) {
+    background: #FFF2F1;
+}
+
+.campaigns-page .secondary-button.is-small {
+    min-height: 30px;
+    padding: 0 8px;
+    font-size: 12px;
+}
+
+.campaigns-page button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Status messages are text with a small marker, not outlined alert cards */
+.campaigns-page .pricing-status {
+    margin: 4px 0 14px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #111111;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.campaigns-page .pricing-status.is-success {
+    color: #166342;
+}
+
+.campaigns-page .pricing-status.is-error {
+    color: #B42318;
+}
+
+.campaigns-page .pricing-status[hidden] {
+    display: none !important;
+}
+
+.campaign-content {
+    width: 100%;
+    min-width: 0;
+    color: #111111;
+}
+
+.campaigns-page .pricing-section {
+    width: 100%;
+    min-width: 0;
+    margin: 0 0 22px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.campaigns-page .pricing-section-title {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 0 0 12px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #111111;
+    font-size: 14px;
+    font-weight: 650;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.campaigns-page .pricing-section-title::before {
+    display: none;
+    content: none;
+}
+
+.campaigns-page .campaign-name {
+    margin: 0 0 7px;
+    color: #111111;
+    font-size: 20px;
+    font-weight: 650;
+    letter-spacing: -0.35px;
+}
+
+.campaigns-page .campaign-description {
+    max-width: 90ch;
+    margin: 0 0 14px;
+    color: #111111;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.campaigns-page .campaign-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px 34px;
+    margin: 0 0 14px;
+}
+
+.campaigns-page .campaign-facts dt {
+    color: #111111;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.campaigns-page .campaign-facts dd {
+    margin: 4px 0 0;
+    color: #111111;
+    font-size: 13px;
+}
+
+/* Status labels remain plain text with a tiny, meaningful colour dot */
+.campaigns-page .pricing-status-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #111111;
+    font-size: 12px;
+    font-weight: 550;
+    white-space: nowrap;
+}
+
+.campaigns-page .pricing-status-mark {
+    display: inline-block;
+    flex: 0 0 6px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #7A837F;
+}
+
+.campaigns-page .pricing-status-text.is-success { color: #166342; }
+.campaigns-page .pricing-status-text.is-success .pricing-status-mark { background: #16835D; }
+.campaigns-page .pricing-status-text.is-warning { color: #8A5700; }
+.campaigns-page .pricing-status-text.is-warning .pricing-status-mark { background: #C28A18; }
+.campaigns-page .pricing-status-text.is-danger { color: #B42318; }
+.campaigns-page .pricing-status-text.is-danger .pricing-status-mark { background: #B42318; }
+
+.campaigns-page .pricing-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 14px 0 0;
+    padding: 0;
+    border: 0;
+}
+
+/* Full-width tables, no enclosing boxes and no internal gridlines */
+.campaigns-page .pricing-table-wrap {
+    width: 100%;
+    min-width: 0;
+    margin: 12px 0 0;
+    overflow: auto;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.campaigns-page .pricing-table {
+    width: 100%;
+    min-width: 680px;
+    border: 0;
+    border-collapse: collapse;
+    border-spacing: 0;
+    background: transparent;
+    color: #111111;
+    font-size: 13px;
+}
+
+.campaigns-page .pricing-table th,
+.campaigns-page .pricing-table td {
+    padding: 12px 14px;
+    border: 0;
+    background: transparent;
+    color: #111111;
+    text-align: left;
+    vertical-align: middle;
+    line-height: 1.45;
+}
+
+.campaigns-page .pricing-table th {
+    padding-top: 6px;
+    padding-bottom: 10px;
+    font-size: 11px;
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+.campaigns-page .pricing-table th.pricing-amount,
+.campaigns-page .pricing-table td.pricing-amount {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.campaigns-page .pricing-table tbody tr:hover td {
+    background: #F7FAF8;
+}
+
+.campaigns-page .pricing-muted,
+.campaigns-page .pricing-empty-text {
+    margin: 8px 0 14px;
+    padding: 8px 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #111111;
+    font-size: 13px;
+    text-align: left;
+}
+
+/* Hints are removed from the visual layout; validation and backend feedback remain */
+.campaigns-page .pricing-hint {
+    display: none !important;
+}
+
+/* Dialogs are transactional controls, not page cards */
+.campaigns-page .campaign-dialog {
+    width: min(520px, calc(100vw - 28px));
+    max-width: calc(100vw - 28px);
+    padding: 0;
+    border: 1px solid #D5DAD7;
+    border-radius: 6px;
+    background: #FFFFFF;
+    color: #111111;
+    box-shadow: 0 18px 45px rgba(17, 24, 39, 0.18);
+}
+
+.campaigns-page .campaign-dialog::backdrop {
+    background: rgba(17, 24, 39, 0.36);
+}
+
+.campaigns-page .campaign-dialog-content {
+    padding: 22px;
+}
+
+.campaigns-page .campaign-dialog-title {
+    margin: 0 0 8px;
+    color: #111111;
+    font-size: 17px;
+    font-weight: 650;
+}
+
+.campaigns-page .campaign-dialog-text {
+    margin: 0 0 16px;
+    color: #111111;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.campaigns-page .campaign-dialog .pricing-status {
+    margin: 10px 0 0;
+}
+
+.campaigns-page .campaign-dialog-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 18px;
+    padding: 0;
+    border: 0;
+}
+
+.campaigns-page [hidden] {
+    display: none !important;
+}
+
+@media (max-width: 760px) {
+    body.shell-ready .campaigns-page {
+        padding: 10px 14px 78px;
+    }
+
+    .campaign-toolbar {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .campaign-toolbar-actions {
+        justify-content: flex-start;
+    }
+
+    .campaigns-page .pricing-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .campaigns-page .pricing-note-field {
+        grid-column: auto;
+    }
+
+    .campaigns-page .pricing-add-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .campaigns-page .pricing-add-row > .pricing-field:first-child,
+    .campaigns-page .pricing-add-row > button {
+        grid-column: 1 / -1;
+    }
+
+    .campaigns-page .pricing-add-row-single {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

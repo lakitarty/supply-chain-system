@@ -24,7 +24,7 @@
             </div>
 
             <p class="field-hint">
-                Select an existing product to edit it, or choose Create a new product.
+                Select a product to edit, or choose Create a new product.
             </p>
         </section>
 
@@ -49,13 +49,13 @@
                             <option value="COMING_SOON">Coming soon</option>
                             <option value="AVAILABLE" selected>Available now</option>
                         </select>
-                        <p class="field-hint">This is separate from whether the product record is active.</p>
+                        <p class="field-hint">Availability is separate from the product&#39;s active status.</p>
                     </div>
 
                     <div class="form-group">
                         <label for="barcode">Initial barcode</label>
                         <input type="text" id="barcode" maxlength="14" inputmode="numeric" required>
-                        <p class="field-hint">For a new product only. Use Updates for later barcode changes.</p>
+                        <p class="field-hint">New products only. Use Updates for later barcode changes.</p>
                     </div>
 
                     <div class="form-group">
@@ -71,6 +71,32 @@
                     <div class="form-group">
                         <label for="effectiveDate">Effective date</label>
                         <input type="date" id="effectiveDate" required>
+                    </div>
+                                        <div class="form-group" data-create-only>
+                        <label for="sellingPrice">Manufacturer selling price (KSh)</label>
+                        <input type="text" id="sellingPrice" inputmode="decimal" placeholder="e.g. 120.00" required>
+                        <p class="field-hint">The price at which you sell this product to suppliers. Production cost and the recommended prices are added after the product is created.</p>
+                    </div>
+
+                    <div class="form-group" data-create-only>
+                        <label for="taxBasis">Does this price include VAT?</label>
+                        <select id="taxBasis" required>
+                            <option value="">Select one</option>
+                            <option value="INCLUSIVE">Yes, VAT is included in the price</option>
+                            <option value="EXCLUSIVE">No, VAT is added on top</option>
+                        </select>
+                        <p class="field-hint">The recommended prices (RRP and RSP) follow this choice.</p>
+                    </div>
+
+                    <div class="form-group" data-create-only>
+                        <label for="taxCategory">Tax category</label>
+                        <select id="taxCategory" required>
+                            <option value="">Select one</option>
+                            <option value="STANDARD_RATED">Taxed (standard-rated)</option>
+                            <option value="ZERO_RATED">Not taxed (zero-rated)</option>
+                            <option value="EXEMPT">Not taxed (exempt)</option>
+                        </select>
+                        <p class="field-hint">Shows organisations which products are taxed.</p>
                     </div>
 
                     <div class="form-group">

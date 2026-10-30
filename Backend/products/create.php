@@ -7,6 +7,7 @@ require_once __DIR__ . '/../core/guard.php';
 require_once __DIR__ . '/../core/audit.php';
 require_once __DIR__ . '/../core/validation.php';
 require_once __DIR__ . '/../changes/change-rules.php';
+require_once __DIR__ . '/pricing-rules.php';
 
 require_post();
 
@@ -28,6 +29,9 @@ try {
     $packaging = trim((string)($_POST['packaging'] ?? ''));
     $effectiveDate = trim((string)($_POST['effectiveDate'] ?? ''));
     $availabilityStatus = trim((string)($_POST['availabilityStatus'] ?? 'AVAILABLE'));
+    $sellingPrice = parse_price_amount(trim((string)($_POST['sellingPrice'] ?? '')));
+    $taxBasis = parse_tax_basis(trim((string)($_POST['taxBasis'] ?? '')));
+    $taxCategory = trim((string)($_POST['taxCategory'] ?? ''));
 
     if (!in_array($availabilityStatus, ['COMING_SOON', 'AVAILABLE'], true)) {
         respond_field_error(400, field_error('availabilityStatus', 'Select a valid launch availability.'));
@@ -67,6 +71,18 @@ try {
 
     if (!valid_date($effectiveDate)) {
         respond_field_error(400, field_error('effectiveDate', 'Enter a valid effective date.'));
+    }
+
+    if ($sellingPrice === null) {
+        respond_field_error(400, field_error('sellingPrice', 'Enter the manufacturer selling price as an amount above zero with at most two decimal places.'));
+    }
+
+    if ($taxBasis === null) {
+        respond_field_error(400, field_error('taxBasis', 'State whether the selling price includes VAT or excludes it.'));
+    }
+
+    if (!in_array($taxCategory, TAX_CATEGORIES, true)) {
+        respond_field_error(400, field_error('taxCategory', 'Select the product tax category.'));
     }
 
     $image = $_FILES['productImage'] ?? null;
@@ -157,13 +173,27 @@ try {
         $effectiveDate
     ]);
 
+    $versionId = (int)$pdo->lastInsertId();
+
+    insert_selling_price_with_tax(
+        $pdo,
+        $actor,
+        $productId,
+        $versionId,
+        ['amount' => $sellingPrice, 'includesVat' => $taxBasis, 'taxCategory' => $taxCategory],
+        $effectiveDate
+    );
+
+    $basisText = $taxBasis === 1 ? 'VAT inclusive' : 'VAT exclusive';
+    $barcodeText = $barcode !== '' ? "with initial barcode {$barcode}" : 'without an assigned barcode yet';
+
     record_audit(
         $pdo,
         $actor,
         'PRODUCT_CREATED',
         'PRODUCT',
         $productId,
-        "Created product {$name}" . ($barcode !== '' ? " with initial barcode {$barcode}." : " without an assigned barcode yet.")
+        "Created product {$name} {$barcodeText}, selling price KSh {$sellingPrice} ({$basisText}, {$taxCategory})."
     );
 
     $pdo->commit();

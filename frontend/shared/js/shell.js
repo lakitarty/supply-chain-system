@@ -1,4 +1,4 @@
-const SYSTEM_NAME = "Supply Chain Management System";
+﻿const SYSTEM_NAME = "Bridge";
 
 function readable(code) {
     const text = code.toLowerCase().replaceAll("_", " ");
@@ -215,10 +215,7 @@ function renderShell(account) {
     );
 
     const mainRow = element("div", "shell-main-row");
-    mainRow.append(
-        element("div", "shell-brand", SYSTEM_NAME),
-        buildUserArea(account)
-    );
+    mainRow.append(buildUserArea(account));
 
     const primaryRow = element("div", "shell-primary-row");
     primaryRow.append(tabBar);
@@ -237,9 +234,11 @@ function renderShell(account) {
     );
 
     const shell = element("div", "shell");
-    shell.append(mainRow, primaryRow, sectionBar, buildSessionFooter(account));
+    shell.append(mainRow, primaryRow, sectionBar);
 
     document.getElementById("shell").replaceChildren(shell);
+    document.querySelectorAll(".shell-status-footer").forEach(footer => footer.remove());
+    document.body.append(buildSessionFooter(account));
 
     document.body.append(
         element(
@@ -276,3 +275,4 @@ async function initialiseShell() {
 }
 
 const shellReady = initialiseShell();
+

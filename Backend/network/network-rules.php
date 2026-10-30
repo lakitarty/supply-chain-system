@@ -29,6 +29,49 @@ function reachable_organization_ids(PDO $pdo, int $organizationId, string $direc
 
     return array_map('intval', $statement->fetchAll(PDO::FETCH_COLUMN));
 }
+
+function connected_organization_ids(PDO $pdo, int $organizationId): array
+{
+    $statement = $pdo->prepare(
+        "WITH RECURSIVE connected (organization_id) AS (
+            SELECT CASE
+                WHEN source_organization_id = ? THEN target_organization_id
+                ELSE source_organization_id
+            END
+            FROM organization_relationships
+            WHERE status = 'ACTIVE'
+              AND (source_organization_id = ? OR target_organization_id = ?)
+
+            UNION
+
+            SELECT CASE
+                WHEN r.source_organization_id = connected.organization_id
+                    THEN r.target_organization_id
+                ELSE r.source_organization_id
+            END
+            FROM organization_relationships r
+            INNER JOIN connected
+                ON r.source_organization_id = connected.organization_id
+                OR r.target_organization_id = connected.organization_id
+            WHERE r.status = 'ACTIVE'
+        )
+        SELECT organization_id
+        FROM connected
+        WHERE organization_id <> ?"
+    );
+
+    $statement->execute([
+        $organizationId,
+        $organizationId,
+        $organizationId,
+        $organizationId
+    ]);
+
+    return array_values(array_unique(
+        array_map('intval', $statement->fetchAll(PDO::FETCH_COLUMN))
+    ));
+}
+
 function fetch_relationships(PDO $pdo, array $actor): array
 {
     $organizationId = $actor['organization_id'];

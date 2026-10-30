@@ -28,8 +28,9 @@ try {
         FILTER_VALIDATE_INT
     );
     $priceType = trim((string)($input['price_type'] ?? ''));
-    $amountText = parse_price_amount(trim((string)($input['price_amount'] ?? '')));
-    $amount = $amountText === null ? null : (float)$amountText;
+        if ($amount === false || !is_finite((float)$amount) || $amount < 0) {
+        respond_field_error(400, field_error('price_amount', 'Enter a valid amount.'));
+    }
     $includesVat = !empty($input['price_includes_vat']) ? 1 : 0;
     $fromDate = trim((string)($input['effective_from'] ?? ''));
     $toDate = trim((string)($input['effective_to'] ?? '')) ?: null;
@@ -196,14 +197,6 @@ try {
         }
     } else {
         respond_error(403, 'Your organisation is not authorised to edit prices for this product.');
-    }
-
-    if ($ownsProduct) {
-        if ($priceType === 'COST') {
-            $includesVat = 0;
-        } elseif (!is_bool($input['price_includes_vat'] ?? null)) {
-            respond_field_error(400, field_error('price_includes_vat', 'State whether the manufacturer selling price includes VAT.'));
-        }
     }
 
     $statement = $pdo->prepare(

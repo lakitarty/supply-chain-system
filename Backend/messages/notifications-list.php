@@ -19,9 +19,20 @@ try {
 
     $stmt->execute([$actor['organization_id'], $actor['user_id']]);
 
+    $countStmt = $pdo->prepare(
+        "SELECT COUNT(*)
+         FROM notifications
+         WHERE organization_id = ?
+           AND (user_id IS NULL OR user_id = ?)
+           AND status = 'UNREAD'"
+    );
+
+    $countStmt->execute([$actor['organization_id'], $actor['user_id']]);
+
     respond(200, [
         'success' => true,
-        'notifications' => $stmt->fetchAll(PDO::FETCH_ASSOC)
+        'notifications' => $stmt->fetchAll(PDO::FETCH_ASSOC),
+        'unread_count' => (int) $countStmt->fetchColumn()
     ]);
 } catch (PDOException $e) {
     log_error('notifications list', $e);

@@ -4,7 +4,7 @@ const notificationList = document.getElementById("notificationList");
 const notificationStatus = document.getElementById("notificationStatus");
 const notificationSearch = document.getElementById("notificationSearch");
 const notificationFilter = document.getElementById("notificationFilter");
-const refreshButton = document.getElementById("refreshNotifications");
+const markAllReadButton = document.getElementById("markAllNotificationsRead");
 const previewModal = document.getElementById("notificationPreview");
 const previewTitle = document.getElementById("notificationPreviewTitle");
 const previewContent = document.getElementById("notificationPreviewContent");
@@ -12,6 +12,7 @@ const previewActions = document.getElementById("notificationPreviewActions");
 const closePreviewButton = document.getElementById("closeNotificationPreview");
 
 let notifications = [];
+let unreadNotificationCount = 0;
 let previewTrigger = null;
 let selectedNotificationId = null;
 
@@ -53,12 +54,14 @@ function renderNotifications() {
         return !term || searchableText.includes(term);
     });
 
-    const unread = notifications.filter(item => item.status === "UNREAD").length;
+    const unread = unreadNotificationCount;
 
     notificationStatus.textContent =
         `${filtered.length} shown · ${unread} unread · ${notifications.length} total`;
 
-    if (!filtered.length) {
+    
+    markAllReadButton.disabled = unread === 0;
+if (!filtered.length) {
         notificationList.append(element(
             "p",
             "notification-empty",
@@ -168,7 +171,7 @@ function closeNotificationPreview() {
         );
 
         if (row) row.focus();
-        else refreshButton.focus();
+        else notificationList.focus();
     }
 
     previewTrigger = null;
@@ -177,7 +180,6 @@ function closeNotificationPreview() {
 
 async function loadNotifications(silent = false) {
     if (!silent) {
-        refreshButton.disabled = true;
         notificationStatus.textContent = "Loading notifications...";
     }
 
@@ -191,6 +193,8 @@ async function loadNotifications(silent = false) {
         notifications = Array.isArray(result.data.notifications)
             ? result.data.notifications
             : [];
+
+        unreadNotificationCount = Number.isFinite(Number(result.data.unread_count)) ? Number(result.data.unread_count) : notifications.filter(item => item.status === "UNREAD").length;
 
         renderNotifications();
 
@@ -213,10 +217,6 @@ async function loadNotifications(silent = false) {
             notificationStatus.textContent =
                 error.message || "Unable to load notifications.";
         }
-    } finally {
-        if (!silent) {
-            refreshButton.disabled = false;
-        }
     }
 }
 
@@ -236,6 +236,7 @@ async function markAsRead(item, button) {
         }
 
         item.status = "READ";
+        unreadNotificationCount = Math.max(0, unreadNotificationCount - 1);
         item.read_at = item.read_at ||
             new Date().toISOString().slice(0, 19).replace("T", " ");
 
@@ -255,9 +256,44 @@ async function markAsRead(item, button) {
     }
 }
 
+async function markAllAsRead() {
+    if (unreadNotificationCount === 0 || markAllReadButton.disabled) return;
+
+    if (!window.confirm("Mark all notifications as read?")) return;
+
+    markAllReadButton.disabled = true;
+    markAllReadButton.textContent = "Saving...";
+
+    try {
+        const result = await postJson("messages/notifications-read-all.php");
+
+        if (!result.ok || result.data.success !== true) {
+            throw new Error(result.data.error || "Unable to mark all notifications as read.");
+        }
+
+        const readAt = new Date().toISOString().slice(0, 19).replace("T", " ");
+
+        notifications.forEach(item => {
+            if (item.status === "UNREAD") {
+                item.status = "READ";
+                item.read_at = item.read_at || readAt;
+            }
+        });
+
+        unreadNotificationCount = 0;
+        renderNotifications();
+        notificationStatus.textContent = "All notifications marked as read.";
+    } catch (error) {
+        notificationStatus.textContent =
+            error.message || "Unable to mark all notifications as read.";
+    } finally {
+        markAllReadButton.textContent = "Mark all as read";
+        markAllReadButton.disabled = unreadNotificationCount === 0;
+    }
+}
+markAllReadButton.addEventListener("click", markAllAsRead);
 notificationSearch.addEventListener("input", renderNotifications);
 notificationFilter.addEventListener("change", renderNotifications);
-refreshButton.addEventListener("click", loadNotifications);
 closePreviewButton.addEventListener("click", closeNotificationPreview);
 
 previewModal.addEventListener("click", event => {

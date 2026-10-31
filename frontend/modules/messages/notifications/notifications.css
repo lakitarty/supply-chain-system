@@ -9,7 +9,7 @@
 
 .notification-toolbar {
     display: grid;
-    grid-template-columns: minmax(220px, 1fr) 190px auto;
+    grid-template-columns: minmax(220px, 1fr) 190px auto auto;
     align-items: end;
     gap: 10px;
     padding: 10px 12px;

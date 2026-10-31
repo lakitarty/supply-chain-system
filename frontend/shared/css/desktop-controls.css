@@ -182,3 +182,101 @@
 .shell-main-row .chainbridge-window-button {
     height: 40px !important;
 }
+
+/* Compact integrated ChainBridge title bar and utility navigation */
+.shell-main-row {
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    padding-block: 0 !important;
+    box-sizing: border-box;
+    align-items: center !important;
+}
+
+.shell-main-row #chainbridge-window-controls {
+    height: 36px !important;
+    margin-left: auto !important;
+    background: transparent !important;
+    align-items: center !important;
+}
+
+.shell-main-row .chainbridge-window-button {
+    flex: 0 0 40px !important;
+    width: 40px !important;
+    height: 36px !important;
+    color: #ffffff !important;
+}
+
+.shell-main-row .chainbridge-utility-button {
+    display: flex;
+    flex: 0 0 38px;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #ffffff;
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+}
+
+.shell-main-row .chainbridge-utility-button svg {
+    display: block;
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.shell-main-row .chainbridge-utility-button:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.shell-main-row .chainbridge-utility-button:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: -4px;
+}
+
+.shell-main-row .chainbridge-window-close:hover {
+    background: #c42b35 !important;
+    color: #ffffff !important;
+}
+
+/* Keep the separate login title bar unchanged */
+#chainbridge-login-titlebar #chainbridge-window-controls {
+    height: 48px !important;
+}
+
+#chainbridge-login-titlebar .chainbridge-window-button {
+    height: 48px !important;
+}
+.shell-main-row .chainbridge-utility-notifications {
+    position: relative;
+}
+
+.chainbridge-notification-dot {
+    position: absolute;
+    top: 6px;
+    right: 7px;
+    width: 8px;
+    height: 8px;
+    border: 1.5px solid #104e5c;
+    border-radius: 50%;
+    background: #ff8a00;
+    box-sizing: content-box;
+    pointer-events: none;
+}
+
+.chainbridge-notification-dot[hidden] {
+    display: none !important;
+}
+/* Hide authenticated-user shortcuts on the sign-in title bar */
+#chainbridge-login-titlebar .chainbridge-utility-button {
+    display: none !important;
+}

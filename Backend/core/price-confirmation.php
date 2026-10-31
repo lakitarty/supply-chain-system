@@ -4,14 +4,15 @@ declare(strict_types=1);
 function require_price_confirmation_password(
     PDO $pdo,
     array $actor,
-    string $password
+    string $password,
+    string $action = 'price change'
 ): void {
     if (($actor['role'] ?? '') !== 'ADMIN') {
-        respond_error(403, 'Organisation administrator access is required to confirm this price change.');
+        respond_error(403, "Organisation administrator access is required to confirm this {$action}.");
     }
 
     if ($password === '') {
-        respond_error(401, 'Re-enter your administrator password to authorize this price change.');
+        respond_error(401, "Re-enter your administrator password to authorize this {$action}.");
     }
 
     $statement = $pdo->prepare(
@@ -36,6 +37,6 @@ function require_price_confirmation_password(
         $hash === '' ||
         !password_verify($password, $hash)
     ) {
-        respond_error(401, 'Administrator password verification failed. No price change was saved.');
+        respond_error(401, "Administrator password verification failed. No {$action} was saved.");
     }
 }

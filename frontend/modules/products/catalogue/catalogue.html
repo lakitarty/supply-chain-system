@@ -145,12 +145,21 @@
                             <div class="price-fields">
                                 <label>
                                     <span id="inlineCostLabel">Purchase Cost</span>
-                                    <input id="inlineCost" type="number" min="0" step="0.01">
+                                    <input id="inlineCost" type="number" min="0.01" step="0.01">
                                 </label>
 
                                 <label>
                                     Selling price
-                                    <input id="inlineSelling" type="number" min="0" step="0.01">
+                                    <input id="inlineSelling" type="number" min="0.01" step="0.01">
+                                </label>
+
+                                <label id="inlineBasisGroup" hidden>
+                                    Does the selling price include VAT?
+                                    <select id="inlineBasis">
+                                        <option value="">Select one</option>
+                                        <option value="INCLUSIVE">VAT is included in the price</option>
+                                        <option value="EXCLUSIVE">VAT is added on top</option>
+                                    </select>
                                 </label>
                             </div>
 

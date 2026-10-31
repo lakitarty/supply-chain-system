@@ -7,6 +7,8 @@ require_once __DIR__ . '/../core/guard.php';
 require_once __DIR__ . '/../core/audit.php';
 require_once __DIR__ . '/../core/notifications.php';
 require_once __DIR__ . '/../core/validation.php';
+require_once __DIR__ . '/../core/price-confirmation.php';
+require_once __DIR__ . '/../products/pricing-rules.php';
 
 require_post();
 
@@ -47,6 +49,13 @@ try {
     }
 
     $organizationId = (int)$actor['organization_id'];
+    require_price_confirmation_password(
+        $pdo,
+        $actor,
+        (string)($body['adminPassword'] ?? ''),
+        'appointment'
+    );
+
     $pdo->beginTransaction();
 
     $statement = $pdo->prepare(
@@ -62,23 +71,41 @@ try {
         respond_field_error(400, field_error('productId', 'The selected product does not belong to your organisation or is inactive.'));
     }
 
+    $priceProblems = product_price_problems($pdo, (int)$productId, nairobi_today());
+
+    if ($priceProblems !== []) {
+        $pdo->rollBack();
+        $priceMessage = "{$product['product_name']} cannot be assigned to a supplier yet. " . implode(' ', $priceProblems);
+        respond(409, [
+            'success' => false,
+            'code' => 'PRODUCT_PRICES_INCOMPLETE',
+            'message' => $priceMessage,
+            'error' => $priceMessage,
+            'product_name' => $product['product_name'],
+            'problems' => $priceProblems
+        ]);
+    }
+
     $statement = $pdo->prepare(
         "SELECT supplier.organization_id, supplier.organization_name
          FROM organizations supplier
          INNER JOIN organization_relationships r
             ON r.target_organization_id = supplier.organization_id
            AND r.source_organization_id = ?
+           AND r.relationship_type = 'SUPPLIES'
            AND r.status = 'ACTIVE'
+           AND r.start_date <= ?
+           AND (r.end_date IS NULL OR r.end_date >= ?)
          WHERE supplier.organization_id = ?
            AND supplier.status = 'ACTIVE'
            AND supplier.organization_type IN ('SUPPLIER', 'MANUFACTURER_SUPPLIER')
          LIMIT 1"
     );
-    $statement->execute([$organizationId, (int)$supplierId]);
+    $statement->execute([$organizationId, $startDate, $endDate ?? '9999-12-31', (int)$supplierId]);
     $supplier = $statement->fetch(PDO::FETCH_ASSOC);
     if (!$supplier) {
         $pdo->rollBack();
-        respond_field_error(400, field_error('supplierId', 'The supplier must have an active, approved supply relationship with your organisation.'));
+        respond_field_error(400, field_error('supplierId', 'The supplier must have an active, approved supply relationship with your organisation that covers the whole appointment period.'));
     }
 
     $statement = $pdo->prepare(
@@ -182,10 +209,6 @@ try {
     $statement->execute([(int)$productId, (int)$supplierId, (int)$areaId, $isExclusive, $startDate, $endDate]);
     $appointmentId = (int)$pdo->lastInsertId();
 
-    // AUTO CREATE SUPPLIER OFFER FROM PRODUCT APPOINTMENT
-    // Use the manufacturer's effective RSP, falling back to COST.
-    // Never overwrite an existing supplier offer.
-
     $offerSourceStatement = $pdo->prepare(
         "SELECT
             ps.supplier_id,
@@ -211,29 +234,17 @@ try {
                 LIMIT 1
             ) AS rsp_amount,
             (
-                SELECT cp.price_amount
-                FROM product_prices cp
-                WHERE cp.organization_id = p.manufacturer_id
-                  AND cp.product_id = p.product_id
-                  AND cp.product_version_id = pv.product_version_id
-                  AND cp.price_type = 'COST'
-                  AND cp.effective_from <= GREATEST(CURDATE(), ps.start_date, pv.effective_from)
-                  AND (cp.effective_to IS NULL OR cp.effective_to >= GREATEST(CURDATE(), ps.start_date, pv.effective_from))
-                ORDER BY cp.effective_from DESC, cp.price_id DESC
+                SELECT sp.price_includes_vat
+                FROM product_prices sp
+                WHERE sp.organization_id = p.manufacturer_id
+                  AND sp.product_id = p.product_id
+                  AND sp.product_version_id = pv.product_version_id
+                  AND sp.price_type = 'SELLING'
+                  AND sp.effective_from <= GREATEST(CURDATE(), ps.start_date, pv.effective_from)
+                  AND (sp.effective_to IS NULL OR sp.effective_to >= GREATEST(CURDATE(), ps.start_date, pv.effective_from))
+                ORDER BY sp.effective_from DESC, sp.price_id DESC
                 LIMIT 1
-            ) AS cost_amount,
-            (
-                SELECT cp.price_includes_vat
-                FROM product_prices cp
-                WHERE cp.organization_id = p.manufacturer_id
-                  AND cp.product_id = p.product_id
-                  AND cp.product_version_id = pv.product_version_id
-                  AND cp.price_type = 'COST'
-                  AND cp.effective_from <= GREATEST(CURDATE(), ps.start_date, pv.effective_from)
-                  AND (cp.effective_to IS NULL OR cp.effective_to >= GREATEST(CURDATE(), ps.start_date, pv.effective_from))
-                ORDER BY cp.effective_from DESC, cp.price_id DESC
-                LIMIT 1
-            ) AS cost_includes_vat
+            ) AS selling_includes_vat
          FROM product_suppliers ps
          INNER JOIN products p ON p.product_id = ps.product_id
          INNER JOIN product_versions pv
@@ -250,71 +261,61 @@ try {
     $offerSourceStatement->execute([$appointmentId]);
     $offerSource = $offerSourceStatement->fetch(PDO::FETCH_ASSOC);
 
-    if ($offerSource) {
-        $rspAmount = $offerSource['rsp_amount'];
-        $costAmount = $offerSource['cost_amount'];
-        $offerPrice = $rspAmount !== null ? $rspAmount : $costAmount;
+    if (
+        $offerSource
+        && $offerSource['rsp_amount'] !== null
+        && $offerSource['selling_includes_vat'] !== null
+    ) {
+        $offerStartDate = (string)$offerSource['offer_start_date'];
+        $offerEndDate = $offerSource['offer_end_date'] !== null
+            ? (string)$offerSource['offer_end_date']
+            : null;
 
-        if ($offerPrice !== null) {
-            $offerStartDate = (string)$offerSource['offer_start_date'];
-            $offerEndDate = $offerSource['offer_end_date'] !== null
-                ? (string)$offerSource['offer_end_date']
-                : null;
+        $existingOfferStatement = $pdo->prepare(
+            "SELECT supplier_product_offer_id
+             FROM supplier_product_offers
+             WHERE supplier_id = ?
+               AND product_id = ?
+               AND product_version_id = ?
+               AND area_id = ?
+               AND status = 'ACTIVE'
+               AND effective_from <= ?
+               AND (effective_to IS NULL OR effective_to >= ?)
+             LIMIT 1"
+        );
+        $existingOfferStatement->execute([
+            (int)$offerSource['supplier_id'],
+            (int)$offerSource['product_id'],
+            (int)$offerSource['product_version_id'],
+            (int)$offerSource['area_id'],
+            $offerEndDate ?? '9999-12-31',
+            $offerStartDate
+        ]);
 
-            $existingOfferStatement = $pdo->prepare(
-                "SELECT supplier_product_offer_id
-                 FROM supplier_product_offers
-                 WHERE supplier_id = ?
-                   AND product_id = ?
-                   AND product_version_id = ?
-                   AND area_id = ?
-                   AND status = 'ACTIVE'
-                   AND effective_from <= ?
-                   AND (effective_to IS NULL OR effective_to >= ?)
-                 LIMIT 1"
+        if ($existingOfferStatement->fetchColumn() === false) {
+            $priceBasis = (int)$offerSource['selling_includes_vat'] === 1
+                ? 'VAT_INCLUSIVE'
+                : 'VAT_EXCLUSIVE';
+
+            $insertOfferStatement = $pdo->prepare(
+                "INSERT INTO supplier_product_offers
+                    (supplier_id, product_id, product_version_id, area_id,
+                     unit_price, price_basis, currency_code,
+                     effective_from, effective_to, status, offer_note, created_by)
+                 VALUES (?, ?, ?, ?, ?, ?, 'KES', ?, ?, 'ACTIVE', ?, ?)"
             );
-            $existingOfferStatement->execute([
+            $insertOfferStatement->execute([
                 (int)$offerSource['supplier_id'],
                 (int)$offerSource['product_id'],
                 (int)$offerSource['product_version_id'],
                 (int)$offerSource['area_id'],
-                $offerEndDate ?? '9999-12-31',
-                $offerStartDate
+                $offerSource['rsp_amount'],
+                $priceBasis,
+                $offerStartDate,
+                $offerEndDate,
+                'Initial supplier offer sourced from the manufacturer RSP; the price basis follows the manufacturer selling price.',
+                (int)$actor['user_id']
             ]);
-
-            if ($existingOfferStatement->fetchColumn() === false) {
-                $priceBasis = $rspAmount !== null
-                    ? 'VAT_INCLUSIVE'
-                    : ((int)($offerSource['cost_includes_vat'] ?? 1) === 1
-                        ? 'VAT_INCLUSIVE'
-                        : 'VAT_EXCLUSIVE');
-
-                $offerNote = $rspAmount !== null
-                    ? 'Initial supplier offer sourced from manufacturer RSP; treated as VAT inclusive.'
-                    : 'Initial supplier offer sourced from manufacturer COST because no applicable RSP was found.';
-
-                $createdBy = isset($actor['user_id']) ? (int)$actor['user_id'] : null;
-
-                $insertOfferStatement = $pdo->prepare(
-                    "INSERT INTO supplier_product_offers
-                        (supplier_id, product_id, product_version_id, area_id,
-                         unit_price, price_basis, currency_code,
-                         effective_from, effective_to, status, offer_note, created_by)
-                     VALUES (?, ?, ?, ?, ?, ?, 'KES', ?, ?, 'ACTIVE', ?, ?)"
-                );
-                $insertOfferStatement->execute([
-                    (int)$offerSource['supplier_id'],
-                    (int)$offerSource['product_id'],
-                    (int)$offerSource['product_version_id'],
-                    (int)$offerSource['area_id'],
-                    $offerPrice,
-                    $priceBasis,
-                    $offerStartDate,
-                    $offerEndDate,
-                    $offerNote,
-                    $createdBy
-                ]);
-            }
         }
     }
 

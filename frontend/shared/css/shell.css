@@ -883,3 +883,64 @@ body.shell-ready #shell .shell-brand {
     height: 32px !important;
     flex-basis: 42px !important;
 }
+
+/* Integrated primary navigation in the compact desktop title bar */
+body.shell-ready #shell .shell-main-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+}
+
+body.shell-ready #shell .shell-main-row .shell-tabs {
+    display: flex !important;
+    flex: 1 1 auto !important;
+    align-items: stretch !important;
+    min-width: 0 !important;
+    width: auto !important;
+    height: 36px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none !important;
+}
+
+body.shell-ready #shell .shell-main-row .shell-tabs::-webkit-scrollbar {
+    display: none !important;
+}
+
+body.shell-ready #shell .shell-main-row .shell-tab {
+    display: flex !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    min-height: 36px !important;
+    height: 36px !important;
+    padding: 0 11px !important;
+    border-bottom: 2px solid transparent !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+    font-size: 12px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+}
+
+body.shell-ready #shell .shell-main-row .shell-tab.active {
+    border-bottom-color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.09) !important;
+    color: #ffffff !important;
+}
+
+body.shell-ready #shell .shell-main-row .shell-tab:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+}
+
+/* Keep the secondary navigation compact underneath */
+body.shell-ready #shell .shell-sections {
+    min-height: 28px !important;
+    height: 28px !important;
+}

@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
     "use strict";
 
     const state = { products: [], selectedProductId: null, currentVersionId: null, pendingCascade: null, organizationId: null, organizationType: "", recommendationData: null, activePromotions: [], cataloguePromotionsByVersion: {}, cataloguePromotionCache: {} };
@@ -22,6 +22,8 @@
         
         cost: document.getElementById("inlineCost"),
         selling: document.getElementById("inlineSelling"),
+        basis: document.getElementById("inlineBasis"),
+        basisGroup: document.getElementById("inlineBasisGroup"),
         margin: document.getElementById("inlineMargin"),
         profit: document.getElementById("inlineProfit"),
         saveBtn: document.getElementById("saveInlinePriceBtn"),
@@ -72,14 +74,20 @@
 
     let originalCostPrice = "";
     let originalSellingPrice = "";
+    let originalBasis = "";
     let pricingLoaded = false;
     let priceSaveInProgress = false;
     let livePriceRefreshInProgress = false;
 
+    function basisChanged() {
+        return el.basis.value !== originalBasis;
+    }
+
     function hasUnsavedPriceEdits() {
         return pricingLoaded && (
             normalizePriceForComparison(el.cost.value) !== originalCostPrice ||
-            normalizePriceForComparison(el.selling.value) !== originalSellingPrice
+            normalizePriceForComparison(el.selling.value) !== originalSellingPrice ||
+            basisChanged()
         );
     }
 
@@ -95,7 +103,8 @@
 
         const hasChanges = pricingLoaded && (
             normalizePriceForComparison(el.cost.value) !== originalCostPrice ||
-            normalizePriceForComparison(el.selling.value) !== originalSellingPrice
+            normalizePriceForComparison(el.selling.value) !== originalSellingPrice ||
+            basisChanged()
         );
 
         el.saveBtn.disabled = !hasChanges;
@@ -108,6 +117,12 @@
             updateSaveButtonState();
         });
         if (el.selling) el.selling.addEventListener("input", () => {
+            calcMargin();
+            updateSaveButtonState();
+            updateRecommendationComparison();
+        });
+        el.basis.addEventListener("change", () => {
+            el.selling.value = el.basis.value === originalBasis ? originalSellingPrice : "";
             calcMargin();
             updateSaveButtonState();
             updateRecommendationComparison();
@@ -418,6 +433,7 @@
     
         label.textContent =
             canManufacture && isOwnProduct ? "Production Cost" : "Purchase Cost";
+        el.basisGroup.hidden = !(canManufacture && isOwnProduct);
     }
     
     function calcMargin() {
@@ -462,16 +478,21 @@
 
             let latestCostValue = "";
             let latestSellingValue = "";
+            let latestBasis = "";
             data.prices.forEach(price => {
                 if (price.price_type === "COST") latestCostValue = String(price.price_amount ?? "");
-                if (price.price_type === "SELLING") latestSellingValue = String(price.price_amount ?? "");
+                if (price.price_type === "SELLING") {
+                    latestSellingValue = String(price.price_amount ?? "");
+                    latestBasis = Number(price.price_includes_vat) === 1 ? "INCLUSIVE" : "EXCLUSIVE";
+                }
             });
 
             const latestCost = normalizePriceForComparison(latestCostValue);
             const latestSelling = normalizePriceForComparison(latestSellingValue);
             const serverPriceChanged =
                 latestCost !== originalCostPrice ||
-                latestSelling !== originalSellingPrice;
+                latestSelling !== originalSellingPrice ||
+                latestBasis !== originalBasis;
 
             if (!serverPriceChanged) return;
 
@@ -482,6 +503,8 @@
             el.selling.value = latestSellingValue;
             originalCostPrice = latestCost;
             originalSellingPrice = latestSelling;
+            el.basis.value = latestBasis;
+            originalBasis = latestBasis;
             calcMargin();
             updateSaveButtonState();
             updateRecommendationComparison();
@@ -644,6 +667,8 @@
         pricingLoaded = false;
         originalCostPrice = "";
         originalSellingPrice = "";
+        originalBasis = "";
+        el.basis.value = "";
         updateSaveButtonState();
 
         el.cost.value = "";
@@ -661,12 +686,16 @@
             if (data && data.prices) {
                 data.prices.forEach(p => {
                     if (p.price_type === "COST") el.cost.value = p.price_amount;
-                    if (p.price_type === "SELLING") el.selling.value = p.price_amount;
+                    if (p.price_type === "SELLING") {
+                        el.selling.value = p.price_amount;
+                        el.basis.value = Number(p.price_includes_vat) === 1 ? "INCLUSIVE" : "EXCLUSIVE";
+                    }
                 });
             }
 
             originalCostPrice = normalizePriceForComparison(el.cost.value);
             originalSellingPrice = normalizePriceForComparison(el.selling.value);
+            originalBasis = el.basis.value;
             pricingLoaded = true;
 
             calcMargin();
@@ -720,12 +749,6 @@
                 `products/price-recommendations-list.php?product_version_id=${encodeURIComponent(versionId)}`
             );
             const data = response.data || response;
-            console.log("RRP diagnostic", {
-                requestedVersionId: versionId,
-                currentVersionId: state.currentVersionId,
-                visibleTypes: data.visible_types,
-                rrp: data.recommendations?.RRP
-            });
             if (response.ok === false || data.success !== true) {
                 throw new Error(data.error || data.message || "Unable to load pricing guidance.");
             }
@@ -754,9 +777,7 @@
 
         if (visibleTypes.includes("RRP")) {
             el.rrpRecommendationAmount.textContent = rrp ? recommendationMoney(rrp.amount) : "Unavailable";
-            el.rrpRecommendationMeta.textContent = rrp
-                ? ""
-                : (data.can_manage ? "" : "");
+            el.rrpRecommendationMeta.textContent = "";
         }
 
         if (showRsp) {
@@ -1026,7 +1047,7 @@
         const costChanged =
             normalizePriceForComparison(cost) !== originalCostPrice;
         const sellingChanged =
-            normalizePriceForComparison(selling) !== originalSellingPrice;
+            normalizePriceForComparison(selling) !== originalSellingPrice || basisChanged();
 
         if (!costChanged && !sellingChanged) {
             updateSaveButtonState();
@@ -1135,7 +1156,7 @@
                     product_version_id: versionId,
                     price_type: "SELLING",
                     price_amount: parseFloat(selling),
-                    price_includes_vat: true,
+                    price_includes_vat: isOwnManufacturedProduct ? el.basis.value === "INCLUSIVE" : true,
                     effective_from: today
                 });
                 sellingSaved = true;

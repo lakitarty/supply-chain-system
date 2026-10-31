@@ -185,14 +185,20 @@
             </div>
         </section>
 
+
+            </div>
+        </div>
+
         <section id="orderDetailSection" class="purchasing-detail" hidden aria-labelledby="orderDetailHeading">
             <header class="purchasing-section-heading">
                 <div>
                     <h2 id="orderDetailHeading">LPO details</h2>
                     <p id="orderDetailDescription" hidden></p>
                 </div>
-                <button id="printOrderButton" class="secondary-button" type="button">Print LPO</button>
-                <button id="closeOrderDetailButton" class="secondary-button" type="button">Close details</button>
+                <div class="purchasing-detail-actions">
+                    <button id="printOrderButton" class="secondary-button" type="button">Print LPO</button>
+                    <button id="backToLpoRegisterButton" class="secondary-button" type="button">Back to LPO Register</button>
+                </div>
             </header>
             <div id="orderDetailMeta" class="purchasing-detail-meta"></div>
             <div class="purchasing-table-wrap">
@@ -210,8 +216,6 @@
                 </table>
             </div>
         </section>
-            </div>
-        </div>
     </main>
 
     <script src="../../../shared/js/api.js"></script>

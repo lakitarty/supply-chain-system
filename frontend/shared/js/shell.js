@@ -1,4 +1,4 @@
-﻿const SYSTEM_NAME = "Bridge";
+const SYSTEM_NAME = "Bridge";
 
 function readable(code) {
     const text = code.toLowerCase().replaceAll("_", " ");
@@ -215,10 +215,7 @@ function renderShell(account) {
     );
 
     const mainRow = element("div", "shell-main-row");
-    mainRow.append(buildUserArea(account));
-
-    const primaryRow = element("div", "shell-primary-row");
-    primaryRow.append(tabBar);
+    mainRow.append(tabBar, buildUserArea(account));
 
     const sectionBar = element("nav", "shell-sections");
 
@@ -234,8 +231,7 @@ function renderShell(account) {
     );
 
     const shell = element("div", "shell");
-    shell.append(mainRow, primaryRow, sectionBar);
-
+    shell.append(mainRow, sectionBar);
     document.getElementById("shell").replaceChildren(shell);
     document.querySelectorAll(".shell-status-footer").forEach(footer => footer.remove());
     document.body.append(buildSessionFooter(account));
@@ -255,6 +251,30 @@ function showShellError(message) {
     );
 }
 
+async function refreshNotificationIndicator() {
+    const button = document.querySelector(".chainbridge-utility-notifications");
+    const dot = button?.querySelector(".chainbridge-notification-dot");
+
+    if (!dot || document.visibilityState !== "visible") return;
+
+    try {
+        const result = await getJson("messages/notifications-list.php");
+
+        if (!result.ok || result.data.success !== true) return;
+
+        const unread = Number(result.data.unread_count) > 0;
+        dot.hidden = !unread;
+
+        button.setAttribute(
+            "aria-label",
+            unread ? "Notifications, unread items" : "Notifications"
+        );
+
+        button.title = unread ? "Notifications, unread items" : "Notifications";
+    } catch (error) {
+    }
+}
+
 async function initialiseShell() {
     try {
         const { data } = await getJson("auth/session.php");
@@ -266,6 +286,11 @@ async function initialiseShell() {
 
         renderShell(data);
         document.body.classList.add("shell-ready");
+
+        void refreshNotificationIndicator();
+        window.setInterval(() => {
+            void refreshNotificationIndicator();
+        }, 5000);
 
         return data;
     } catch (error) {

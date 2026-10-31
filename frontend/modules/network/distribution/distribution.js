@@ -380,6 +380,14 @@ async function createAppointments(event) {
         return;
     }
 
+    const adminPassword = await requestAdminPassword(
+        `Enter your administrator password to appoint the supplier for ${chosenProducts.length} product${chosenProducts.length === 1 ? "" : "s"}.`
+    );
+
+    if (!adminPassword) {
+        return;
+    }
+
     loading = true;
     saveButton.disabled = true;
     saveButton.textContent = "Creating appointments…";
@@ -396,7 +404,8 @@ async function createAppointments(event) {
                 areaId: Number(areaId),
                 startDate,
                 endDate: endDate || null,
-                isExclusive: exclusiveInput.checked
+                isExclusive: exclusiveInput.checked,
+                adminPassword
             });
 
             const data = result?.data || {};
@@ -412,6 +421,10 @@ async function createAppointments(event) {
 
             if (data.code === "SUPPLIER_COVERAGE_REQUIRED") {
                 coverageBlocked = true;
+                break;
+            }
+
+            if (result?.status === 401) {
                 break;
             }
         }

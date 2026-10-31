@@ -1,9 +1,3 @@
-/*
- * ChainBridge shared visual language
- * Based on the open, information-led Products Catalogue design.
- * Scope excludes the catalogue itself so its approved layout remains unchanged.
- * Visual-only rules: no layout engine, routes, API calls or data logic are changed.
- */
 
 :root {
     --cb-workspace-ink: #17262b;

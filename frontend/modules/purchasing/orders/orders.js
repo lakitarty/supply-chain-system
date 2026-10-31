@@ -11,16 +11,37 @@
         return `${year}-${month}-${day}`;
     }
 
+    function isLpoDetailRoute() {
+        const orderId = new URLSearchParams(window.location.search).get("lpo");
+        return Boolean(orderId && /^\d+$/.test(orderId));
+    }
+
     function dockPurchasingNavIntoShell() {
-        const nav = byId("purchasingNav");
+        const page = document.querySelector("main.page.purchasing-page");
+        const nav = page ? page.querySelector("#purchasingNav") : null;
         const shellRoot = byId("shell");
-        if (!nav || !shellRoot) return false;
-        if (nav.classList.contains("purchasing-shell-secondary-nav")) return true;
+        if (!shellRoot) return false;
 
         const sectionRow = shellRoot.querySelector(".shell-sections");
         if (!sectionRow) return false;
 
-        sectionRow.replaceChildren(nav);
+        const existingShellNav = sectionRow.querySelector("#purchasingNav");
+
+        if (isLpoDetailRoute()) {
+            sectionRow.replaceChildren();
+            return true;
+        }
+
+        if (!nav) return Boolean(existingShellNav);
+
+        if (existingShellNav && existingShellNav !== nav) {
+            existingShellNav.remove();
+        }
+
+        if (nav.parentElement !== sectionRow) {
+            sectionRow.replaceChildren(nav);
+        }
+
         nav.classList.add("purchasing-shell-secondary-nav");
         return true;
     }
@@ -508,13 +529,13 @@
                  ((manufacturer || state.organizationType === "MANUFACTURER_SUPPLIER") && direction === "SUPPLIER_TO_MANUFACTURER"));
             let actions;
             if (draftsView) {
-                actions = `<button class="purchasing-text-button" type="button" data-continue-draft="${id}">Continue editing</button><button class="purchasing-text-button" type="button" data-open-order="${id}">View</button>`;
+                actions = `<button class="purchasing-text-button" type="button" data-continue-draft="${id}">Continue editing</button>`;
             } else if (canReview) {
-                actions = `<button class="purchasing-text-button" type="button" data-review-order="${id}" data-review-decision="CONFIRMED">Confirm</button><button class="purchasing-text-button" type="button" data-review-order="${id}" data-review-decision="REJECTED">Reject</button><button class="purchasing-text-button" type="button" data-open-order="${id}">View</button>`;
+                actions = `<button class="purchasing-text-button" type="button" data-review-order="${id}" data-review-decision="CONFIRMED">Confirm</button><button class="purchasing-text-button" type="button" data-review-order="${id}" data-review-decision="REJECTED">Reject</button>`;
             } else {
-                actions = `<button class="purchasing-text-button" type="button" data-open-order="${id}">View LPO</button>`;
+                actions = "";
             }
-            return `<tr>
+            return `<tr data-open-order-row="${id}" tabindex="0">
                 <td><strong>#${id}</strong></td>
                 <td>${escapeHtml(formatDate(order.order_date))}</td>
                 <td>${escapeHtml(party || "Unknown organisation")}</td>
@@ -1197,26 +1218,78 @@
         if (ok) setStatus("Purchase order register refreshed.", "success");
     });
 
+    function navigateToLpo(orderId) {
+        const url = new URL(window.location.href);
+        url.searchParams.set("lpo", orderId);
+        const router = window.__nexoraPageRouter;
+        if (router && typeof router.navigate === "function") {
+            router.navigate(url.href);
+        } else {
+            window.location.href = url.href;
+        }
+    }
+
+    function returnToLpoRegister() {
+        state.detailRequest++;
+        const url = new URL(window.location.href);
+        url.searchParams.delete("lpo");
+        const router = window.__nexoraPageRouter;
+        if (router && typeof router.navigate === "function") {
+            router.navigate(url.href);
+        } else {
+            window.location.href = url.href;
+        }
+    }
+
+    function applyLpoDetailMode() {
+        const orderId = new URLSearchParams(window.location.search).get("lpo");
+        const detailMode = Boolean(orderId && /^\d+$/.test(orderId));
+        const page = document.querySelector("main.page.purchasing-page");
+
+        page.classList.toggle("purchasing-lpo-detail-mode", detailMode);
+        page.querySelector(".purchasing-page-heading").hidden = detailMode;
+        page.querySelector(".purchasing-workspace").hidden = detailMode;
+        page.querySelector("#orderDetailSection").hidden = !detailMode;
+
+        return detailMode;
+    }
     byId("ordersBody").addEventListener("click", event => {
         const continueButton = event.target.closest("[data-continue-draft]");
         if (continueButton) { continueDraft(continueButton.dataset.continueDraft); return; }
+
         const reviewButton = event.target.closest("[data-review-order]");
         if (reviewButton) { reviewOrder(reviewButton.dataset.reviewOrder, reviewButton.dataset.reviewDecision); return; }
-        const detailButton = event.target.closest("[data-open-order]");
-        if (detailButton) openOrderDetail(detailButton.dataset.openOrder);
+
+        if (event.target.closest("button, a, input, select, textarea")) return;
+
+        const row = event.target.closest("[data-open-order-row]");
+        if (row) navigateToLpo(row.dataset.openOrderRow);
+    });
+
+    byId("ordersBody").addEventListener("keydown", event => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        const row = event.target.closest("[data-open-order-row]");
+        if (!row || event.target.closest("button, a, input, select, textarea")) return;
+        event.preventDefault();
+        navigateToLpo(row.dataset.openOrderRow);
     });
 
     byId("printOrderButton").addEventListener("click", printCurrentLpo);
-    byId("closeOrderDetailButton").addEventListener("click", () => {
-        state.detailRequest++;
-        byId("orderDetailSection").hidden = true;
-    });
+    byId("backToLpoRegisterButton").addEventListener("click", returnToLpoRegister);
 
     async function start() {
         if (!await refreshData("", true)) return;
-        if (isRetailer()) activateView("register");
-        else activateView("register");
+        activateView("register");
         renderOrders();
+
+        const detailMode = applyLpoDetailMode();
+        const orderId = new URLSearchParams(window.location.search).get("lpo");
+
+        if (detailMode && orderId && /^\d+$/.test(orderId)) {
+            openOrderDetail(orderId);
+        } else if (detailMode) {
+            returnToLpoRegister();
+        }
     }
 
     start();

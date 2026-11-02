@@ -1,4 +1,4 @@
-#chainbridge-window-controls {
+﻿#chainbridge-window-controls {
     display: flex;
     flex: 0 0 auto;
     align-items: stretch;
@@ -114,7 +114,6 @@
 .chainbridge-login-title {
     white-space: nowrap;
 }
-
 #chainbridge-login-titlebar #chainbridge-window-controls {
     height: 48px;
 }
@@ -280,3 +279,6 @@
 #chainbridge-login-titlebar .chainbridge-utility-button {
     display: none !important;
 }
+
+
+

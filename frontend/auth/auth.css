@@ -96,3 +96,27 @@
 .bottom-text a:hover {
     text-decoration: underline;
 }
+.brand-link {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    line-height: 0;
+}
+
+.brand-link img {
+    display: block;
+    width: 190px;
+    height: auto;
+    max-height: 44px;
+    object-fit: contain;
+}
+
+@media (max-width: 600px) {
+    .top-header {
+        padding: 0 4%;
+    }
+
+    .brand-link img {
+        width: 155px;
+    }
+}

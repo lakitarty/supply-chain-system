@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supply arrangements | Nexora MSRC</title>
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <link rel="stylesheet" href="arrangements.css">
+</head>
+<body>
+    <div id="shell"></div>
+
+    <main class="page supply-arrangements-page">
+        <header class="arrangements-heading">
+            <h1 class="page-title">Supply arrangements</h1>
+            <button type="button" class="secondary-button" id="refreshArrangements">Refresh</button>
+        </header>
+
+        <p class="arrangements-intro">
+            When a manufacturer appoints one of your suppliers to supply a product in a county where you trade,
+            you decide here whether to take that product from that supplier. Your decision covers all your branches in that county.
+        </p>
+
+        <div id="arrangementMessage" class="arrangement-message" role="status" aria-live="polite"></div>
+
+        <section id="arrangementContent" class="arrangements-content" aria-label="Supply arrangements">
+            <p id="arrangementSummary" class="arrangement-summary">Loading supply arrangements...</p>
+
+            <div class="arrangement-field">
+                <label for="arrangementStatusFilter">Show</label>
+                <select id="arrangementStatusFilter">
+                    <option value="ALL">All arrangements</option>
+                    <option value="PENDING">Awaiting my decision</option>
+                    <option value="ACCEPTED">Accepted</option>
+                    <option value="DECLINED">Declined</option>
+                </select>
+            </div>
+
+            <div class="arrangement-field">
+                <label for="arrangementSelect">Supply arrangement</label>
+                <select id="arrangementSelect" disabled>
+                    <option value="">Loading...</option>
+                </select>
+            </div>
+
+            <section id="arrangementDetail" class="arrangement-detail" hidden aria-live="polite">
+                <dl>
+                    <div><dt>Product</dt><dd id="detailProduct"></dd></div>
+                    <div><dt>Supplier</dt><dd id="detailSupplier"></dd></div>
+                    <div><dt>County</dt><dd id="detailArea"></dd></div>
+                    <div><dt>Period</dt><dd id="detailPeriod"></dd></div>
+                    <div><dt>Your decision</dt><dd id="detailDecision"></dd></div>
+                </dl>
+                <div class="arrangement-actions">
+                    <button type="button" class="primary-button" id="acceptArrangement">Accept</button>
+                    <button type="button" class="secondary-button" id="declineArrangement">Decline</button>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/form-helpers.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="../../../shared/js/page-router.js"></script>
+    <script src="arrangements.js"></script>
+</body>
+</html>

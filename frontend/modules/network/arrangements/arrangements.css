@@ -1,0 +1,156 @@
+.supply-arrangements-page {
+    width: min(100%, 760px);
+    margin-inline: auto;
+    padding-top: 22px;
+    background: #ffffff;
+    color: #354956;
+}
+
+.arrangements-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.arrangements-heading .page-title {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 650;
+}
+
+.arrangements-intro {
+    margin: 0 0 18px;
+    color: #53646f;
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+.arrangement-message {
+    margin: 0 0 14px;
+    color: #b42318;
+    font-size: 12px;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+}
+
+.arrangement-message:empty {
+    display: none;
+}
+
+.arrangement-message.success {
+    color: #067647;
+}
+
+.arrangement-message.info {
+    color: #475467;
+}
+
+.arrangement-summary {
+    margin: 0 0 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e8ee;
+    color: #53646f;
+    font-size: 12px;
+}
+
+.arrangement-field {
+    margin-bottom: 14px;
+}
+
+.arrangement-field label {
+    display: block;
+    margin-bottom: 6px;
+    color: #354956;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.arrangement-field select {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 38px;
+    padding: 7px 9px;
+    border: 1px solid #c9d3d6;
+    border-radius: 4px;
+    background: #ffffff;
+    color: #202b38;
+    font: inherit;
+    font-size: 12px;
+}
+
+.arrangement-field select:focus {
+    border-color: #176b61;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(23, 107, 97, 0.15);
+}
+
+.arrangement-detail {
+    margin-top: 22px;
+    padding-top: 6px;
+    border-top: 1px solid #e5e8ee;
+}
+
+.arrangement-detail dl {
+    margin: 0;
+}
+
+.arrangement-detail dl > div {
+    display: grid;
+    grid-template-columns: 140px minmax(0, 1fr);
+    gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid #edf0f4;
+}
+
+.arrangement-detail dt {
+    color: #5f6e79;
+    font-size: 12px;
+}
+
+.arrangement-detail dd {
+    margin: 0;
+    color: #202b38;
+    font-size: 12px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.arrangement-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.supply-arrangements-page .primary-button {
+    border: 0;
+    border-radius: 4px;
+    background: #176b61;
+    color: #ffffff;
+}
+
+.supply-arrangements-page .primary-button:hover:not(:disabled) {
+    background: #12584f;
+}
+
+.supply-arrangements-page button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.supply-arrangements-page [hidden] {
+    display: none !important;
+}
+
+@media (max-width: 480px) {
+    .arrangement-detail dl > div {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 3px;
+    }
+
+    .arrangement-actions button {
+        flex: 1 1 100%;
+    }
+}

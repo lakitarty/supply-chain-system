@@ -299,13 +299,14 @@ function renderAppointments() {
         const action = makeElement("td", "");
 
         if (status === "Running" || status === "Scheduled") {
+            const withdrawing = status === "Running" && Boolean(appointment.end_date);
             const button = makeElement(
                 "button",
                 "distribution-end-button",
-                status === "Scheduled" ? "Cancel" : "End appointment"
+                status === "Scheduled" ? "Cancel" : (withdrawing ? "Withdraw notice" : "End appointment")
             );
             button.type = "button";
-            button.addEventListener("click", () => endAppointment(appointment));
+            button.addEventListener("click", () => endAppointment(appointment, withdrawing));
             action.appendChild(button);
         } else {
             action.textContent = "—";
@@ -316,24 +317,26 @@ function renderAppointments() {
     });
 }
 
-async function endAppointment(appointment) {
-    const action = appointmentStatus(appointment) === "Scheduled"
-        ? "cancel"
-        : "end";
+async function endAppointment(appointment, withdraw = false) {
+    const scheduled = appointmentStatus(appointment) === "Scheduled";
+    const subject = `${appointment.product_name} with ${appointment.supplier_name} in ${appointment.area_name || "the unassigned county"}`;
+    const consequence = withdraw
+        ? "The ending notice will be withdrawn and supply will continue."
+        : scheduled
+            ? "The scheduled appointment will be cancelled."
+            : "A notice will start. The appointment ends in 14 days, and the supplier and retailers are told. Another supplier must already be appointed.";
 
-    const confirmed = window.confirm(
-        `Are you sure you want to ${action} the appointment for ` +
-        `${appointment.product_name} with ${appointment.supplier_name} in ` +
-        `${appointment.area_name || "the unassigned county"}? The record will remain in history.`
-    );
+    const adminPassword = await requestAdminPassword(`${subject}. ${consequence} Enter your administrator password to continue.`);
 
-    if (!confirmed) return;
+    if (!adminPassword) return;
 
-    showMessage("Updating appointment…", "info");
+    showMessage("Updating appointment...", "info");
 
     try {
         const result = await postJson("network/distribution-end.php", {
-            appointmentId: Number(appointment.product_supplier_id)
+            appointmentId: Number(appointment.product_supplier_id),
+            action: withdraw ? "withdraw" : "end",
+            adminPassword
         });
         const data = result?.data || {};
 

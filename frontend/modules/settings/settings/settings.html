@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -6,51 +6,85 @@
     <link rel="stylesheet" href="../../../shared/css/base.css">
     <link rel="stylesheet" href="../../../shared/css/shell.css">
     <link rel="stylesheet" href="settings.css">
-    <title>Settings | Nexora MSRC</title>
+    <title>Settings | ChainBridge</title>
 </head>
 <body>
     <div id="shell"></div>
 
     <main class="page settings-page">
-        <section class="page-section settings-section">
-                    <section class="page-section settings-section price-protection-section">
-            <h2 class="section-title">Price Change Protection</h2>
-             <p class="settings-explainer">
-                When enabled, authorised upstream price changes adjust your organisation&#39;s prices and trigger a notification. Financial records stay private either way.
-            </p>
+        <div class="settings-layout">
 
+            <aside class="settings-sidebar" aria-label="Settings navigation">
+                <nav class="settings-nav">
+                    <a href="#price-protection" class="settings-nav-link active">
+                        <span class="settings-nav-indicator"></span>
+                        Price Protection
+                    </a>
+                    <a href="#session" class="settings-nav-link">
+                        <span class="settings-nav-indicator"></span>
+                        Session
+                    </a>
+                </nav>
+            </aside>
 
-            <div class="price-protection-control">
-                <label for="priceProtectionToggle">
-                    <input type="checkbox" id="priceProtectionToggle" disabled>
-                    <span>Enable Price Change Protection</span>
-                </label>
-                <button type="button" class="secondary-button"
-                        id="priceProtectionSaveButton" disabled>
-                    Save setting
-                </button>
+            <div class="settings-content">
+
+                <section class="settings-section price-protection-section"
+                         id="price-protection">
+                    <h2 class="section-title">Price Change Protection</h2>
+
+                    <p class="settings-explainer">
+                        When enabled, authorised upstream price changes adjust
+                        your organisation's prices and trigger a notification.
+                        Financial records stay private either way.
+                    </p>
+
+                    <div class="price-protection-control">
+                        <label for="priceProtectionToggle">
+                            <input type="checkbox" id="priceProtectionToggle" disabled>
+                            <span>Enable Price Change Protection</span>
+                        </label>
+
+                        <button type="button" class="secondary-button"
+                                id="priceProtectionSaveButton" disabled>
+                            Save setting
+                        </button>
+                    </div>
+
+                    <p id="priceProtectionStatus" class="settings-status"
+                       aria-live="polite">
+                        Loading organisation setting...
+                    </p>
+                </section>
+
+                <section class="settings-section session-section" id="session">
+                    <h2 class="section-title">Session</h2>
+
+                    <div class="settings-action-row">
+                        <div class="settings-action-description">
+                            <span>Refresh current page</span>
+                            <small>Reload the current ChainBridge workspace.</small>
+                        </div>
+                        <button type="button" class="secondary-button"
+                                id="settingsRefreshButton">
+                            Refresh
+                        </button>
+                    </div>
+
+                    <div class="settings-action-row">
+                        <div class="settings-action-description">
+                            <span>End your current session</span>
+                            <small>Sign out of your ChainBridge account.</small>
+                        </div>
+                        <button type="button" class="secondary-button settings-signout"
+                                id="settingsSignOutButton">
+                            Sign out
+                        </button>
+                    </div>
+                </section>
+
             </div>
-
-            <p id="priceProtectionStatus" class="settings-status" aria-live="polite">
-                Loading organisation setting...
-            </p>
-        </section>
-            <h2 class="section-title">Session</h2>
-
-            <div class="settings-action-row">
-                <span>Refresh current page</span>
-                <button type="button" class="secondary-button" id="settingsRefreshButton">
-                    Refresh
-                </button>
-            </div>
-
-            <div class="settings-action-row">
-                <span>End your current session</span>
-                <button type="button" class="secondary-button" id="settingsSignOutButton">
-                    Sign out
-                </button>
-            </div>
-        </section>
+        </div>
     </main>
 
     <script src="../../../shared/js/api.js"></script>

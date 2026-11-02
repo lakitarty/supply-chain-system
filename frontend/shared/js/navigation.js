@@ -25,6 +25,7 @@ const BUILT_PATHS = [
     "modules/network/workspace/workspace.html",
     "modules/network/coverage/coverage.html",
     "modules/network/distribution/distribution.html",
+    "modules/network/arrangements/arrangements.html",
     "modules/stock/stock/stock.html",
     "modules/stock/sales/sales.html",
     "modules/purchasing/orders/orders.html",
@@ -75,6 +76,7 @@ const TABS = [
             { label: "Supplier coverage", path: page("network", "coverage"), types: ["SUPPLIER", "MANUFACTURER_SUPPLIER"], roles: ["ADMIN"] },
             { label: "Supplier offers", path: page("network", "offers"), types: ["SUPPLIER", "MANUFACTURER_SUPPLIER"], roles: ["ADMIN"] },
             { label: "Distribution", path: page("network", "distribution"), types: ["MANUFACTURER", "MANUFACTURER_SUPPLIER"], roles: ["ADMIN"] },
+            { label: "Supply arrangements", path: page("network", "arrangements"), types: ["RETAILER"], roles: ["ADMIN"] },
         ]
     },
     {

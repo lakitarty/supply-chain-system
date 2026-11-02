@@ -9,6 +9,7 @@ require_once __DIR__ . '/../core/notifications.php';
 require_once __DIR__ . '/../core/validation.php';
 require_once __DIR__ . '/../core/price-confirmation.php';
 require_once __DIR__ . '/../products/pricing-rules.php';
+require_once __DIR__ . '/supply-arrangement-rules.php';
 
 require_post();
 
@@ -349,6 +350,16 @@ try {
         $notificationMessage
     );
 
+    foreach (supply_arrangements($pdo, nairobi_today(), null, $appointmentId) as $arrangement) {
+        create_organization_notification(
+            $pdo,
+            (int)$arrangement['retailer_id'],
+            'SUPPLY_CHANGE',
+            $appointmentId,
+            'Supply arrangement awaiting your decision',
+            "{$arrangement['supplier_name']} has been appointed to supply {$arrangement['product_name']} in {$arrangement['area_name']} from {$startDate}. Open Supply arrangements to accept or decline."
+        );
+    }
     $pdo->commit();
 
     respond(201, [

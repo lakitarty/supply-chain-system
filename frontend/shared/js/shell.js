@@ -1,4 +1,4 @@
-const SYSTEM_NAME = "Bridge";
+﻿const SYSTEM_NAME = "Bridge";
 
 function readable(code) {
     const text = code.toLowerCase().replaceAll("_", " ");
@@ -182,8 +182,65 @@ function buildSessionFooter(account) {
     updateClock();
     window.setInterval(updateClock, 1000);
 
+    const protectionStatus = element(
+        "span",
+        "shell-price-protection",
+        "PRICE PROTECTION CHECKING"
+    );
+
+    protectionStatus.setAttribute("role", "status");
+    protectionStatus.setAttribute("aria-live", "polite");
+
+    const recommendationTypes = [
+        "MANUFACTURER",
+        "SUPPLIER",
+        "MANUFACTURER_SUPPLIER"
+    ];
+
+    const canRecommendPriceProtection = recommendationTypes.includes(
+        String(organization.organization_type || "").toUpperCase()
+    );
+
+    async function updatePriceProtectionStatus() {
+        try {
+            const response = await getJson("settings/price-protection.php");
+            const data = response.data || {};
+
+            if (!response.ok || data.success !== true ||
+                typeof data.enabled !== "boolean") {
+                throw new Error("Unable to retrieve protection status.");
+            }
+
+            protectionStatus.textContent = data.enabled
+                ? "PRICE PROTECTION ENABLED"
+                : "⚠ PRICE PROTECTION OFF";
+
+            protectionStatus.dataset.enabled = String(data.enabled);
+
+            if (!data.enabled && canRecommendPriceProtection) {
+                protectionStatus.title =
+                    "Recommended to enable Price Protection in Settings.";
+                protectionStatus.style.cursor = "help";
+            } else {
+                protectionStatus.removeAttribute("title");
+                protectionStatus.style.cursor = "";
+            }
+        } catch (error) {
+            protectionStatus.removeAttribute("title");
+            protectionStatus.style.cursor = "";
+            protectionStatus.textContent = "PRICE PROTECTION STATUS UNAVAILABLE";
+            protectionStatus.dataset.enabled = "unknown";
+        }
+    }
+
+    const footerRight = element("div", "shell-status-right");
+    footerRight.append(protectionStatus, clock);
+
     clock.append(date, time);
-    footer.append(identity, clock);
+    footer.append(identity, footerRight);
+
+    updatePriceProtectionStatus();
+    window.setInterval(updatePriceProtectionStatus, 30000);
 
     return footer;
 }
@@ -300,4 +357,7 @@ async function initialiseShell() {
 }
 
 const shellReady = initialiseShell();
+
+
+
 

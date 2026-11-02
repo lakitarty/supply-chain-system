@@ -388,7 +388,7 @@ body:has(#shell):not(.shell-ready) .page {
 .shell-primary-row {
     min-width: 0;
     padding: 0 var(--gutter);
-    background: #0b3f4a;
+    background: #202B36;
     border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
@@ -656,7 +656,7 @@ body.shell-ready .page::-webkit-scrollbar {
     min-height: 40px;
     padding: 7px var(--gutter);
     border-top: 1px solid rgba(255, 255, 255, 0.15);
-    background: #0b3f4a;
+    background: #202B36;
     color: rgba(255, 255, 255, 0.9);
     font-size: var(--text-small);
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
@@ -944,3 +944,38 @@ body.shell-ready #shell .shell-sections {
     min-height: 28px !important;
     height: 28px !important;
 }
+/* Footer price protection status */
+body.shell-ready > .shell-status-footer .shell-status-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 22px;
+    flex: 0 0 auto;
+}
+
+body.shell-ready > .shell-status-footer .shell-price-protection {
+    color: #F59E0B;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+/* Price Protection status states */
+body.shell-ready > .shell-status-footer .shell-price-protection[data-enabled="true"] {
+    color: #F59E0B;
+    text-shadow: 0 0 5px rgba(245, 158, 11, 0.55);
+}
+
+body.shell-ready > .shell-status-footer .shell-price-protection[data-enabled="false"] {
+    color: #ff4d4f;
+    text-shadow:
+        0 0 4px rgba(255, 77, 79, 0.75),
+        0 0 9px rgba(255, 40, 40, 0.45);
+}
+
+body.shell-ready > .shell-status-footer .shell-price-protection[data-enabled="unknown"] {
+    color: #d1d5db;
+    text-shadow: none;
+}
+

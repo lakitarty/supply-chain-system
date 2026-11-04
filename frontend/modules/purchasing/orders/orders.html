@@ -43,6 +43,14 @@
                     <button class="purchasing-nav-button" type="button" data-view="receiving" data-retailer-only aria-label="Goods Received" title="Goods Received">
                         <svg class="purchasing-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8 12 3l9 5v10l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v10M8.5 5l9 5"/><path d="m8.5 15 2.2 2.2 4.8-5"/></svg>
                     </button>
+                    <div id="receivingSubnav" class="receiving-secondary-nav" hidden role="group" aria-label="Goods Received views">
+                        <button id="receivingOrdersTab" class="receiving-secondary-tab is-active" type="button" data-receiving-tab="orders" aria-pressed="true" aria-label="Awaiting Receipt" title="Awaiting Receipt">
+                            <svg class="receiving-secondary-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="M12 12 4 7.5M12 12l8-4.5M12 12v9M12 7v5m-2-2 2 2 2-2"/></svg>
+                        </button>
+                        <button id="receivingRegisterTab" class="receiving-secondary-tab" type="button" data-receiving-tab="register" aria-pressed="false" aria-label="GRN Register" title="GRN Register">
+                            <svg class="receiving-secondary-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h2m-2 4h2m4-4h2m-2 4h2"/></svg>
+                        </button>
+                    </div>
                     <button class="purchasing-nav-button" type="button" data-view="returns" data-retailer-only aria-label="Goods Returns" title="Goods Returns">
                         <svg class="purchasing-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10V5h5M3.5 5.5A9 9 0 1 1 3 14"/><path d="M3 5l5 5"/></svg>
                     </button>
@@ -175,8 +183,284 @@
             </div>
         </section>
 
+        <section id="receivingView" class="purchasing-view purchasing-receiving" hidden aria-labelledby="receivingHeading">
+            <header class="purchasing-section-heading">
+                <div>
+                    <h2 id="receivingHeading">Goods Received Notes</h2>
+                    
+                </div>
+                <button id="refreshReceivingButton" class="secondary-button" type="button">Refresh</button>
+            </header>
+
+
+
+            <section id="grnRegisterSection" class="receiving-register-section" aria-labelledby="grnRegisterHeading" hidden>
+                <header class="purchasing-section-heading">
+                    <div>
+                        <h3 id="grnRegisterHeading">GRN Register</h3>
+                        <p>View saved drafts and completed goods receipts.</p>
+                    </div>
+                    <span id="grnRegisterCount" class="purchasing-subtle-count">0 records</span>
+                </header>
+
+                <div class="purchasing-register-tools">
+                    <label class="purchasing-register-search">
+                        <span>Find a GRN</span>
+                        <input id="grnSearch" type="search" placeholder="GRN number, LPO, supplier or status">
+                    </label>
+                </div>
+
+                <div class="purchasing-table-wrap">
+                    <table class="purchasing-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">GRN number</th>
+                                <th scope="col">Received date</th>
+                                <th scope="col">Supplier</th>
+                                <th scope="col">LPO</th>
+                                <th scope="col">Location</th>
+                                <th scope="col">Lines / units</th>
+                                <th scope="col">Reconciliation</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="grnRegisterBody">
+                            <tr><td colspan="9" class="purchasing-empty-cell">Loading goods received notes</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="receivingLpoSection" class="receiving-register-section" aria-labelledby="receivingLposHeading">
+                <header class="purchasing-section-heading">
+                    <div>
+                        <h3 id="receivingLposHeading">LPOs Awaiting Receipt</h3>
+                        <p>Purchase orders with quantities still outstanding.</p>
+                    </div>
+                    <span id="receivingLpoCount" class="purchasing-subtle-count">0 orders</span>
+                </header>
+
+                <div class="purchasing-register-tools">
+                    <label class="purchasing-register-search">
+                        <span>Find an LPO</span>
+                        <input id="receivingLpoSearch" type="search" placeholder="LPO number or supplier">
+                    </label>
+                </div>
+
+                <div class="purchasing-table-wrap">
+                    <table class="purchasing-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">LPO</th>
+                                <th scope="col">Supplier</th>
+                                <th scope="col">Order date</th>
+                                <th scope="col">Expected delivery</th>
+                                <th scope="col">Outstanding lines</th>
+                                <th scope="col">Outstanding units</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="receivingLpoBody">
+                            <tr><td colspan="8" class="purchasing-empty-cell">Loading LPOs awaiting receipt</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="receivingLpoDetail" class="receiving-lpo-detail" hidden aria-labelledby="receivingLpoDetailHeading">
+                <header class="purchasing-section-heading">
+                    <div>
+                        <h3 id="receivingLpoDetailHeading">Purchase Order Details</h3>
+                        <p id="receivingLpoDetailDescription">Review the ordered products and outstanding quantities.</p>
+                    </div>
+                    <div class="purchasing-detail-actions">
+                        <button id="backToReceivingLposButton" class="secondary-button" type="button">Back to LPOs</button>
+                        <button id="createGrnFromLpoButton" class="primary-button" type="button" disabled>Create GRN</button>
+                    </div>
+                </header>
+
+                <div class="receiving-document-meta">
+                    <div><span>LPO number</span><strong id="receivingLpoNumberDisplay">Not selected</strong></div>
+                    <div><span>Supplier</span><strong id="receivingLpoSupplierDisplay">Not selected</strong></div>
+                    <div><span>Order date</span><strong id="receivingLpoDateDisplay">Not set</strong></div>
+                    <div><span>Expected delivery</span><strong id="receivingLpoExpectedDisplay">Not set</strong></div>
+                    <div><span>Branch</span><strong id="receivingLpoBranchDisplay">Not selected</strong></div>
+                    <div><span>Status</span><strong id="receivingLpoStatusDisplay">Not set</strong></div>
+                </div>
+
+                <section class="receiving-form-section" aria-labelledby="receivingLpoItemsHeading">
+                    <header class="purchasing-section-heading">
+                        <div>
+                            <h4 id="receivingLpoItemsHeading">Products on this LPO</h4>
+                            <p>Ordered quantities are the reference for checking the supplier's invoice and delivery.</p>
+                        </div>
+                        <span id="receivingLpoItemCount" class="purchasing-subtle-count">0 products</span>
+                    </header>
+
+                    <div class="purchasing-table-wrap">
+                        <table class="purchasing-table receiving-lpo-items-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Product</th>
+                                    <th scope="col">Barcode / package</th>
+                                    <th scope="col">Ordered quantity</th>
+                                    <th scope="col">Previously received</th>
+                                    <th scope="col">Outstanding quantity</th>
+                                    <th scope="col">LPO unit price</th>
+                                    <th scope="col">Price basis</th>
+                                </tr>
+                            </thead>
+                            <tbody id="receivingLpoItemsBody">
+                                <tr><td colspan="7" class="purchasing-empty-cell">Select an LPO to view its products.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </section>
+            <section id="receivingEditor" class="receiving-editor" hidden aria-labelledby="receivingEditorHeading">
+                <header class="purchasing-section-heading">
+                    <div>
+                        <h3 id="receivingEditorHeading">Goods Received Note</h3>
+                        <p id="receivingEditorDescription"></p>
+                    </div>
+                    <div class="purchasing-detail-actions">
+                        <span id="grnEditorStatus" class="purchasing-state-chip">Draft</span>
+                        <button id="closeReceivingEditorButton" class="secondary-button" type="button">Back to register</button>
+                    </div>
+                </header>
+
+                <div class="receiving-document-meta">
+                    <div><span>GRN number</span><strong id="grnNumberDisplay">Not created</strong></div>
+                    <div><span>Linked LPO</span><strong id="grnLpoDisplay">Not selected</strong></div>
+                    <div><span>Supplier</span><strong id="grnSupplierDisplay">Not selected</strong></div>
+                    <div><span>Branch</span><strong id="grnBranchDisplay">Not selected</strong></div>
+                </div>
+
+                <section class="receiving-form-section" aria-labelledby="receivingLocationHeading">
+                    <h4 id="receivingLocationHeading">Receiving location</h4>
+                    <div class="purchasing-fields">
+                        <div class="purchasing-field">
+                            <label for="grnLocation">Inventory location</label>
+                            <select id="grnLocation" required></select>
+                        </div>
+                        <div class="purchasing-field">
+                            <label for="grnReceivedDate">Date received</label>
+                            <input id="grnReceivedDate" type="date" required>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="receiving-form-section" aria-labelledby="supplierInvoiceHeading">
+                    <h4 id="supplierInvoiceHeading">Supplier invoice details</h4>
+                    <div class="purchasing-fields">
+                        <div class="purchasing-field">
+                            <label for="grnInvoiceNumber">Supplier invoice number</label>
+                            <input id="grnInvoiceNumber" type="text" maxlength="100">
+                        </div>
+                        <div class="purchasing-field">
+                            <label for="grnInvoiceDate">Supplier invoice date</label>
+                            <input id="grnInvoiceDate" type="date">
+                        </div>
+                        <div class="purchasing-field">
+                            <label for="grnInvoiceGoods">Invoice goods value (KES)</label>
+                            <input id="grnInvoiceGoods" type="number" min="0" step="0.01">
+                        </div>
+                        <div class="purchasing-field">
+                            <label for="grnInvoiceVat">Invoice VAT amount (KES)</label>
+                            <input id="grnInvoiceVat" type="number" min="0" step="0.01">
+                        </div>
+                        <div class="purchasing-field">
+                            <label for="grnInvoiceTotal">Invoice total (KES)</label>
+                            <input id="grnInvoiceTotal" type="number" min="0" step="0.01">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="receiving-form-section" aria-labelledby="deliveryDetailsHeading">
+                    <h4 id="deliveryDetailsHeading">Delivery details</h4>
+                    <div class="purchasing-fields">
+                        <div class="purchasing-field">
+                            <label for="grnDeliveryNote">Delivery note number</label>
+                            <input id="grnDeliveryNote" type="text" maxlength="100">
+                        </div>
+                        <div class="purchasing-field">
+                            <label for="grnDispatchAdvice">Dispatch advice number</label>
+                            <input id="grnDispatchAdvice" type="text" maxlength="100">
+                        </div>
+                        <div class="purchasing-field">
+                            <label for="grnVehicle">Vehicle registration</label>
+                            <input id="grnVehicle" type="text" maxlength="30">
+                        </div>
+                        <div class="purchasing-field">
+                            <label for="grnDriver">Driver name</label>
+                            <input id="grnDriver" type="text" maxlength="150">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="receiving-form-section" aria-labelledby="receivingItemsHeading">
+                    <header class="purchasing-section-heading">
+                        <div>
+                            <h4 id="receivingItemsHeading">Received products</h4>
+                            <p>Enter quantities and prices from the supplier's actual invoice.</p>
+                        </div>
+                        <span id="grnItemCount" class="purchasing-subtle-count">0 lines</span>
+                    </header>
+
+                    <div class="purchasing-table-wrap">
+                        <table class="purchasing-table receiving-items-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Product</th>
+                                    <th scope="col">LPO quantity</th>
+                                    <th scope="col">Previously received</th>
+                                    <th scope="col">Invoice quantity</th>
+                                    <th scope="col">Invoice unit</th>
+                                    <th scope="col">Units per pack</th>
+                                    <th scope="col">Invoice unit price</th>
+                                    <th scope="col">Price basis</th>
+                                    <th scope="col">Delivered (each)</th>
+                                    <th scope="col">Accepted (each)</th>
+                                    <th scope="col">Rejected (each)</th>
+                                    <th scope="col">Discrepancy reason</th>
+                                </tr>
+                            </thead>
+                            <tbody id="grnItemsBody">
+                                <tr><td colspan="12" class="purchasing-empty-cell">Select an LPO to load its products.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="receiving-form-section" aria-labelledby="receivingReconciliationHeading">
+                    <h4 id="receivingReconciliationHeading">Reconciliation and remarks</h4>
+                    <div class="purchasing-fields">
+                        <div class="purchasing-field">
+                            <label for="grnVarianceReason">Variance reason</label>
+                            <textarea id="grnVarianceReason" maxlength="500" rows="2"></textarea>
+                        </div>
+                        <div class="purchasing-field">
+                            <label for="grnRemarks">Remarks</label>
+                            <textarea id="grnRemarks" rows="2"></textarea>
+                        </div>
+                    </div>
+                    <div id="grnReconciliationSummary" class="receiving-reconciliation-summary"></div>
+                </section>
+
+                <footer class="purchasing-editor-footer">
+                    <div>
+                        <small id="grnSaveMessage">Changes are saved as a draft. Stock is not updated.</small>
+                    </div>
+                    <div class="purchasing-editor-actions">
+                        <button id="saveGrnDraftButton" class="primary-button" type="button">Save GRN Draft</button>
+                    </div>
+                </footer>
+            </section>
+        </section>
         <section id="placeholderView" class="purchasing-view purchasing-placeholder" hidden aria-labelledby="placeholderHeading">
-            <div class="purchasing-placeholder-symbol" id="placeholderIcon" aria-hidden="true">â–§</div>
+            <div class="purchasing-placeholder-symbol" id="placeholderIcon" aria-hidden="true">&#9639;</div>
             <div>
                 
                 <h2 id="placeholderHeading">Document workspace</h2>
@@ -215,6 +499,43 @@
                     <tbody id="orderDetailItemsBody"></tbody>
                 </table>
             </div>
+<section id="lpoAcknowledgementSection" class="purchasing-acknowledgement" hidden aria-labelledby="lpoAcknowledgementHeading">
+    <header class="purchasing-section-heading">
+        <div>
+            <h3 id="lpoAcknowledgementHeading">Supplier acknowledgement</h3>
+            <p id="lpoAcknowledgementDescription">Review the availability of each product against the original quantities ordered.</p>
+        </div>
+    </header>
+
+    <div id="lpoAcknowledgementStatus" class="purchasing-status" role="status" aria-live="polite" hidden></div>
+
+    <div class="purchasing-table-wrap">
+        <table class="purchasing-table purchasing-acknowledgement-table">
+            <thead>
+                <tr>
+                    <th scope="col">Product</th>
+                    <th scope="col">Ordered</th>
+                    <th scope="col">Available</th>
+                    <th scope="col">Short</th>
+                    <th scope="col">Out of stock</th>
+                    <th scope="col">Expected delivery</th>
+                </tr>
+            </thead>
+            <tbody id="lpoAcknowledgementItemsBody"></tbody>
+        </table>
+    </div>
+
+    <div id="lpoAcknowledgementActions" class="purchasing-acknowledgement-actions" hidden>
+        <div class="purchasing-acknowledgement-rejection">
+            <label for="lpoRejectionReason">Rejection reason (optional)</label>
+            <textarea id="lpoRejectionReason" maxlength="500" rows="2" placeholder="Explain why this LPO cannot be accepted"></textarea>
+        </div>
+        <div class="purchasing-detail-actions">
+            <button id="rejectLpoButton" class="secondary-button" type="button">Reject LPO</button>
+            <button id="submitLpoAcknowledgementButton" class="primary-button" type="button">Submit acknowledgement</button>
+        </div>
+    </div>
+</section>
         </section>
     </main>
 

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <link rel="stylesheet" href="orders.css">
+    <title>Purchasing | ChainBridge</title>
+</head>
+<body>
+    <div id="shell"></div>
+
+    <main class="page purchasing-page">
+        <header class="purchasing-page-heading">
+            <div>
+                
+                <h1>Purchasing</h1>
+                <p id="purchasingSubtitle" hidden></p>
+            </div>
+            <button id="newLpoButton" class="primary-button purchasing-new-button" type="button" hidden aria-hidden="true">Create LPO</button>
+        </header>
+
+                <div class="purchasing-workspace">
+            <nav id="purchasingNav" class="purchasing-nav" aria-label="Purchasing sections">
+                <div class="purchasing-nav-group purchasing-nav-group-lpo" role="group" aria-label="LPO">
+                    <button class="purchasing-nav-button" type="button" data-view="create" aria-label="Create LPO" title="Create LPO">
+                        <svg class="purchasing-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 11v7M8.5 14.5h7"/></svg>
+                    </button>
+                    <button class="purchasing-nav-button is-active" type="button" data-view="register" aria-label="LPO Register" title="LPO Register" aria-current="page">
+                        <svg class="purchasing-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="18" rx="2"/><path d="M9 4.5h6M9 10h6M9 14h6M9 18h3"/></svg>
+                    </button>
+                    <button class="purchasing-nav-button" type="button" data-view="outgoing" data-supplier-only hidden aria-label="Outgoing LPOs" title="Outgoing LPOs">
+                        <svg class="purchasing-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h10v16H4z"/><path d="M8 8h3M8 12h3M8 16h3M14 12h6M17 9l3 3-3 3"/></svg>
+                    </button>
+                    <button class="purchasing-nav-button" type="button" data-view="drafts" data-ordering-only aria-label="Drafts" title="Drafts">
+                        <svg class="purchasing-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h7"/><path d="M13 2v6h6M16.5 14.5l3 3M14 21l1-4 5.5-5.5a1.4 1.4 0 0 1 2 2L17 19z"/></svg>
+                        <span id="draftCount" class="purchasing-nav-count" hidden>0</span>
+                    </button>
+                </div>
+                <span class="purchasing-nav-separator" aria-hidden="true"></span>
+                <div class="purchasing-nav-group purchasing-nav-group-documents" role="group" aria-label="Receiving and documents">
+                    <button class="purchasing-nav-button" type="button" data-view="receiving" data-retailer-only aria-label="Goods Received" title="Goods Received">
+                        <svg class="purchasing-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8 12 3l9 5v10l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v10M8.5 5l9 5"/><path d="m8.5 15 2.2 2.2 4.8-5"/></svg>
+                    </button>
+                    <button class="purchasing-nav-button" type="button" data-view="returns" data-retailer-only aria-label="Goods Returns" title="Goods Returns">
+                        <svg class="purchasing-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10V5h5M3.5 5.5A9 9 0 1 1 3 14"/><path d="M3 5l5 5"/></svg>
+                    </button>
+                    <button class="purchasing-nav-button" type="button" data-view="consignment" aria-label="Consignment" title="Consignment">
+                        <svg class="purchasing-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h11v12H3zM14 9h4l3 4v4h-7z"/><circle cx="7.5" cy="19" r="2"/><circle cx="18" cy="19" r="2"/><path d="M6 9h5M8.5 6.5v5M17 12h3"/></svg>
+                    </button>
+                    <button class="purchasing-nav-button" type="button" data-view="documents" aria-label="Supplier Documents" title="Supplier Documents">
+                        <svg class="purchasing-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h8l5 5v15H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M14 2v6h5M8 12h8M8 16h8M8 19h5"/></svg>
+                    </button>
+                </div>
+            </nav>
+            <div class="purchasing-main-content">
+
+        <p id="purchasingStatus" class="purchasing-status" role="status" aria-live="polite"></p>
+
+        <section id="createView" class="purchasing-view" hidden aria-labelledby="createViewHeading">
+            <header class="purchasing-section-heading">
+                <div>
+                    <h2 id="createViewHeading">Create local purchase order</h2>
+                    <p id="draftContext" hidden></p>
+                </div>
+                <span id="draftState" class="purchasing-state-chip">New LPO</span>
+            </header>
+
+            <div class="purchasing-fields">
+                <div class="purchasing-field" id="branchField">
+                    <label for="purchaseBranch">Branch</label>
+                    <select id="purchaseBranch" name="branchId" required></select>
+                </div>
+                <div class="purchasing-field">
+                    <label for="purchaseSupplier">Supplier account</label>
+                    <select id="purchaseSupplier" name="supplierId" required>
+                        <option value="">Choose a supplier</option>
+                    </select>
+                </div>
+                </div>
+
+            <section class="purchasing-catalogue" aria-labelledby="catalogueHeading">
+                <header class="purchasing-section-heading purchasing-catalogue-heading">
+                    <div>
+                        <h3 id="catalogueHeading">Supplier catalogue</h3>
+                        <p id="catalogueDescription" hidden></p>
+                    </div>
+                    <span id="catalogueCount" class="purchasing-subtle-count">0 products</span>
+                </header>
+
+                <div class="purchasing-catalogue-tools" hidden><input id="productSearch" type="hidden" value=""></div><div id="catalogueNotice" class="purchasing-notice" hidden></div>
+                <div id="staleDraftLines" class="purchasing-stale-lines" hidden></div>
+
+                <div class="purchasing-table-wrap">
+                    <table class="purchasing-table purchasing-catalogue-table purchasing-horizontal-lpo-v1">
+                        <thead>
+                            <tr>
+                                <th scope="col">Product</th>
+                                <th scope="col">Manufacturer</th>
+                                <th scope="col">Cost price without tax</th>
+                                <th scope="col">Tax amount</th>
+                                <th scope="col">Total cost price</th>
+                                <th scope="col">Supply terms</th>
+                                <th scope="col">Quantity</th>
+                                <th scope="col">Total cost without tax</th>
+                                <th scope="col">Total tax</th>
+                                <th scope="col">Total amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="catalogueBody">
+                            <tr><td colspan="10" class="purchasing-empty-cell">Select branch and supplier</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <footer class="purchasing-editor-footer">
+                <div class="purchasing-total-block">
+                    <div class="purchasing-total-row">
+                        <span>Total goods value (before tax)</span>
+                        <strong id="goodsTotal">KES 0.00</strong>
+                    </div>
+                    <div class="purchasing-total-row">
+                        <span>Total tax</span>
+                        <strong id="taxTotal">KES 0.00</strong>
+                    </div>
+                    <div class="purchasing-total-row purchasing-total-grand">
+                        <span>Total amount with tax</span>
+                        <strong id="orderTotal">KES 0.00</strong>
+                    </div>
+                    <small id="orderLineSummary">0 products selected</small>
+                </div>
+                <div class="purchasing-editor-actions">
+                    <button id="saveDraftButton" class="secondary-button" type="button">Save Draft</button>
+                    <button id="submitOrderButton" class="primary-button" type="button" disabled>Submit LPO</button>
+                </div>
+            </footer>
+        </section>
+
+        <section id="ordersView" class="purchasing-view" aria-labelledby="ordersHeading">
+            <header class="purchasing-section-heading">
+                <div>
+                    <h2 id="ordersHeading">LPO Register</h2>
+                    <p id="ordersDescription" hidden></p>
+                </div>
+                <button id="refreshOrdersButton" class="secondary-button" type="button">Refresh</button>
+            </header>
+            <div class="purchasing-register-tools">
+                <label class="purchasing-register-search">
+                    <span>Find an LPO</span>
+                    <input id="orderSearch" type="search" placeholder="LPO number, supplier, branch or status">
+                </label>
+                <span id="ordersCount" class="purchasing-subtle-count">0 orders</span>
+            </div>
+            <div class="purchasing-table-wrap">
+                <table class="purchasing-table purchasing-orders-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">LPO</th>
+                            <th scope="col">Order date</th>
+                            <th scope="col" id="orderPartyHeading">Supplier</th>
+                            <th scope="col">Branch</th>
+                            <th scope="col">Lines / units</th>
+                            <th scope="col">Estimated value</th>
+                            <th scope="col">Expected delivery</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersBody">
+                        <tr><td colspan="9" class="purchasing-empty-cell">Loading LPOs</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="placeholderView" class="purchasing-view purchasing-placeholder" hidden aria-labelledby="placeholderHeading">
+            <div class="purchasing-placeholder-symbol" id="placeholderIcon" aria-hidden="true">&#9639;</div>
+            <div>
+                
+                <h2 id="placeholderHeading">Document workspace</h2>
+                <p id="placeholderDescription" hidden></p>
+                <span class="purchasing-state-chip purchasing-not-configured">Not configured</span>
+            </div>
+        </section>
+
+
+            </div>
+        </div>
+
+        <section id="orderDetailSection" class="purchasing-detail" hidden aria-labelledby="orderDetailHeading">
+            <header class="purchasing-section-heading">
+                <div>
+                    <h2 id="orderDetailHeading">LPO details</h2>
+                    <p id="orderDetailDescription" hidden></p>
+                </div>
+                <div class="purchasing-detail-actions">
+                    <button id="printOrderButton" class="secondary-button" type="button">Print LPO</button>
+                    <button id="backToLpoRegisterButton" class="secondary-button" type="button">Back to LPO Register</button>
+                </div>
+            </header>
+            <div id="orderDetailMeta" class="purchasing-detail-meta"></div>
+            <div class="purchasing-table-wrap">
+                <table class="purchasing-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Product / package</th>
+                            <th scope="col">Quantity ordered</th>
+                            <th scope="col">Quantity received</th>
+                            <th scope="col">Unit price / tax breakdown</th>
+                            <th scope="col">Line total (incl. tax)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orderDetailItemsBody"></tbody>
+                </table>
+            </div>
+<section id="lpoAcknowledgementSection" class="purchasing-acknowledgement" hidden aria-labelledby="lpoAcknowledgementHeading">
+    <header class="purchasing-section-heading">
+        <div>
+            <h3 id="lpoAcknowledgementHeading">Supplier acknowledgement</h3>
+            <p id="lpoAcknowledgementDescription">Review the availability of each product against the original quantities ordered.</p>
+        </div>
+    </header>
+
+    <div id="lpoAcknowledgementStatus" class="purchasing-status" role="status" aria-live="polite" hidden></div>
+
+    <div class="purchasing-table-wrap">
+        <table class="purchasing-table purchasing-acknowledgement-table">
+            <thead>
+                <tr>
+                    <th scope="col">Product</th>
+                    <th scope="col">Ordered</th>
+                    <th scope="col">Available</th>
+                    <th scope="col">Short</th>
+                    <th scope="col">Out of stock</th>
+                    <th scope="col">Expected delivery</th>
+                </tr>
+            </thead>
+            <tbody id="lpoAcknowledgementItemsBody"></tbody>
+        </table>
+    </div>
+
+    <div id="lpoAcknowledgementActions" class="purchasing-acknowledgement-actions" hidden>
+        <div class="purchasing-acknowledgement-rejection">
+            <label for="lpoRejectionReason">Rejection reason (optional)</label>
+            <textarea id="lpoRejectionReason" maxlength="500" rows="2" placeholder="Explain why this LPO cannot be accepted"></textarea>
+        </div>
+        <div class="purchasing-detail-actions">
+            <button id="rejectLpoButton" class="secondary-button" type="button">Reject LPO</button>
+            <button id="submitLpoAcknowledgementButton" class="primary-button" type="button">Submit acknowledgement</button>
+        </div>
+    </div>
+</section>
+        </section>
+    </main>
+
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="../../../shared/js/page-router.js"></script>
+    <script src="orders.js"></script>
+</body>
+</html>

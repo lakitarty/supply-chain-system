@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../core/bootstrap.php';
 require_once __DIR__ . '/../core/guard.php';
+require_once __DIR__ . '/pricing-rules.php';
 
 try {
     $actor = require_login($pdo);
@@ -19,7 +20,11 @@ try {
     ");
     $stmt->execute([$versionId, $actor['organization_id']]);
     
-    respond(200, ['success' => true, 'prices' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+    respond(200, [
+        'success' => true,
+        'prices' => $stmt->fetchAll(PDO::FETCH_ASSOC),
+        'vat_percent' => version_vat_percent($pdo, (int)$versionId, nairobi_today())
+    ]);
 } catch (Throwable $e) {
     respond_error(500, 'Error loading prices.');
 }

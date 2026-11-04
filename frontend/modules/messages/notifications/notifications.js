@@ -154,6 +154,20 @@ function openNotificationPreview(item, trigger) {
         previewActions.append(element("span", "notification-preview-receipt", "Read"));
     }
 
+    const notificationType = String(item.notification_type || "").toUpperCase();
+    const referenceId = Number(item.reference_id);
+
+    if (
+        ["LPO_ACKNOWLEDGED", "LPO_REJECTED"].includes(notificationType) &&
+        Number.isSafeInteger(referenceId) &&
+        referenceId > 0
+    ) {
+        const openLpoLink = element("a", "secondary-button", "Open LPO");
+        const lpoUrl = new URL("../../purchasing/orders/orders.html", window.location.href);
+        lpoUrl.searchParams.set("lpo", String(referenceId));
+        openLpoLink.href = lpoUrl.href;
+        previewActions.append(openLpoLink);
+    }
     previewModal.hidden = false;
     document.body.classList.add("notification-preview-open");
     closePreviewButton.focus();

@@ -6,6 +6,7 @@ require_once __DIR__ . '/../core/bootstrap.php';
 require_once __DIR__ . '/../core/guard.php';
 require_once __DIR__ . '/../core/audit.php';
 require_once __DIR__ . '/../core/validation.php';
+require_once __DIR__ . '/../products/pricing-rules.php';
 require_once __DIR__ . '/../products/product-rules.php';
 
 require_post();
@@ -40,8 +41,8 @@ try {
     if ($versionId === false || $versionId === null) {
         respond_field_error(400, field_error('productVersionId', 'Select a package version.'));
     }
-    if (!preg_match('/^\d{1,10}(?:\.\d{1,2})?$/', $priceText)) {
-        respond_field_error(400, field_error('sellingPrice', 'Enter a non-negative KSh selling price with up to two decimal places.'));
+    if (parse_price_amount($priceText) === null) {
+        respond_field_error(400, field_error('sellingPrice', 'Enter a selling price above zero with at most two decimal places.'));
     }
     if (!in_array($priceBasis, ['VAT_INCLUSIVE', 'VAT_EXCLUSIVE'], true)) {
         respond_field_error(400, field_error('priceBasis', 'Choose whether the selling price includes VAT.'));

@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/pricing-rules.php';
+require_once __DIR__ . '/../network/supply-arrangement-rules.php';
 
 function price_cascade_fail(int $status, string $message): never
 {
@@ -172,44 +174,6 @@ function price_cascade_connection_rows(
     return $statement->fetchAll(PDO::FETCH_ASSOC);
 }
 
-function price_cascade_downstream_retailers(
-    PDO $pdo,
-    int $sourceOrganizationId,
-    string $effectiveDate,
-    bool $lockRows = false
-): array {
-    $sql = "
-        SELECT r.relationship_id,
-               target.organization_id,
-               target.organization_name,
-               target.organization_type
-        FROM organization_relationships r
-        INNER JOIN organizations target
-            ON target.organization_id = r.target_organization_id
-        WHERE r.source_organization_id = ?
-          AND r.relationship_type = 'SUPPLIES'
-          AND r.status = 'ACTIVE'
-          AND r.start_date <= ?
-          AND (r.end_date IS NULL OR r.end_date >= ?)
-          AND target.organization_type = 'RETAILER'
-          AND target.status = 'ACTIVE'
-        ORDER BY target.organization_id, r.relationship_id
-    ";
-
-    if ($lockRows) {
-        $sql .= " FOR UPDATE";
-    }
-
-    $statement = $pdo->prepare($sql);
-    $statement->execute([
-        $sourceOrganizationId,
-        $effectiveDate,
-        $effectiveDate
-    ]);
-
-    return $statement->fetchAll(PDO::FETCH_ASSOC);
-}
-
 function price_cascade_round_retail_price(float $cost, float $margin): array
 {
     if ($margin <= 0 || $margin >= 1) {
@@ -222,7 +186,6 @@ function price_cascade_round_retail_price(float $cost, float $margin): array
         price_cascade_fail(409, 'The proposed retail selling price is invalid.');
     }
 
-    // Round upward so rounding does not reduce the target gross margin.
     $multipleOfFive = ceil(($rawPrice - 0.0000001) / 5) * 5;
 
     while ($multipleOfFive + 0.0000001 < $rawPrice) {
@@ -377,13 +340,7 @@ function price_cascade_has_scheduled_org_price_period(
           AND product_id = ?
           AND product_version_id = ?
           AND price_type IN ('COST', 'SELLING')
-          AND (
-              effective_from > ?
-              OR (
-                  effective_from <= ?
-                  AND effective_to >= ?
-              )
-          )
+          AND effective_from > ?
         LIMIT 1
     ";
 
@@ -396,8 +353,6 @@ function price_cascade_has_scheduled_org_price_period(
         $organizationId,
         $productId,
         $versionId,
-        $effectiveDate,
-        $effectiveDate,
         $effectiveDate
     ]);
 
@@ -419,13 +374,7 @@ function price_cascade_has_scheduled_branch_price_period(
           AND product_id = ?
           AND product_version_id = ?
           AND status = 'ACTIVE'
-          AND (
-              effective_from > ?
-              OR (
-                  effective_from <= ?
-                  AND effective_to >= ?
-              )
-          )
+          AND effective_from > ?
         LIMIT 1
     ";
 
@@ -438,8 +387,6 @@ function price_cascade_has_scheduled_branch_price_period(
         $retailerId,
         $productId,
         $versionId,
-        $effectiveDate,
-        $effectiveDate,
         $effectiveDate
     ]);
 
@@ -460,13 +407,7 @@ function price_cascade_has_scheduled_manufacturer_selling_period(
           AND product_id = ?
           AND product_version_id = ?
           AND price_type = 'SELLING'
-          AND (
-              effective_from > ?
-              OR (
-                  effective_from <= ?
-                  AND effective_to >= ?
-              )
-          )
+          AND effective_from > ?
         LIMIT 1
     ";
 
@@ -479,8 +420,6 @@ function price_cascade_has_scheduled_manufacturer_selling_period(
         $manufacturerId,
         $productId,
         $versionId,
-        $effectiveDate,
-        $effectiveDate,
         $effectiveDate
     ]);
 
@@ -493,7 +432,7 @@ function price_cascade_record_review(
     string $reasonCode
 ): void {
     foreach ($reviewNotifications as $existing) {
-        if ((int)$existing['organization_id'] === $organizationId) {
+        if ((int)$existing['organization_id'] === $organizationId && (string)$existing['reason_code'] === $reasonCode) {
             return;
         }
     }
@@ -584,6 +523,12 @@ function price_cascade_build_plan(
     $productId = (int)$product['product_id'];
     $manufacturerId = (int)$product['manufacturer_id'];
 
+    $lockMessage = promotion_lock_message($pdo, $manufacturerId, $productId, $effectiveDate);
+
+    if ($lockMessage !== null) {
+        price_cascade_fail(409, $lockMessage);
+    }
+
     $snapshot = [
         'actor_organization_id' => (int)$actor['organization_id'],
         'product_id' => $productId,
@@ -626,7 +571,8 @@ function price_cascade_build_plan(
     price_cascade_snapshot_price($snapshot, $mfgCost);
     price_cascade_snapshot_price($snapshot, $mfgSelling);
 
-    price_cascade_margin($mfgCost, $mfgSelling, (string)$product['manufacturer_name']);
+    $vatFactor = price_cascade_vat_factor($pdo, $manufacturerId, $versionId, $effectiveDate, $lockRows);
+    price_cascade_manufacturer_margin($mfgCost, $mfgSelling, $vatFactor, (string)$product['manufacturer_name']);
 
     if (abs((float)$mfgSelling['price_amount'] - $newManufacturerPrice) < 0.005) {
         price_cascade_fail(400, 'The proposed manufacturer price is the same as the current price.');
@@ -638,11 +584,17 @@ function price_cascade_build_plan(
     $branchChanges = [];
     $warnings = [];
 
-    $mfgOldMargin = price_cascade_margin($mfgCost, $mfgSelling, (string)$product['manufacturer_name']);
+    $mfgOldMargin = price_cascade_manufacturer_margin($mfgCost, $mfgSelling, $vatFactor, (string)$product['manufacturer_name']);
     $mfgNewMargin = price_cascade_margin_for_values(
-        (float)$mfgCost['price_amount'],
-        $newManufacturerPrice
+        price_cascade_manufacturer_net($mfgCost, $vatFactor),
+        price_cascade_manufacturer_net(
+            ['price_amount' => $newManufacturerPrice, 'price_includes_vat' => $mfgSelling['price_includes_vat']],
+            $vatFactor
+        )
     );
+    $manufacturerGrossPrice = (int)$mfgSelling['price_includes_vat'] === 1
+        ? $newManufacturerPrice
+        : round($newManufacturerPrice * $vatFactor, 2);
 
     $organizationChanges[$manufacturerId] = [
         'organization_id' => $manufacturerId,
@@ -660,8 +612,6 @@ function price_cascade_build_plan(
 
     price_cascade_snapshot_write($productPriceWrites, $mfgSelling, $newManufacturerPrice);
 
-    // Only product-specific suppliers with an active manufacturer-to-supplier
-    // SUPPLIES relationship are eligible for this product's price cascade.
     $assignmentSql = "
         SELECT ps.product_supplier_id, ps.supplier_id, ps.area_id,
                ps.start_date, ps.end_date,
@@ -673,6 +623,7 @@ function price_cascade_build_plan(
           AND ps.start_date <= ?
           AND (ps.end_date IS NULL OR ps.end_date >= ?)
           AND o.status = 'ACTIVE'
+          AND o.organization_type IN ('SUPPLIER', 'MANUFACTURER_SUPPLIER')
         ORDER BY ps.supplier_id, ps.product_supplier_id
     ";
 
@@ -742,6 +693,7 @@ function price_cascade_build_plan(
     unset($supplier);
 
     $retailerIncoming = [];
+    $supplierOutcomes = [];
     $blockedRetailers = [];
     $reviewNotifications = [];
 
@@ -758,12 +710,13 @@ function price_cascade_build_plan(
         ];
 
         if (!$supplierProtectionEnabled) {
-            $blockedRows = price_cascade_downstream_retailers(
-                $pdo, (int)$supplierId, $effectiveDate, $lockRows
+            $supplierOutcomes[(int)$supplierId] = 'PROTECTION_OFF';
+            $blockedRetailerRows = price_cascade_supplier_retailers(
+                $pdo, (int)$supplierId, $supplier['assignment_ids'], $effectiveDate, $lockRows
             );
-            foreach ($blockedRows as $blockedRow) {
-                $blockedRetailers[(int)$blockedRow['organization_id']] = true;
-            }
+            price_cascade_flag_supplier_retailers(
+                $snapshot, $reviewNotifications, $blockedRetailers, (int)$supplierId, $blockedRetailerRows, 'SUPPLIER_CASCADE_OFF'
+            );
 
             $warnings[] = 'Some downstream organisations have not enabled Price Change Protection; their prices and dependent routes were not changed.';
             continue;
@@ -772,16 +725,14 @@ function price_cascade_build_plan(
         if (price_cascade_has_scheduled_org_price_period(
             $pdo, (int)$supplierId, $productId, $versionId, $effectiveDate, $lockRows
         )) {
-            price_cascade_record_review(
-                $snapshot, $reviewNotifications, (int)$supplierId, 'SCHEDULE_REVIEW'
-            );
+            $supplierOutcomes[(int)$supplierId] = 'SCHEDULE_REVIEW';
 
-            $blockedRows = price_cascade_downstream_retailers(
-                $pdo, (int)$supplierId, $effectiveDate, $lockRows
+            $blockedRetailerRows = price_cascade_supplier_retailers(
+                $pdo, (int)$supplierId, $supplier['assignment_ids'], $effectiveDate, $lockRows
             );
-            foreach ($blockedRows as $blockedRow) {
-                $blockedRetailers[(int)$blockedRow['organization_id']] = true;
-            }
+            price_cascade_flag_supplier_retailers(
+                $snapshot, $reviewNotifications, $blockedRetailers, (int)$supplierId, $blockedRetailerRows, 'UPSTREAM_ROUTE_REVIEW'
+            );
 
             $warnings[] = 'Some downstream organisations have scheduled price periods requiring review; those organisations and dependent routes were not changed.';
             continue;
@@ -802,16 +753,14 @@ function price_cascade_build_plan(
                 (string)$supplier['organization_name']
             );
         } catch (DomainException $e) {
-            price_cascade_record_review(
-                $snapshot, $reviewNotifications, (int)$supplierId, 'PRICING_REVIEW'
-            );
+            $supplierOutcomes[(int)$supplierId] = 'PRICING_REVIEW';
 
-            $blockedRows = price_cascade_downstream_retailers(
-                $pdo, (int)$supplierId, $effectiveDate, $lockRows
+            $blockedRetailerRows = price_cascade_supplier_retailers(
+                $pdo, (int)$supplierId, $supplier['assignment_ids'], $effectiveDate, $lockRows
             );
-            foreach ($blockedRows as $blockedRow) {
-                $blockedRetailers[(int)$blockedRow['organization_id']] = true;
-            }
+            price_cascade_flag_supplier_retailers(
+                $snapshot, $reviewNotifications, $blockedRetailers, (int)$supplierId, $blockedRetailerRows, 'UPSTREAM_ROUTE_REVIEW'
+            );
 
             $warnings[] = 'Some opted-in downstream organisations have incomplete or inconsistent pricing; those organisations and dependent routes were not changed.';
             continue;
@@ -820,7 +769,7 @@ function price_cascade_build_plan(
         price_cascade_snapshot_price($snapshot, $supplierCost);
         price_cascade_snapshot_price($snapshot, $supplierSelling);
 
-        $newSupplierCost = $newManufacturerPrice;
+        $newSupplierCost = $manufacturerGrossPrice;
         $newSupplierSelling = round($newSupplierCost / (1 - $supplierMargin), 2);
 
         $organizationChanges[(int)$supplierId] = [
@@ -843,11 +792,23 @@ function price_cascade_build_plan(
         price_cascade_snapshot_write($productPriceWrites, $supplierCost, $newSupplierCost);
         price_cascade_snapshot_write($productPriceWrites, $supplierSelling, $newSupplierSelling);
 
-        $retailerRows = price_cascade_downstream_retailers(
-            $pdo, (int)$supplierId, $effectiveDate, $lockRows
+        $retailerRows = price_cascade_supplier_retailers(
+            $pdo, (int)$supplierId, $supplier['assignment_ids'], $effectiveDate, $lockRows
         );
 
         foreach ($retailerRows as $retailerRow) {
+            $snapshot['arrangements'][] = [
+                'supplier_id' => (int)$supplierId,
+                'retailer_id' => (int)$retailerRow['organization_id'],
+                'accepted' => $retailerRow['accepted']
+            ];
+
+            if (!$retailerRow['accepted']) {
+                price_cascade_record_review(
+                    $snapshot, $reviewNotifications, (int)$retailerRow['organization_id'], 'ARRANGEMENT_NOT_ACCEPTED'
+                );
+                continue;
+            }
             $retailerId = (int)$retailerRow['organization_id'];
             $relationshipId = (int)$retailerRow['relationship_id'];
 
@@ -869,39 +830,6 @@ function price_cascade_build_plan(
             }
 
             $retailerIncoming[$retailerId]['source_organizations'][(int)$supplierId] = true;
-            $retailerIncoming[$retailerId]['relationship_ids'][] = $relationshipId;
-        }
-    }
-
-    // If the product has no product-specific supplier assignment, an active
-    // direct manufacturer-to-retailer relationship can be used instead.
-    if (count($supplierMap) === 0) {
-        $directRetailers = price_cascade_downstream_retailers(
-            $pdo, $manufacturerId, $effectiveDate, $lockRows
-        );
-
-        foreach ($directRetailers as $retailerRow) {
-            $retailerId = (int)$retailerRow['organization_id'];
-            $relationshipId = (int)$retailerRow['relationship_id'];
-
-            $snapshot['relationships'][] = [
-                'relationship_id' => $relationshipId,
-                'source_organization_id' => $manufacturerId,
-                'target_organization_id' => $retailerId
-            ];
-
-            if (!isset($retailerIncoming[$retailerId])) {
-                $retailerIncoming[$retailerId] = [
-                    'organization_id' => $retailerId,
-                    'organization_name' => (string)$retailerRow['organization_name'],
-                    'organization_type' => (string)$retailerRow['organization_type'],
-                    'incoming_cost' => $newManufacturerPrice,
-                    'source_organizations' => [],
-                    'relationship_ids' => []
-                ];
-            }
-
-            $retailerIncoming[$retailerId]['source_organizations'][$manufacturerId] = true;
             $retailerIncoming[$retailerId]['relationship_ids'][] = $relationshipId;
         }
     }
@@ -936,6 +864,9 @@ function price_cascade_build_plan(
         ];
 
         if (!$retailerProtectionEnabled) {
+            price_cascade_record_review(
+                $snapshot, $reviewNotifications, (int)$retailerId, 'RETAILER_CASCADE_OFF'
+            );
             $warnings[] = 'Some downstream organisations have not enabled Price Change Protection; their prices and dependent routes were not changed.';
             continue;
         }
@@ -968,9 +899,6 @@ function price_cascade_build_plan(
             $warnings[] = 'Some downstream organisations have scheduled price periods requiring review; those organisations were not changed.';
             continue;
         }
-        // Skip downstream retailers that have not onboarded this product version.
-        // Existing price or branch records still make a retailer eligible for
-        // strict validation, even if its retailer_products mapping is missing.
         $setupStatement = $pdo->prepare(
             "SELECT
                 EXISTS(
@@ -1038,10 +966,11 @@ function price_cascade_build_plan(
         }
 
         if (count($incoming['source_organizations']) > 1) {
-            price_cascade_fail(
-                409,
-                "{$incoming['organization_name']} is connected to this product through multiple active supplying organisations. The current organisation-level price model cannot represent different acquisition costs for each route; resolve the product's supply route before applying."
+            price_cascade_record_review(
+                $snapshot, $reviewNotifications, (int)$retailerId, 'UPSTREAM_ROUTE_REVIEW'
             );
+            $warnings[] = "{$incoming['organization_name']} is connected to this product through more than one supplying organisation, so it was skipped for review.";
+            continue;
         }
 
         try {
@@ -1094,8 +1023,6 @@ function price_cascade_build_plan(
         price_cascade_snapshot_write($productPriceWrites, $retailerCost, $newRetailerCost);
         price_cascade_snapshot_write($productPriceWrites, $retailerSelling, $newRetailerSelling);
 
-        // Checkout uses branch-level prices, so propagate the proposed retail
-        // selling price to existing effective branch prices for this version.
         $branchSql = "
             SELECT bp.*, b.branch_name
             FROM retailer_branch_prices bp
@@ -1155,6 +1082,7 @@ function price_cascade_build_plan(
 
             if ($basis === 'VAT_INCLUSIVE') {
                 $newBranchPrice = $newRetailerSelling;
+                $expectedCurrent = (float)$retailerSelling['price_amount'];
             } elseif ($basis === 'VAT_EXCLUSIVE') {
                 $factor = price_cascade_vat_factor(
                     $pdo, $manufacturerId, $versionId, $effectiveDate, $lockRows
@@ -1166,11 +1094,19 @@ function price_cascade_build_plan(
                 ];
 
                 $newBranchPrice = round($newRetailerSelling / $factor, 2);
+                $expectedCurrent = round((float)$retailerSelling['price_amount'] / $factor, 2);
             } else {
                 price_cascade_fail(409, 'An affected branch uses an unsupported price basis.');
             }
 
+            if (abs((float)$branchRow['selling_price'] - $expectedCurrent) >= 0.005) {
+                $newBranchPrice = (float)$branchRow['selling_price'];
+                price_cascade_record_review($snapshot, $reviewNotifications, (int)$retailerId, 'BRANCH_PRICE_REVIEW');
+                $warnings[] = "{$incoming['organization_name']} branch {$branchRow['branch_name']} has its own selling price, so it was left unchanged.";
+            }
+
             $branchChanges[] = [
+
                 'organization_id' => (int)$retailerId,
                 'organization_name' => (string)$incoming['organization_name'],
                 'branch_id' => $branchId,
@@ -1194,8 +1130,6 @@ function price_cascade_build_plan(
             $warnings[] = "{$incoming['organization_name']} has no active branch selling-price record for this product version. Its organisation-level prices can update, but checkout will still require a branch price to be configured.";
         }
 
-        // Detect incorrect active retailer-product mappings instead of silently
-        // rewriting an unrelated product version.
         $mappingSql = "
             SELECT rp.retailer_product_id, rp.product_version_id,
                    pv.product_id AS version_product_id, rp.status
@@ -1244,15 +1178,31 @@ function price_cascade_build_plan(
     }
 
     if (count($supplierMap) === 0 && count($retailerIncoming) === 0) {
-        $warnings[] = 'No active product-specific supplier or direct retailer route was found. Only the manufacturer price can change.';
+        $warnings[] = 'No active product-specific supplier route was found. Only the manufacturer price can change.';
+    }
+
+    $supplierNotices = [];
+
+    foreach (array_keys($supplierMap) as $supplierId) {
+        $supplierNotices[] = [
+            'organization_id' => (int)$supplierId,
+            'outcome' => $supplierOutcomes[(int)$supplierId] ?? 'UPDATED',
+            'old_manufacturer_price' => (float)$mfgSelling['price_amount'],
+            'new_manufacturer_price' => $newManufacturerPrice,
+            'adjustment' => $organizationChanges[(int)$supplierId] ?? null
+        ];
     }
 
     $snapshot['relationships'] = array_values($snapshot['relationships']);
 
+
     $signatureSource = [
         'snapshot' => $snapshot,
         'manufacturer_new_price' => number_format($newManufacturerPrice, 2, '.', ''),
-        'effective_date' => $effectiveDate
+        'effective_date' => $effectiveDate,
+        'supplier_notices' => $supplierNotices,
+        'warnings' => array_values(array_unique($warnings)),
+        'vat_factor' => round($vatFactor, 8)
     ];
 
     $signatureJson = json_encode(
@@ -1279,6 +1229,7 @@ function price_cascade_build_plan(
         'branch_changes' => $branchChanges,
         'warnings' => array_values(array_unique($warnings)),
         'review_notifications' => $reviewNotifications,
+        'supplier_notices' => $supplierNotices,
         'signature' => hash('sha256', $signatureJson),
         '_writes' => $productPriceWrites,
         '_branch_writes' => $branchPriceWrites
@@ -1312,6 +1263,12 @@ function price_cascade_public_plan(array $plan, array $actor): array
         'organizations' => $ownOrganizations,
         'branch_changes' => $ownBranchChanges,
         'warnings' => $publicWarnings,
+        'summary' => [
+            'suppliers_notified' => count($plan['supplier_notices'] ?? []),
+            'organisations_adjusted' => max(count($plan['organizations'] ?? []) - 1, 0),
+            'organisations_for_review' => count(array_unique(array_column($plan['review_notifications'] ?? [], 'organization_id'))),
+            'branch_prices_changed' => count($plan['_branch_writes'] ?? [])
+        ],
         'signature' => $plan['signature']
     ];
 }
@@ -1358,8 +1315,6 @@ function price_cascade_apply_plan(PDO $pdo, array $actor, array $plan): array
                 $row['effective_to'] === null ? null : (string)$row['effective_to']
             ]);
         } else {
-            // Price periods are date-based. If a price was already introduced
-            // today, update today's record and retain the change in the audit log.
             $update = $pdo->prepare(
                 'UPDATE product_prices SET price_amount = ? WHERE price_id = ?'
             );
@@ -1421,12 +1376,47 @@ function price_cascade_apply_plan(PDO $pdo, array $actor, array $plan): array
     require_once __DIR__ . '/../core/notifications.php';
     require_once __DIR__ . '/../core/audit.php';
 
+    $supplierNoticeIds = array_flip(array_map('intval', array_column($plan['supplier_notices'] ?? [], 'organization_id')));
+
+    foreach (($plan['supplier_notices'] ?? []) as $notice) {
+        $supplierOrganizationId = (int)$notice['organization_id'];
+
+        if ($supplierOrganizationId === (int)$actor['organization_id']) {
+            continue;
+        }
+
+        $adjustment = $notice['adjustment'] ?? null;
+
+        $outcomeText = match ((string)$notice['outcome']) {
+            'UPDATED' => sprintf(
+                'Your organisation has Price Change Protection enabled, so your cost was adjusted from KSh %s to KSh %s and your selling price from KSh %s to KSh %s.',
+                number_format((float)$adjustment['old_cost_price'], 2, '.', ''),
+                number_format((float)$adjustment['new_cost_price'], 2, '.', ''),
+                number_format((float)$adjustment['old_selling_price'], 2, '.', ''),
+                number_format((float)$adjustment['new_selling_price'], 2, '.', '')
+            ),
+            'PROTECTION_OFF' => 'Your organisation has not enabled Price Change Protection, so none of your prices were changed automatically. Review your own prices.',
+            'SCHEDULE_REVIEW' => 'An existing price schedule in your organisation requires review, so no price was changed automatically.',
+            default => 'Your current cost or selling-price records need review, so no price was changed automatically.'
+        };
+
+        create_organization_notification(
+            $pdo,
+            $supplierOrganizationId,
+            'SUPPLY_CHANGE',
+            (int)$plan['product']['product_version_id'],
+            "Manufacturer price changed: {$productName}",
+            "{$manufacturerName} changed the manufacturer selling price of {$productName}, version {$versionNumber}, from KSh " . number_format((float)$notice['old_manufacturer_price'], 2, '.', '') . " to KSh {$newManufacturerPrice}, effective {$effectiveDate}. Your acquisition cost for this product has changed. {$outcomeText}"
+        );
+    }
+
     foreach ($plan['organizations'] as $organization) {
         $organizationId = (int)$organization['organization_id'];
 
         if (
             $organizationId === (int)$actor['organization_id'] ||
-            !isset($changedOrganizations[$organizationId])
+            !isset($changedOrganizations[$organizationId]) ||
+            isset($supplierNoticeIds[$organizationId])
         ) {
             continue;
         }
@@ -1450,6 +1440,8 @@ function price_cascade_apply_plan(PDO $pdo, array $actor, array $plan): array
         );
     }
 
+    $reviewTexts = [];
+
     foreach (($plan['review_notifications'] ?? []) as $review) {
         $reviewOrganizationId = (int)$review['organization_id'];
 
@@ -1457,26 +1449,75 @@ function price_cascade_apply_plan(PDO $pdo, array $actor, array $plan): array
             continue;
         }
 
-        $reviewText = match ((string)$review['reason_code']) {
+        $reviewTexts[$reviewOrganizationId][] = match ((string)$review['reason_code']) {
             'SCHEDULE_REVIEW' =>
-                "An existing price schedule for {$productName}, version {$versionNumber}, requires review before automatic repricing can proceed. No automatic price adjustment was made to your organisation.",
+                "An existing price schedule for {$productName}, version {$versionNumber}, requires review before automatic repricing can proceed.",
             'PRICING_REVIEW' =>
-                "Your current cost or selling-price records for {$productName}, version {$versionNumber}, need review before automatic repricing can proceed. No automatic price adjustment was made to your organisation.",
+                "Your current cost or selling-price records for {$productName}, version {$versionNumber}, need review before automatic repricing can proceed.",
             'PRODUCT_SETUP_REQUIRED' =>
-                "Product setup for {$productName}, version {$versionNumber}, is incomplete for your organisation. Complete your own product mapping and pricing records before using automatic repricing. No automatic price adjustment was made to your organisation.",
-            default =>
-                "The supply route for {$productName}, version {$versionNumber}, could not be used for automatic repricing. Review your own purchase and selling prices before making a manual adjustment. No automatic price adjustment was made to your organisation."
-        };
+                "Product setup for {$productName}, version {$versionNumber}, is incomplete for your organisation. Complete your own product mapping and pricing records before using automatic repricing.",
+            'BRANCH_PRICE_REVIEW' =>
+                "One or more of your branches has its own selling price for {$productName}, version {$versionNumber}, so those branch prices were not changed. Review them under Selling prices.",
+            'SUPPLIER_CASCADE_OFF' =>
 
+                "Your supplier has not enabled automatic price adjustment for {$productName}, version {$versionNumber}, so your prices were not changed.",
+            'RETAILER_CASCADE_OFF' =>
+                "Automatic price adjustment is not enabled for your organisation, so your prices for {$productName}, version {$versionNumber}, were not changed.",
+            'ARRANGEMENT_NOT_ACCEPTED' =>
+                "You have not accepted the supply arrangement for {$productName}, so your prices for version {$versionNumber} were not changed. Review it under Supply arrangements.",
+            default =>
+                "The supply route for {$productName}, version {$versionNumber}, could not be used for automatic repricing. Review your own purchase and selling prices before making a manual adjustment."
+        };
+    }
+
+    foreach ($reviewTexts as $reviewOrganizationId => $texts) {
         create_organization_notification(
             $pdo,
-            $reviewOrganizationId,
+            (int)$reviewOrganizationId,
             'SUPPLY_CHANGE',
             (int)$plan['product']['product_version_id'],
             "Price update needs review: {$productName}",
-            $reviewText . " Effective date: {$effectiveDate}."
+            implode(' ', $texts) . " No automatic price adjustment was made to your organisation. Effective date: {$effectiveDate}."
         );
     }
+    foreach ($plan['organizations'] as $adjusted) {
+        if (!isset($changedOrganizations[(int)$adjusted['organization_id']])) {
+            continue;
+        }
+
+        record_audit(
+            $pdo,
+            $actor,
+            'PRICE_CASCADE_ORGANISATION_ADJUSTED',
+            'PRODUCT_VERSION',
+            (int)$plan['product']['product_version_id'],
+            sprintf(
+                'Automatic cascade initiated by %s for %s version %d, effective %s. %s (organisation %d): cost KSh %s to KSh %s, selling price KSh %s to KSh %s. Reason: manufacturer selling price change.',
+                $manufacturerName,
+                $productName,
+                $versionNumber,
+                $effectiveDate,
+                $adjusted['organization_name'],
+                $adjusted['organization_id'],
+                number_format((float)$adjusted['old_cost_price'], 2, '.', ''),
+                number_format((float)$adjusted['new_cost_price'], 2, '.', ''),
+                number_format((float)$adjusted['old_selling_price'], 2, '.', ''),
+                number_format((float)$adjusted['new_selling_price'], 2, '.', '')
+            )
+        );
+    }
+
+    foreach (($plan['review_notifications'] ?? []) as $skipped) {
+        record_audit(
+            $pdo,
+            $actor,
+            'PRICE_CASCADE_ORGANISATION_SKIPPED',
+            'PRODUCT_VERSION',
+            (int)$plan['product']['product_version_id'],
+            "Organisation {$skipped['organization_id']} was not adjusted for {$productName} version {$versionNumber}, effective {$effectiveDate}. Reason: {$skipped['reason_code']}."
+        );
+    }
+
     record_audit(
         $pdo,
         $actor,
@@ -1489,6 +1530,92 @@ function price_cascade_apply_plan(PDO $pdo, array $actor, array $plan): array
     return [
         'updated_product_price_rows' => $updatedProductPrices,
         'updated_branch_price_rows' => $updatedBranchPrices,
-        'changed_organizations' => count($changedOrganizations)
+        'changed_organizations' => count($changedOrganizations),
+        'suppliers_notified' => count($supplierNoticeIds),
+        'organisations_flagged' => count($reviewTexts)
     ];
+}
+
+function price_cascade_supplier_retailers(
+    PDO $pdo,
+    int $supplierId,
+    array $assignmentIds,
+    string $effectiveDate,
+    bool $lockRows = false
+): array {
+    $retailers = [];
+
+    foreach ($assignmentIds as $assignmentId) {
+        foreach (supply_arrangements($pdo, $effectiveDate, null, (int)$assignmentId) as $arrangement) {
+            $retailerId = (int)$arrangement['retailer_id'];
+
+            if (!isset($retailers[$retailerId])) {
+                $retailers[$retailerId] = [
+                    'organization_id' => $retailerId,
+                    'organization_name' => (string)$arrangement['retailer_name'],
+                    'organization_type' => 'RETAILER',
+                    'relationship_id' => 0,
+                    'accepted' => false
+                ];
+            }
+
+            if ($arrangement['decision'] === 'ACCEPTED') {
+                $retailers[$retailerId]['accepted'] = true;
+            }
+        }
+    }
+
+    ksort($retailers);
+
+    foreach (array_keys($retailers) as $retailerId) {
+        $connections = price_cascade_connection_rows($pdo, $supplierId, $retailerId, $effectiveDate, $lockRows);
+        $retailers[$retailerId]['relationship_id'] = (int)($connections[0]['relationship_id'] ?? 0);
+    }
+
+    return array_values($retailers);
+}
+
+function price_cascade_flag_supplier_retailers(
+    array &$snapshot,
+    array &$reviewNotifications,
+    array &$blockedRetailers,
+    int $supplierId,
+    array $retailers,
+    string $acceptedReason
+): void {
+    foreach ($retailers as $retailer) {
+        $retailerId = (int)$retailer['organization_id'];
+
+        $snapshot['arrangements'][] = [
+            'supplier_id' => $supplierId,
+            'retailer_id' => $retailerId,
+            'accepted' => $retailer['accepted']
+        ];
+
+        if ($retailer['accepted']) {
+            $blockedRetailers[$retailerId] = true;
+            price_cascade_record_review($snapshot, $reviewNotifications, $retailerId, $acceptedReason);
+        } else {
+            price_cascade_record_review($snapshot, $reviewNotifications, $retailerId, 'ARRANGEMENT_NOT_ACCEPTED');
+        }
+    }
+}
+
+function price_cascade_manufacturer_net(array $row, float $factor): float
+{
+    $amount = (float)$row['price_amount'];
+
+    return (int)$row['price_includes_vat'] === 1 ? $amount / $factor : $amount;
+}
+
+function price_cascade_manufacturer_margin(array $costRow, array $sellingRow, float $factor, string $label): float
+{
+    $cost = price_cascade_manufacturer_net($costRow, $factor);
+    $selling = price_cascade_manufacturer_net($sellingRow, $factor);
+
+    if ($selling <= 0 || $cost < 0 || $cost >= $selling) {
+        price_cascade_fail(409, "{$label} does not have a valid positive gross margin to preserve.");
+    }
+
+    return ($selling - $cost) / $selling;
 }

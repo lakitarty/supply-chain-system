@@ -214,3 +214,239 @@ function nairobi_today(): string
 {
     return (new DateTimeImmutable('now', new DateTimeZone('Africa/Nairobi')))->format('Y-m-d');
 }
+
+function copy_version_pricing(PDO $pdo, int $oldVersionId, int $newVersionId, string $effectiveDate): void
+{
+    $copies = [
+        [
+            "INSERT INTO product_prices
+                (organization_id, product_id, product_version_id, price_type, price_amount,
+                 price_includes_vat, tax_category, effective_from, effective_to)
+             SELECT organization_id, product_id, ?, price_type, price_amount,
+                    price_includes_vat, tax_category, GREATEST(effective_from, CAST(? AS DATE)), effective_to
+             FROM product_prices
+             WHERE product_version_id = ?
+               AND (effective_to IS NULL OR effective_to >= CAST(? AS DATE))",
+            [$newVersionId, $effectiveDate, $oldVersionId, $effectiveDate]
+        ],
+        [
+            "INSERT INTO product_price_recommendations
+                (manufacturer_id, product_id, product_version_id, recommendation_type, amount,
+                 currency, effective_from, created_by_user_id)
+             SELECT r.manufacturer_id, r.product_id, ?, r.recommendation_type, r.amount,
+                    r.currency, GREATEST(r.effective_from, CAST(? AS DATE)), r.created_by_user_id
+             FROM product_price_recommendations r
+             WHERE r.product_version_id = ?
+               AND (
+                   r.effective_from > CAST(? AS DATE)
+                   OR r.recommendation_id = (
+                       SELECT r2.recommendation_id
+                       FROM product_price_recommendations r2
+                       WHERE r2.product_version_id = r.product_version_id
+                         AND r2.recommendation_type = r.recommendation_type
+                         AND r2.effective_from <= CAST(? AS DATE)
+                       ORDER BY r2.effective_from DESC, r2.created_at DESC, r2.recommendation_id DESC
+                       LIMIT 1
+                   )
+               )",
+            [$newVersionId, $effectiveDate, $oldVersionId, $effectiveDate, $effectiveDate]
+        ],
+        [
+            "INSERT INTO product_tax_classifications
+                (product_version_id, manufacturer_id, tax_category, effective_from, effective_to,
+                 declared_by, declaration_note)
+             SELECT ?, manufacturer_id, tax_category, GREATEST(effective_from, CAST(? AS DATE)), effective_to,
+                    declared_by, declaration_note
+             FROM product_tax_classifications
+             WHERE product_version_id = ?
+               AND (effective_to IS NULL OR effective_to >= CAST(? AS DATE))",
+            [$newVersionId, $effectiveDate, $oldVersionId, $effectiveDate]
+        ],
+        [
+            "INSERT INTO supplier_product_offers
+                (supplier_id, product_id, product_version_id, area_id, unit_price, price_basis,
+                 currency_code, effective_from, effective_to, status, offer_note, created_by)
+             SELECT supplier_id, product_id, ?, area_id, unit_price, price_basis,
+                    currency_code, GREATEST(effective_from, CAST(? AS DATE)), effective_to, status, offer_note, created_by
+             FROM supplier_product_offers
+             WHERE product_version_id = ?
+               AND status = 'ACTIVE'
+               AND (effective_to IS NULL OR effective_to >= CAST(? AS DATE))",
+            [$newVersionId, $effectiveDate, $oldVersionId, $effectiveDate]
+        ],
+        [
+            "INSERT INTO retailer_products
+                (retailer_id, product_id, product_version_id, selling_price, status)
+             SELECT retailer_id, product_id, ?, selling_price, status
+             FROM retailer_products
+             WHERE product_version_id = ?
+               AND status = 'ACTIVE'",
+            [$newVersionId, $oldVersionId]
+        ],
+        [
+            "INSERT INTO retailer_branch_prices
+                (retailer_id, branch_id, product_id, product_version_id, selling_price, price_basis,
+                 effective_from, effective_to, status, created_by)
+             SELECT retailer_id, branch_id, product_id, ?, selling_price, price_basis,
+                    GREATEST(effective_from, CAST(? AS DATE)), effective_to, status, created_by
+             FROM retailer_branch_prices
+             WHERE product_version_id = ?
+               AND status = 'ACTIVE'
+               AND (effective_to IS NULL OR effective_to >= CAST(? AS DATE))",
+            [$newVersionId, $effectiveDate, $oldVersionId, $effectiveDate]
+        ]
+    ];
+
+    foreach ($copies as [$sql, $params]) {
+        $pdo->prepare($sql)->execute($params);
+    }
+}
+
+function promotion_lock_message(PDO $pdo, int $manufacturerId, int $productId, string $date): ?string
+{
+    $lock = price_rule_row(
+        $pdo,
+        "SELECT pr.promotion_name, pr.end_date, p.product_name
+         FROM promotions pr
+         INNER JOIN promotion_products pp ON pp.promotion_id = pr.promotion_id
+         INNER JOIN products p ON p.product_id = pp.product_id
+         WHERE pr.organization_id = ?
+           AND pp.product_id = ?
+           AND pr.status IN ('APPROVED', 'SCHEDULED', 'ACTIVE')
+           AND pr.start_date <= ?
+           AND pr.end_date >= ?
+         ORDER BY pr.end_date DESC
+         LIMIT 1",
+        [$manufacturerId, $productId, $date, $date]
+    );
+
+    if ($lock === null) {
+        return null;
+    }
+
+    return "{$lock['product_name']} is locked because the manufacturer promotion '{$lock['promotion_name']}' is active until {$lock['end_date']}. Normal price changes and price cascading resume after it expires.";
+}
+
+function version_vat_percent(PDO $pdo, int $versionId, string $date): ?float
+{
+    $tax = price_rule_row(
+        $pdo,
+        'SELECT tax_category
+         FROM product_tax_classifications
+         WHERE product_version_id = ?
+           AND effective_from <= ?
+           AND (effective_to IS NULL OR effective_to >= ?)
+         ORDER BY effective_from DESC
+         LIMIT 1',
+        [$versionId, $date, $date]
+    );
+
+    if ($tax === null) {
+        return null;
+    }
+
+    $rate = price_rule_row(
+        $pdo,
+        'SELECT rate_percent, taxable_supply
+         FROM tax_rate_schedule
+         WHERE tax_category = ?
+           AND effective_from <= ?
+           AND (effective_to IS NULL OR effective_to >= ?)
+         ORDER BY effective_from DESC
+         LIMIT 1',
+        [$tax['tax_category'], $date, $date]
+    );
+
+    if ($rate === null) {
+        return null;
+    }
+
+    return (int)$rate['taxable_supply'] === 1 ? (float)$rate['rate_percent'] : 0.0;
+}
+
+function reprice_for_tax_change(
+    PDO $pdo,
+    int $manufacturerId,
+    int $versionId,
+    string $category,
+    string $effectiveFrom,
+    float $oldPercent,
+    float $newPercent,
+    int $userId
+): array {
+    $selling = price_rule_row(
+        $pdo,
+        "SELECT *
+         FROM product_prices
+         WHERE organization_id = ?
+           AND product_version_id = ?
+           AND price_type = 'SELLING'
+           AND effective_from <= ?
+           AND (effective_to IS NULL OR effective_to >= ?)
+         ORDER BY effective_from DESC, price_id DESC
+         LIMIT 1
+         FOR UPDATE",
+        [$manufacturerId, $versionId, $effectiveFrom, $effectiveFrom]
+    );
+
+    if ($selling === null || (int)$selling['price_includes_vat'] !== 1) {
+        return [];
+    }
+
+    $convert = static fn(float $amount): float => round($amount / (1 + $oldPercent / 100) * (1 + $newPercent / 100), 2);
+    $dayBefore = (new DateTimeImmutable($effectiveFrom))->modify('-1 day')->format('Y-m-d');
+    $oldSelling = (float)$selling['price_amount'];
+    $newSelling = $convert($oldSelling);
+
+    if ((string)$selling['effective_from'] >= $effectiveFrom) {
+        $pdo->prepare('UPDATE product_prices SET price_amount = ?, tax_category = ? WHERE price_id = ?')
+            ->execute([$newSelling, $category, (int)$selling['price_id']]);
+    } else {
+        $pdo->prepare('UPDATE product_prices SET effective_to = ? WHERE price_id = ?')
+            ->execute([$dayBefore, (int)$selling['price_id']]);
+        $pdo->prepare(
+            "INSERT INTO product_prices
+                (organization_id, product_id, product_version_id, price_type, price_amount,
+                 price_includes_vat, tax_category, effective_from, effective_to)
+             VALUES (?, ?, ?, 'SELLING', ?, 1, ?, ?, ?)"
+        )->execute([
+            $manufacturerId,
+            (int)$selling['product_id'],
+            $versionId,
+            $newSelling,
+            $category,
+            $effectiveFrom,
+            $selling['effective_to']
+        ]);
+    }
+
+    $changes = [
+        sprintf(
+            'Manufacturer selling price KSh %s to KSh %s',
+            number_format($oldSelling, 2, '.', ''),
+            number_format($newSelling, 2, '.', '')
+        )
+    ];
+
+    $insert = $pdo->prepare(
+        "INSERT INTO product_price_recommendations
+            (manufacturer_id, product_id, product_version_id, recommendation_type, amount,
+             currency, effective_from, created_by_user_id)
+         VALUES (?, ?, ?, ?, ?, 'KES', ?, ?)"
+    );
+
+    foreach (['RSP', 'RRP'] as $type) {
+        $recommendation = recommendation_in_effect($pdo, $versionId, $type, $effectiveFrom);
+
+        if ($recommendation === null) {
+            continue;
+        }
+
+        $old = (float)$recommendation['amount'];
+        $new = $convert($old);
+        $insert->execute([$manufacturerId, (int)$selling['product_id'], $versionId, $type, $new, $effectiveFrom, $userId]);
+        $changes[] = sprintf('%s KSh %s to KSh %s', $type, number_format($old, 2, '.', ''), number_format($new, 2, '.', ''));
+    }
+
+    return $changes;
+}

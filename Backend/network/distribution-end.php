@@ -12,13 +12,6 @@ require_once __DIR__ . '/supply-arrangement-rules.php';
 
 const APPOINTMENT_NOTICE_DAYS = 14;
 
-function notify_organizations(PDO $pdo, array $organizationIds, int $appointmentId, string $title, string $message): void
-{
-    foreach (array_unique(array_map('intval', $organizationIds)) as $organizationId) {
-        create_organization_notification($pdo, $organizationId, 'SUPPLY_CHANGE', $appointmentId, $title, $message);
-    }
-}
-
 require_post();
 
 try {

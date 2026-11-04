@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../core/validation.php';
 require_once __DIR__ . '/../network/network-rules.php';
+require_once __DIR__ . '/../products/pricing-rules.php';
 
 const CHANGE_TYPES = ['BARCODE_CHANGE', 'PACKAGING_CHANGE', 'PRODUCT_INFORMATION_CHANGE'];
 const MANUFACTURING_TYPES = ['MANUFACTURER', 'MANUFACTURER_SUPPLIER'];
@@ -196,6 +197,12 @@ function publish_change(PDO $pdo, array $actor, array $change): int
 
     $activate = $pdo->prepare('UPDATE product_versions SET is_current = 1 WHERE product_version_id = ?');
     $activate->execute([$change['new_product_version_id']]);
+    copy_version_pricing(
+        $pdo,
+        (int)$change['old_product_version_id'],
+        (int)$change['new_product_version_id'],
+        (string)$change['effective_date']
+    );
 
     $publish = $pdo->prepare(
         "UPDATE product_changes SET status = 'PUBLISHED', published_by = ?, published_at = NOW() WHERE product_change_id = ?"

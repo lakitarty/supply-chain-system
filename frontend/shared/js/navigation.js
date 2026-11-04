@@ -100,7 +100,7 @@ const TABS = [
     {
         id: "purchasing-supplier",
         label: "Purchasing",
-        types: ["SUPPLIER", "MANUFACTURER_SUPPLIER"],
+        types: ["SUPPLIER", "MANUFACTURER", "MANUFACTURER_SUPPLIER"],
         roles: ["ADMIN"],
         path: page("purchasing", "orders")
     },

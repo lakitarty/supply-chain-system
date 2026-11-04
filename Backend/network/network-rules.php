@@ -15,12 +15,12 @@ function reachable_organization_ids(PDO $pdo, int $organizationId, string $direc
         "WITH RECURSIVE reach (organization_id) AS (
             SELECT $to
             FROM organization_relationships
-            WHERE $from = ? AND status = 'ACTIVE'
+            WHERE $from = ? AND status = 'ACTIVE' AND (end_date IS NULL OR end_date >= CURDATE())
             UNION
             SELECT r.$to
             FROM organization_relationships r
             INNER JOIN reach ON r.$from = reach.organization_id
-            WHERE r.status = 'ACTIVE'
+            WHERE r.status = 'ACTIVE' AND (r.end_date IS NULL OR r.end_date >= CURDATE())
          )
          SELECT organization_id FROM reach WHERE organization_id <> ?"
     );
@@ -39,7 +39,7 @@ function connected_organization_ids(PDO $pdo, int $organizationId): array
                 ELSE source_organization_id
             END
             FROM organization_relationships
-            WHERE status = 'ACTIVE'
+            WHERE status = 'ACTIVE' AND (end_date IS NULL OR end_date >= CURDATE())
               AND (source_organization_id = ? OR target_organization_id = ?)
 
             UNION
@@ -53,7 +53,7 @@ function connected_organization_ids(PDO $pdo, int $organizationId): array
             INNER JOIN connected
                 ON r.source_organization_id = connected.organization_id
                 OR r.target_organization_id = connected.organization_id
-            WHERE r.status = 'ACTIVE'
+            WHERE r.status = 'ACTIVE' AND (r.end_date IS NULL OR r.end_date >= CURDATE())
         )
         SELECT organization_id
         FROM connected
@@ -74,6 +74,8 @@ function connected_organization_ids(PDO $pdo, int $organizationId): array
 
 function fetch_relationships(PDO $pdo, array $actor): array
 {
+    end_due_relationships($pdo);
+
     $organizationId = $actor['organization_id'];
 
     $statement = $pdo->prepare(
@@ -81,6 +83,7 @@ function fetch_relationships(PDO $pdo, array $actor): array
                 r.status,
                 r.start_date,
                 r.end_date,
+                (src.organization_type IN ('MANUFACTURER', 'MANUFACTURER_SUPPLIER') AND tgt.organization_type IN ('SUPPLIER', 'MANUFACTURER_SUPPLIER') AND r.status = 'ACTIVE') AS notice_flow,
                 r.requested_by_organization_id,
                 r.source_organization_id = ? AS i_supply,
                 partner.organization_id AS partner_id,
@@ -92,6 +95,8 @@ function fetch_relationships(PDO $pdo, array $actor): array
                 IF(r.status = 'ACTIVE', partner.address, NULL) AS partner_address,
                 IF(r.status = 'ACTIVE', partner.kra_pin, NULL) AS partner_kra_pin
          FROM organization_relationships r
+         INNER JOIN organizations src ON src.organization_id = r.source_organization_id
+         INNER JOIN organizations tgt ON tgt.organization_id = r.target_organization_id
          INNER JOIN organizations partner
             ON partner.organization_id = IF(r.source_organization_id = ?, r.target_organization_id, r.source_organization_id)
          WHERE r.source_organization_id = ? OR r.target_organization_id = ?
@@ -343,4 +348,15 @@ function fetch_directory(PDO $pdo, array $actor): array
     $statement->execute([$organizationId, $organizationId, $organizationId]);
 
     return $statement->fetchAll();
+}
+
+function end_due_relationships(PDO $pdo): void
+{
+    $pdo->exec(
+        "UPDATE organization_relationships
+         SET status = 'INACTIVE'
+         WHERE status = 'ACTIVE'
+           AND end_date IS NOT NULL
+           AND end_date < CURDATE()"
+    );
 }

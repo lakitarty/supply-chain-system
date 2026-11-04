@@ -44,7 +44,7 @@ CREATE TABLE goods_received_notes (
 
     PRIMARY KEY (grn_id),
 
-    UNIQUE KEY uq_grn_lpo (supply_order_id),
+    KEY idx_grn_lpo (supply_order_id),
     UNIQUE KEY uq_grn_number (retailer_id, grn_number),
     KEY idx_grn_supplier_invoice (supplier_id, supplier_invoice_number),
 

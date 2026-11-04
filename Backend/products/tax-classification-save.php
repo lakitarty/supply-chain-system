@@ -6,6 +6,9 @@ require_once __DIR__ . '/../core/bootstrap.php';
 require_once __DIR__ . '/../core/guard.php';
 require_once __DIR__ . '/../core/audit.php';
 require_once __DIR__ . '/../core/validation.php';
+require_once __DIR__ . '/../core/notifications.php';
+require_once __DIR__ . '/pricing-rules.php';
+require_once __DIR__ . '/../network/supply-arrangement-rules.php';
 
 require_post();
 
@@ -143,6 +146,13 @@ try {
         respond_error(409, 'This product version already has a tax classification that overlaps the selected dates. End the previous period first or choose non-overlapping dates.');
     }
 
+    $today = nairobi_today();
+    $newPercent = (int)$rate['taxable_supply'] === 1 ? (float)$rate['rate_percent'] : 0.0;
+    $oldPercent = $effectiveFrom >= $today
+        ? version_vat_percent($pdo, (int)$versionId, (new DateTimeImmutable($effectiveFrom))->modify('-1 day')->format('Y-m-d'))
+        : null;
+    $rateChanged = $oldPercent !== null && abs($oldPercent - $newPercent) > 0.0001;
+
     $insert = $pdo->prepare(
         "INSERT INTO product_tax_classifications
             (product_version_id, manufacturer_id, tax_category,
@@ -159,7 +169,9 @@ try {
         $note !== '' ? $note : null
     ]);
     $classificationId = (int)$pdo->lastInsertId();
-
+    $repriced = $rateChanged
+        ? reprice_for_tax_change($pdo, $organizationId, (int)$versionId, $category, $effectiveFrom, $oldPercent, $newPercent, (int)$actor['user_id'])
+        : [];
     $productLabel = (string)$version['product_name'] . ' version ' . (int)$version['version_number'];
     if (!empty($version['pack_size'])) {
         $productLabel .= ' (' . $version['pack_size'] . ')';
@@ -174,6 +186,20 @@ try {
         "Declared {$category} tax classification for {$productLabel} from {$effectiveFrom}" . ($effectiveTo !== null ? " through {$effectiveTo}" : ' with no planned end date') . ". Rate at start: {$rate['rate_percent']}%." . ($closePrevious ? ' Previous open-ended classification closure was requested.' : '')
     );
 
+    foreach ($repriced as $change) {
+        record_audit($pdo, $actor, 'PRODUCT_TAX_REPRICED', 'PRODUCT_VERSION', (int)$versionId, "Tax change repricing for {$productLabel}, effective {$effectiveFrom}: {$change}.");
+    }
+
+    if ($rateChanged) {
+        notify_organizations(
+            $pdo,
+            tax_change_recipients($pdo, $organizationId, (int)$version['product_id'], $today),
+            (int)$versionId,
+            "Tax treatment changed: {$version['product_name']}",
+            "The VAT rate applying to {$productLabel} changes from " . number_format($oldPercent, 2, '.', '') . '% to ' . number_format($newPercent, 2, '.', '') . "% from {$effectiveFrom}. The manufacturer adjusted its own prices to keep its net revenue. Review your own prices for this product."
+        );
+    }
+
     $pdo->commit();
 
     respond(201, [
@@ -182,7 +208,8 @@ try {
         'classification_id' => $classificationId,
         'tax_category' => $category,
         'rate_percent_at_start' => (string)$rate['rate_percent'],
-        'taxable_supply_at_start' => (int)$rate['taxable_supply']
+        'taxable_supply_at_start' => (int)$rate['taxable_supply'],
+        'repriced_rows' => count($repriced)
     ]);
 } catch (PDOException $e) {
     if ($pdo->inTransaction()) {

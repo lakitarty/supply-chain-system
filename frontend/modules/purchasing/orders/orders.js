@@ -65,7 +65,17 @@
         submitting: false,
         modified: false,
         saveTimer: null,
-        detailRequest: 0
+        detailRequest: 0,
+        receiving: {
+            grns: [],
+            orders: [],
+            locations: [],
+            branch: null,
+            selectedGrn: null,
+            selectedOrder: null,
+            activeView: "orders",
+            loading: false
+        }
     };
 
     function escapeHtml(value) {
@@ -524,14 +534,12 @@
             const lines = Number(order.item_count) || 0;
             const units = Number(order.quantity_ordered) || 0;
             const id = Number(order.supply_order_id);
-            const canReview = order.status === "SUBMITTED" &&
-                ((supplierBuyer && direction === "RETAILER_TO_SUPPLIER") ||
-                 ((manufacturer || state.organizationType === "MANUFACTURER_SUPPLIER") && direction === "SUPPLIER_TO_MANUFACTURER"));
+            const canReview = canReviewIncomingOrder(order);
             let actions;
             if (draftsView) {
                 actions = `<button class="purchasing-text-button" type="button" data-continue-draft="${id}">Continue editing</button>`;
             } else if (canReview) {
-                actions = `<button class="purchasing-text-button" type="button" data-review-order="${id}" data-review-decision="CONFIRMED">Confirm</button><button class="purchasing-text-button" type="button" data-review-order="${id}" data-review-decision="REJECTED">Reject</button>`;
+                actions = `<button class="purchasing-text-button" type="button" data-open-review="${id}">Review LPO</button>`;
             } else {
                 actions = "";
             }
@@ -777,12 +785,95 @@
             if (printRoot) printRoot.remove();
         }
     }
+    function canReviewIncomingOrder(order) {
+        if (!order || order.status !== "SUBMITTED") return false;
+
+        const direction = order.order_direction || "RETAILER_TO_SUPPLIER";
+        const ownOrganizationId = Number(state.data?.organization_id || 0);
+
+        if (!ownOrganizationId || Number(order.supplier_id) !== ownOrganizationId) return false;
+
+        if (direction === "RETAILER_TO_SUPPLIER") {
+            return ["SUPPLIER", "MANUFACTURER_SUPPLIER"].includes(state.organizationType);
+        }
+
+        if (direction === "SUPPLIER_TO_MANUFACTURER") {
+            return ["MANUFACTURER", "MANUFACTURER_SUPPLIER"].includes(state.organizationType);
+        }
+
+        return false;
+    }
+
+    function renderLpoAcknowledgement(order, items) {
+        const section = byId("lpoAcknowledgementSection");
+        const body = byId("lpoAcknowledgementItemsBody");
+        const actions = byId("lpoAcknowledgementActions");
+        const description = byId("lpoAcknowledgementDescription");
+
+        const canEdit = canReviewIncomingOrder(order);
+        const hasAcknowledgements = items.some(item =>
+            item.quantity_available !== null && item.quantity_available !== undefined
+        );
+
+        section.hidden = !canEdit && !hasAcknowledgements;
+
+        if (section.hidden) {
+            body.replaceChildren();
+            actions.hidden = true;
+            return;
+        }
+
+        actions.hidden = !canEdit;
+
+        description.textContent = canEdit
+            ? "Confirm the quantities your organisation can supply. Available, short and out-of-stock quantities must equal the original order."
+            : "The following quantities were acknowledged by the supplying organisation.";
+
+        if (!items.length) {
+            body.innerHTML = '<tr><td colspan="6" class="purchasing-empty-cell">No product lines available.</td></tr>';
+            return;
+        }
+
+        body.innerHTML = items.map(item => {
+            const lineId = Number(item.supply_order_item_id);
+            const ordered = Number(item.quantity_ordered) || 0;
+            const hasAcknowledgement = item.quantity_available !== null && item.quantity_available !== undefined;
+            const available = hasAcknowledgement ? Number(item.quantity_available) : ordered;
+            const short = hasAcknowledgement ? Number(item.quantity_short) : 0;
+            const outOfStock = hasAcknowledgement ? Number(item.quantity_out_of_stock) : 0;
+            const expectedDate = item.expected_delivery_date
+                ? String(item.expected_delivery_date).slice(0, 10)
+                : "";
+
+            const productName = escapeHtml(item.product_name || "Product");
+
+            if (canEdit) {
+                return `<tr data-ack-line data-line-id="${lineId}" data-ordered="${ordered}">
+                    <td><div class="purchasing-product-title">${productName}</div></td>
+                    <td>${ordered.toLocaleString("en-KE")}</td>
+                    <td><input type="number" min="0" max="${ordered}" step="1" value="${available}" data-ack-available aria-label="Available quantity for ${productName}"></td>
+                    <td><input type="number" min="0" max="${ordered}" step="1" value="${short}" data-ack-short aria-label="Short quantity for ${productName}"></td>
+                    <td><input type="number" min="0" max="${ordered}" step="1" value="${outOfStock}" data-ack-out-of-stock aria-label="Out-of-stock quantity for ${productName}"></td>
+                    <td><input type="date" value="${escapeHtml(expectedDate)}" data-ack-date aria-label="Expected delivery date for ${productName}"></td>
+                </tr>`;
+            }
+
+            return `<tr>
+                <td><div class="purchasing-product-title">${productName}</div></td>
+                <td>${ordered.toLocaleString("en-KE")}</td>
+                <td>${hasAcknowledgement ? available.toLocaleString("en-KE") : "Not acknowledged"}</td>
+                <td>${hasAcknowledgement ? short.toLocaleString("en-KE") : "Not acknowledged"}</td>
+                <td>${hasAcknowledgement ? outOfStock.toLocaleString("en-KE") : "Not acknowledged"}</td>
+                <td>${hasAcknowledgement && expectedDate ? escapeHtml(formatDate(expectedDate)) : "Not specified"}</td>
+            </tr>`;
+        }).join("");
+    }
     function renderOrderDetail(data) {
         currentPrintOrderData = data;
         const order = data.order;
         const items = Array.isArray(data.items) ? data.items : [];
         byId("orderDetailHeading").textContent = `LPO #${order.lpo_number || order.supply_order_id}`;
-        byId("orderDetailDescription").textContent = `${order.retailer_name || "Retailer"} â†’ ${order.supplier_name || "Supplier"}`;
+        byId("orderDetailDescription").textContent = `${order.retailer_name || "Retailer"} \u2192 ${order.supplier_name || "Supplier"}`;
         byId("orderDetailMeta").innerHTML = [
             detailValue("Order date", formatDate(order.order_date)),
             detailValue("Expected delivery", formatDate(order.expected_delivery_date)),
@@ -809,6 +900,7 @@
                 </tr>`;
             }).join("");
         }
+        renderLpoAcknowledgement(order, items);
         byId("orderDetailSection").hidden = false;
         byId("orderDetailSection").scrollIntoView({ behavior: "smooth", block: "start" });
     }
@@ -817,9 +909,9 @@
         const requestId = ++state.detailRequest;
         byId("orderDetailSection").hidden = false;
         byId("orderDetailHeading").textContent = `LPO #${Number(orderId)}`;
-        byId("orderDetailDescription").textContent = "Loading LPO detailsâ€¦";
+        byId("orderDetailDescription").textContent = "Loading LPO details\u2026";
         byId("orderDetailMeta").innerHTML = "";
-        byId("orderDetailItemsBody").innerHTML = '<tr><td colspan="5" class="purchasing-empty-cell">Loading linesâ€¦</td></tr>';
+        byId("orderDetailItemsBody").innerHTML = '<tr><td colspan="5" class="purchasing-empty-cell">Loading lines\u2026</td></tr>';
         try {
             const data = await fetchData(`purchasing/order-detail.php?orderId=${encodeURIComponent(orderId)}`, "Unable to load this LPO.");
             if (requestId !== state.detailRequest) return;
@@ -932,8 +1024,169 @@
     if (window.visualViewport) {
         window.visualViewport.addEventListener("resize", fitCreateWorkspace);
     }
+    function renderGrnRegister() {
+        const query = (byId("grnSearch").value || "").trim().toLowerCase();
+        const rows = state.receiving.grns.filter(grn => [
+            grn.grn_number,
+            grn.supplier_name,
+            grn.lpo_number_snapshot,
+            grn.location_name,
+            grn.status,
+            grn.reconciliation_status
+        ].some(value => String(value || "").toLowerCase().includes(query)));
+
+        byId("grnRegisterCount").textContent = `${rows.length} GRNs`;
+
+        byId("grnRegisterBody").innerHTML = rows.length ? rows.map(grn => `
+            <tr>
+                <td><strong>${escapeHtml(grn.grn_number)}</strong></td>
+                <td>${escapeHtml(formatDate(grn.received_date))}</td>
+                <td>${escapeHtml(grn.supplier_name)}</td>
+                <td>${escapeHtml(grn.lpo_number_snapshot)}</td>
+                <td>${escapeHtml(grn.location_name)}</td>
+                <td>${Number(grn.item_count || 0)} lines / ${Number(grn.delivered_quantity || 0)} units</td>
+                <td>
+                    <span class="${statusClass(grn.reconciliation_status)}">${escapeHtml(statusLabel(grn.reconciliation_status))}</span>
+                    <small>${escapeHtml(money(grn.reconciliation_difference))}</small>
+                </td>
+                <td><span class="${statusClass(grn.status)}">${escapeHtml(statusLabel(grn.status))}</span></td>
+                <td><button type="button" class="button button-secondary" disabled>Open</button></td>
+            </tr>
+        `).join("") : '<tr><td colspan="9">No goods received notes found.</td></tr>';
+    }
+
+    function renderReceivingLpos() {
+        const query = (byId("receivingLpoSearch").value || "").trim().toLowerCase();
+        const rows = state.receiving.orders.filter(order => [
+            order.lpo_number,
+            order.supplier_name,
+            order.status,
+            order.branch_name
+        ].some(value => String(value || "").toLowerCase().includes(query)));
+
+        byId("receivingLpoCount").textContent = `${rows.length} LPOs`;
+
+        byId("receivingLpoBody").innerHTML = rows.length ? rows.map(order => {
+            const items = Array.isArray(order.items) ? order.items : [];
+            const outstandingItems = items.filter(item => Number(item.outstanding_quantity || 0) > 0);
+            const outstandingUnits = outstandingItems.reduce(
+                (total, item) => total + Number(item.outstanding_quantity || 0), 0
+            );
+
+            return `
+                <tr>
+                    <td><strong>${escapeHtml(order.lpo_number)}</strong></td>
+                    <td>${escapeHtml(order.supplier_name)}</td>
+                    <td>${escapeHtml(formatDate(order.order_date))}</td>
+                    <td>${escapeHtml(formatDate(order.expected_delivery_date))}</td>
+                    <td>${outstandingItems.length}</td>
+                    <td>${outstandingUnits}</td>
+                    <td><span class="${statusClass(order.status)}">${escapeHtml(statusLabel(order.status))}</span></td>
+                    <td><button type="button" class="purchasing-text-button" data-open-receiving-lpo="${Number(order.supply_order_id)}">View LPO</button></td>
+                </tr>
+            `;
+        }).join("") : '<tr><td colspan="8">No LPOs are currently awaiting receipt.</td></tr>';
+    }
+
+    function setReceivingPane(view) {
+        state.receiving.activeView = view;
+        const hasSelectedOrder = Boolean(state.receiving.selectedOrder);
+
+        byId("receivingOrdersTab").classList.toggle("is-active", view === "orders");
+        byId("receivingRegisterTab").classList.toggle("is-active", view === "register");
+        byId("receivingOrdersTab").setAttribute("aria-pressed", String(view === "orders"));
+        byId("receivingRegisterTab").setAttribute("aria-pressed", String(view === "register"));
+
+        byId("receivingLpoSection").hidden = view !== "orders" || hasSelectedOrder;
+        byId("receivingLpoDetail").hidden = view !== "orders" || !hasSelectedOrder;
+        byId("grnRegisterSection").hidden = view !== "register";
+    }
+
+    function openReceivingLpo(orderId) {
+        const order = state.receiving.orders.find(
+            item => String(item.supply_order_id) === String(orderId)
+        );
+
+        if (!order) {
+            setStatus("The selected LPO could not be found. Refresh the receiving workspace.", "error");
+            return;
+        }
+
+        state.receiving.selectedOrder = order;
+
+        const items = Array.isArray(order.items) ? order.items : [];
+        const outstandingItems = items.filter(item => Number(item.outstanding_quantity || 0) > 0);
+
+        byId("receivingLpoNumberDisplay").textContent = order.lpo_number || "Not recorded";
+        byId("receivingLpoSupplierDisplay").textContent = order.supplier_name || "Not recorded";
+        byId("receivingLpoDateDisplay").textContent = formatDate(order.order_date);
+        byId("receivingLpoExpectedDisplay").textContent = formatDate(order.expected_delivery_date);
+        byId("receivingLpoBranchDisplay").textContent =
+            order.branch_name || state.receiving.branch?.branch_name || "Not recorded";
+        byId("receivingLpoStatusDisplay").textContent = statusLabel(order.status);
+        byId("receivingLpoDetailDescription").textContent =
+            `${order.lpo_number || "Purchase order"} · ${order.supplier_name || "Supplier"} · Review the order before receiving`;
+        byId("receivingLpoItemCount").textContent =
+            `${items.length} product${items.length === 1 ? "" : "s"} · ${outstandingItems.length} outstanding`;
+
+        byId("receivingLpoItemsBody").innerHTML = items.length ? items.map(item => {
+            const packageLabel = [
+                item.pack_size,
+                item.packaging_description
+            ].filter(Boolean).join(" ");
+
+            return `
+                <tr>
+                    <td><strong>${escapeHtml(item.product_name || "Unnamed product")}</strong></td>
+                    <td>
+                        ${escapeHtml(item.barcode || "No barcode")}
+                        <small class="purchasing-product-subtitle">${escapeHtml(packageLabel || "Package not specified")}</small>
+                    </td>
+                    <td>${Number(item.quantity_ordered || 0).toLocaleString("en-KE")}</td>
+                    <td>${Number(item.quantity_received || 0).toLocaleString("en-KE")}</td>
+                    <td><strong>${Number(item.outstanding_quantity || 0).toLocaleString("en-KE")}</strong></td>
+                    <td class="purchasing-money-cell">${escapeHtml(money(item.unit_price))}</td>
+                    <td>${escapeHtml(priceBasisLabel(item.price_basis))}</td>
+                </tr>
+            `;
+        }).join("") : '<tr><td colspan="7" class="purchasing-empty-cell">No product lines were returned for this LPO.</td></tr>';
+
+        byId("createGrnFromLpoButton").disabled = outstandingItems.length === 0;
+        setReceivingPane("orders");
+    }
+    async function loadReceivingData() {
+        if (!isRetailer() || state.receiving.loading) return;
+
+        state.receiving.loading = true;
+
+        try {
+            const branchId = currentBranchId();
+            const branchQuery = branchId ? `?branchId=${encodeURIComponent(branchId)}` : "";
+
+            const [registerData, lpoData, locationData] = await Promise.all([
+                fetchData("receiving/list.php" + branchQuery, "Could not load the GRN register."),
+                fetchData("receiving/lpo-list.php" + branchQuery, "Could not load LPOs awaiting receipt."),
+                fetchData("receiving/locations-list.php" + branchQuery, "Could not load receiving locations.")
+            ]);
+
+            state.receiving.grns = Array.isArray(registerData.grns) ? registerData.grns : [];
+            state.receiving.orders = Array.isArray(lpoData.orders) ? lpoData.orders : [];
+            state.receiving.locations = Array.isArray(locationData.locations) ? locationData.locations : [];
+            state.receiving.branch = registerData.branch || lpoData.branch || locationData.branch || null;
+
+            renderGrnRegister();
+            renderReceivingLpos();
+            setReceivingPane(state.receiving.activeView || "orders");
+            setStatus("");
+        } catch (error) {
+            setStatus(error.message || "Could not load the receiving workspace.", "error");
+        } finally {
+            state.receiving.loading = false;
+        }
+    }
     function activateView(view) {
         state.view = view;
+        byId("receivingSubnav").hidden = view !== "receiving";
         document.querySelectorAll("[data-view]").forEach(button => {
             const active = button.dataset.view === view;
             button.classList.toggle("is-active", active);
@@ -942,7 +1195,8 @@
         });
         byId("createView").hidden = view !== "create";
         byId("ordersView").hidden = !["register", "drafts", "outgoing"].includes(view);
-        byId("placeholderView").hidden = !["receiving", "returns", "consignment", "documents"].includes(view);
+        byId("receivingView").hidden = view !== "receiving";
+        byId("placeholderView").hidden = !["returns", "consignment", "documents"].includes(view);
         byId("orderDetailSection").hidden = true;
         fitCreateWorkspace();
         if (view === "create") {
@@ -950,9 +1204,8 @@
             updateSummary();
         } else if (["register", "drafts", "outgoing"].includes(view)) {
             renderOrders();
-        } else {
+        } else if (view !== "receiving") {
             const configs = {
-                receiving: ["", "Goods Received Notes", ""],
                 returns: ["", "Goods Returned Notes", ""],
                 consignment: ["", "Consignment Notes", ""],
                 documents: ["", "Supplier Documents", ""]
@@ -979,6 +1232,8 @@
         if (["register", "drafts", "outgoing"].includes(view)) {
             await refreshData(currentBranchId(), true, currentSupplierId());
             renderOrders();
+        } else if (view === "receiving") {
+            await loadReceivingData();
         }
     }
 
@@ -1085,20 +1340,163 @@
     }
 
 
-    async function reviewOrder(orderId, decision) {
-        if (!isSupplierBuyer() && state.organizationType !== "MANUFACTURER" && state.organizationType !== "MANUFACTURER_SUPPLIER") return;
+    function showLpoAcknowledgementStatus(message, kind = "") {
+        const status = byId("lpoAcknowledgementStatus");
+        status.className = "purchasing-status" + (kind ? ` is-${kind}` : "");
+        status.textContent = message;
+        status.hidden = false;
+    }
+
+    async function submitLpoAcknowledgement() {
+        const data = currentPrintOrderData;
+        if (!data || !data.order || !canReviewIncomingOrder(data.order)) return;
+
+        const order = data.order;
+        const rows = Array.from(
+            byId("lpoAcknowledgementItemsBody").querySelectorAll("tr[data-ack-line]")
+        );
+
+        if (!rows.length) {
+            showLpoAcknowledgementStatus("This LPO has no product lines to acknowledge.", "error");
+            return;
+        }
+
+        const items = [];
+
+        for (const row of rows) {
+            const lineId = Number(row.dataset.lineId);
+            const ordered = Number(row.dataset.ordered);
+            const availableInput = row.querySelector("[data-ack-available]");
+            const shortInput = row.querySelector("[data-ack-short]");
+            const outOfStockInput = row.querySelector("[data-ack-out-of-stock]");
+            const dateInput = row.querySelector("[data-ack-date]");
+
+            const values = [
+                availableInput.value.trim(),
+                shortInput.value.trim(),
+                outOfStockInput.value.trim()
+            ];
+
+            if (values.some(value => !/^(0|[1-9][0-9]*)$/.test(value))) {
+                showLpoAcknowledgementStatus("Enter whole, non-negative quantities for every product.", "error");
+                return;
+            }
+
+            const available = Number(values[0]);
+            const short = Number(values[1]);
+            const outOfStock = Number(values[2]);
+
+            if (
+                !Number.isSafeInteger(lineId) || lineId < 1 ||
+                !Number.isSafeInteger(ordered) || ordered < 0 ||
+                ![available, short, outOfStock].every(value =>
+                    Number.isSafeInteger(value) && value >= 0 && value <= 4294967295
+                )
+            ) {
+                showLpoAcknowledgementStatus("One or more product quantities are outside the supported range.", "error");
+                return;
+            }
+
+            if (available + short + outOfStock !== ordered) {
+                showLpoAcknowledgementStatus(
+                    `Available, short and out-of-stock quantities must total ${ordered.toLocaleString("en-KE")} for every product.`,
+                    "error"
+                );
+                return;
+            }
+
+            const expectedDate = dateInput.value || null;
+
+            if (expectedDate && short + outOfStock === 0) {
+                showLpoAcknowledgementStatus(
+                    "An expected delivery date is only needed for quantities that are short or out of stock.",
+                    "error"
+                );
+                return;
+            }
+
+            items.push({
+                supplyOrderItemId: lineId,
+                quantityAvailable: available,
+                quantityShort: short,
+                quantityOutOfStock: outOfStock,
+                expectedDeliveryDate: expectedDate
+            });
+        }
+
+        const button = byId("submitLpoAcknowledgementButton");
+        if (button.disabled) return;
+
+        button.disabled = true;
+        button.textContent = "Submitting...";
+
         try {
-            const reason = decision === "REJECTED" ? "Rejected after LPO review." : "";
-            const result = unwrap(await postJson("purchasing/order-review.php", {
-                orderId: Number(orderId), decision, reason
-            }), "Unable to verify the LPO.");
-            setStatus(result.message || "LPO updated.", "success");
+            const result = unwrap(
+                await postJson("purchasing/order-review.php", {
+                    orderId: Number(order.supply_order_id),
+                    decision: "CONFIRMED",
+                    items
+                }),
+                "Unable to submit the supplier acknowledgement."
+            );
+
             await refreshData(currentBranchId(), true, currentSupplierId());
             renderOrders();
+            await openOrderDetail(order.supply_order_id);
+
+            showLpoAcknowledgementStatus(
+                result.message || "Supplier acknowledgement submitted.",
+                "success"
+            );
         } catch (error) {
-            setStatus(error.message || "Unable to verify the LPO.", "error");
+            showLpoAcknowledgementStatus(
+                error.message || "Unable to submit the supplier acknowledgement.",
+                "error"
+            );
+        } finally {
+            button.disabled = false;
+            button.textContent = "Submit acknowledgement";
         }
     }
+
+    async function rejectCurrentLpo() {
+        const data = currentPrintOrderData;
+        if (!data || !data.order || !canReviewIncomingOrder(data.order)) return;
+
+        const reason = byId("lpoRejectionReason").value.trim();
+
+
+        if (!window.confirm("Are you sure you want to reject this LPO?")) return;
+
+        const button = byId("rejectLpoButton");
+        button.disabled = true;
+        button.textContent = "Rejecting...";
+
+        try {
+            const result = unwrap(
+                await postJson("purchasing/order-review.php", {
+                    orderId: Number(data.order.supply_order_id),
+                    decision: "REJECTED",
+                    reason
+                }),
+                "Unable to reject the LPO."
+            );
+
+            await refreshData(currentBranchId(), true, currentSupplierId());
+            renderOrders();
+            returnToLpoRegister();
+            setStatus(result.message || "LPO rejected.", "success");
+        } catch (error) {
+            showLpoAcknowledgementStatus(
+                error.message || "Unable to reject the LPO.",
+                "error"
+            );
+        } finally {
+            button.disabled = false;
+            button.textContent = "Reject LPO";
+        }
+    }
+
     byId("newLpoButton").addEventListener("click", startNewLpo);
     document.querySelectorAll("[data-view]").forEach(button => {
         button.addEventListener("click", () => changeView(button.dataset.view));
@@ -1218,6 +1616,31 @@
         if (ok) setStatus("Purchase order register refreshed.", "success");
     });
 
+    byId("grnSearch").addEventListener("input", renderGrnRegister);
+    byId("receivingLpoSearch").addEventListener("input", renderReceivingLpos);
+    byId("refreshReceivingButton").addEventListener("click", async () => {
+        if (state.receiving.loading) return;
+        await loadReceivingData();
+    });
+    byId("receivingOrdersTab").addEventListener("click", () => {
+        state.receiving.selectedOrder = null;
+        setReceivingPane("orders");
+    });
+
+    byId("receivingRegisterTab").addEventListener("click", () => {
+        setReceivingPane("register");
+    });
+
+    byId("receivingLpoBody").addEventListener("click", event => {
+        const button = event.target.closest("[data-open-receiving-lpo]");
+        if (!button) return;
+        openReceivingLpo(button.dataset.openReceivingLpo);
+    });
+
+    byId("backToReceivingLposButton").addEventListener("click", () => {
+        state.receiving.selectedOrder = null;
+        setReceivingPane("orders");
+    });
     function navigateToLpo(orderId) {
         const url = new URL(window.location.href);
         url.searchParams.set("lpo", orderId);
@@ -1257,8 +1680,8 @@
         const continueButton = event.target.closest("[data-continue-draft]");
         if (continueButton) { continueDraft(continueButton.dataset.continueDraft); return; }
 
-        const reviewButton = event.target.closest("[data-review-order]");
-        if (reviewButton) { reviewOrder(reviewButton.dataset.reviewOrder, reviewButton.dataset.reviewDecision); return; }
+        const openReviewButton = event.target.closest("[data-open-review]");
+        if (openReviewButton) { navigateToLpo(openReviewButton.dataset.openReview); return; }
 
         if (event.target.closest("button, a, input, select, textarea")) return;
 
@@ -1276,6 +1699,8 @@
 
     byId("printOrderButton").addEventListener("click", printCurrentLpo);
     byId("backToLpoRegisterButton").addEventListener("click", returnToLpoRegister);
+    byId("submitLpoAcknowledgementButton").addEventListener("click", submitLpoAcknowledgement);
+    byId("rejectLpoButton").addEventListener("click", rejectCurrentLpo);
 
     async function start() {
         if (!await refreshData("", true)) return;

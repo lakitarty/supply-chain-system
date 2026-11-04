@@ -1563,3 +1563,397 @@
     justify-content: flex-end;
     gap: 8px;
 }
+/* LPO SUPPLIER ACKNOWLEDGEMENT */
+.purchasing-acknowledgement {
+    width: 100%;
+    min-width: 0;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border, #dbe4e3);
+}
+
+.purchasing-acknowledgement .purchasing-section-heading {
+    margin-bottom: 15px;
+}
+
+.purchasing-acknowledgement-table {
+    min-width: 850px;
+}
+
+.purchasing-acknowledgement-table th,
+.purchasing-acknowledgement-table td {
+    white-space: nowrap;
+}
+
+.purchasing-acknowledgement-table td:first-child {
+    white-space: normal;
+}
+
+.purchasing-acknowledgement-table input {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 85px;
+    min-height: 36px;
+    padding: 7px 9px;
+    border: 1px solid var(--border, #dbe4e3);
+    border-radius: 4px;
+    background: var(--surface, #fff);
+    color: var(--text, #1f2937);
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+}
+
+.purchasing-acknowledgement-table input[type="date"] {
+    min-width: 145px;
+}
+
+.purchasing-acknowledgement-table input:focus,
+.purchasing-acknowledgement-rejection textarea:focus {
+    outline: 2px solid rgba(15, 118, 110, .2);
+    border-color: var(--brand, #0f766e);
+}
+
+.purchasing-acknowledgement-actions {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 18px;
+}
+
+.purchasing-acknowledgement-rejection {
+    display: flex;
+    flex: 1 1 280px;
+    flex-direction: column;
+    gap: 7px;
+    max-width: 520px;
+}
+
+.purchasing-acknowledgement-rejection label {
+    color: var(--text, #1f2937);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.purchasing-acknowledgement-rejection textarea {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 64px;
+    padding: 9px 10px;
+    border: 1px solid var(--border, #dbe4e3);
+    border-radius: 4px;
+    background: var(--surface, #fff);
+    color: var(--text, #1f2937);
+    font: inherit;
+    font-size: 12px;
+    resize: vertical;
+}
+
+.purchasing-acknowledgement-actions .purchasing-detail-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.purchasing-acknowledgement [hidden] {
+    display: none !important;
+}
+
+@media (max-width: 640px) {
+    .purchasing-acknowledgement-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .purchasing-acknowledgement-rejection {
+        max-width: none;
+    }
+
+    .purchasing-acknowledgement-actions .purchasing-detail-actions {
+        justify-content: flex-start;
+    }
+}
+/* END LPO SUPPLIER ACKNOWLEDGEMENT */
+
+/* ChainBridge receiving workspace design v1 */
+
+.purchasing-page #receivingView .purchasing-section-heading {
+    align-items: center;
+    margin-bottom: 13px;
+}
+
+.purchasing-page .purchasing-main-content #receivingView .purchasing-section-heading p {
+    display: block !important;
+    margin-top: 4px;
+    color: var(--muted, #64748b);
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.purchasing-page #receivingView .receiving-workspace-tabs {
+    display: flex;
+    align-items: stretch;
+    gap: 5px;
+    width: 100%;
+    margin: 0 0 15px;
+    border-bottom: 1px solid var(--border, #dbe4e3);
+}
+
+.purchasing-page #receivingView .receiving-workspace-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 39px;
+    padding: 8px 15px;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    background: transparent;
+    color: var(--muted, #64748b);
+    font-size: 11px;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.purchasing-page #receivingView .receiving-workspace-tab:hover {
+    color: var(--text, #1f2937);
+    background: var(--surface-muted, #f8fafc);
+}
+
+.purchasing-page #receivingView .receiving-workspace-tab.is-active {
+    border-bottom-color: var(--brand, #0f766e);
+    color: var(--brand, #0f766e);
+    font-weight: 750;
+}
+
+.purchasing-page #receivingView .receiving-register-section {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+}
+
+.purchasing-page #receivingView .purchasing-register-tools {
+    margin-bottom: 11px;
+}
+
+.purchasing-page #receivingView .purchasing-register-search {
+    width: min(100%, 390px);
+}
+
+.purchasing-page #receivingView .purchasing-table {
+    width: 100%;
+    font-size: 11px;
+}
+
+.purchasing-page #receivingView .purchasing-table th {
+    padding: 9px 10px;
+    font-size: 9px;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+.purchasing-page #receivingView .purchasing-table td {
+    padding: 9px 10px;
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.purchasing-page #receivingView #receivingLpoSection .purchasing-table {
+    min-width: 880px;
+}
+
+.purchasing-page #receivingView #grnRegisterSection .purchasing-table {
+    min-width: 1080px;
+}
+
+.purchasing-page #receivingView .purchasing-table td strong {
+    font-weight: 750;
+}
+
+.purchasing-page #receivingView .purchasing-table td small {
+    display: block;
+    margin-top: 3px;
+    color: var(--muted, #64748b);
+    font-size: 10px;
+}
+
+.purchasing-page #receivingView .purchasing-money-cell {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.purchasing-page #receivingView .purchasing-text-button {
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.purchasing-page #receivingView .receiving-lpo-detail {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+}
+
+.purchasing-page #receivingView .receiving-document-meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px 20px;
+    margin: 0 0 20px;
+    padding: 13px 0;
+    border-top: 1px solid var(--border, #dbe4e3);
+    border-bottom: 1px solid var(--border, #dbe4e3);
+}
+
+.purchasing-page #receivingView .receiving-document-meta > div {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+
+.purchasing-page #receivingView .receiving-document-meta span {
+    color: var(--muted, #64748b);
+    font-size: 10px;
+}
+
+.purchasing-page #receivingView .receiving-document-meta strong {
+    color: var(--text, #1f2937);
+    font-size: 12px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.purchasing-page #receivingView .receiving-form-section {
+    width: 100%;
+    min-width: 0;
+    margin-top: 19px;
+}
+
+.purchasing-page #receivingView .receiving-lpo-items-table {
+    min-width: 1050px;
+}
+
+.purchasing-page #receivingView .receiving-lpo-items-table th:first-child {
+    min-width: 190px;
+}
+
+.purchasing-page #receivingView .receiving-lpo-items-table td:first-child {
+    min-width: 190px;
+}
+
+.purchasing-page #receivingView .receiving-lpo-items-table td:nth-child(3),
+.purchasing-page #receivingView .receiving-lpo-items-table td:nth-child(4),
+.purchasing-page #receivingView .receiving-lpo-items-table td:nth-child(5) {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.purchasing-page #receivingView #receivingLpoItemsBody td:nth-child(5) {
+    font-weight: 750;
+}
+
+.purchasing-page #receivingView .receiving-detail-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+@media (max-width: 760px) {
+    .purchasing-page #receivingView .receiving-document-meta {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 11px;
+    }
+
+    .purchasing-page #receivingView .purchasing-section-heading {
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 480px) {
+    .purchasing-page #receivingView .receiving-workspace-tab {
+        flex: 1 1 50%;
+        padding-inline: 8px;
+    }
+
+    .purchasing-page #receivingView .receiving-document-meta {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+}
+
+/* Receiving secondary navigation v1 */
+
+#shell .receiving-secondary-nav {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: stretch;
+    gap: 2px;
+    min-width: 0;
+    min-height: 38px;
+    margin-left: 5px;
+    padding-left: 6px;
+    border-left: 1px solid var(--border, #dbe4e3);
+}
+
+#shell .receiving-secondary-nav[hidden] {
+    display: none !important;
+}
+
+#shell .receiving-secondary-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 0 10px;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    background: transparent;
+    color: var(--muted, #64748b);
+    font-size: 11px;
+    font-weight: 650;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+#shell .receiving-secondary-tab:hover {
+    color: var(--text, #1f2937);
+    background: var(--surface-soft, #f8fafc);
+}
+
+#shell .receiving-secondary-tab.is-active {
+    border-bottom-color: var(--brand, #0f766e);
+    color: var(--brand, #0f766e);
+    font-weight: 750;
+}
+
+@media (max-width: 640px) {
+    #shell .receiving-secondary-nav {
+        margin-left: 2px;
+        padding-left: 3px;
+    }
+
+    #shell .receiving-secondary-tab {
+        padding-inline: 7px;
+        font-size: 10px;
+    }
+}
+/* Receiving secondary navigation icon sizing */
+#shell .receiving-secondary-tab {
+    flex: 0 0 38px;
+    width: 38px;
+    min-width: 38px;
+    padding: 0;
+}
+
+#shell .receiving-secondary-icon {
+    display: block;
+    width: 19px;
+    height: 19px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}

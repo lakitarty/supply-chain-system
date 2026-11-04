@@ -205,6 +205,13 @@ try {
             respond_field_error(400, field_error('price_includes_vat', 'State whether the manufacturer selling price includes VAT.'));
         }
     }
+    if ($ownsProduct && $priceType === 'SELLING') {
+        $lockMessage = promotion_lock_message($pdo, $manufacturerId, $productId, max($fromDate, nairobi_today()));
+
+        if ($lockMessage !== null) {
+            respond_error(409, $lockMessage);
+        }
+    }
     $statement = $pdo->prepare(
         "SELECT tax_category
          FROM product_tax_classifications
@@ -231,21 +238,13 @@ try {
            AND product_id = ?
            AND product_version_id = ?
            AND price_type = 'SELLING'
-           AND (
-               effective_from > ?
-               OR (
-                   effective_from <= ?
-                   AND effective_to >= ?
-               )
-           )
+           AND effective_from > ?
          LIMIT 1"
     );
     $manufacturerScheduleStatement->execute([
         $organizationId,
         $productId,
         $versionId,
-        $todayNairobi,
-        $todayNairobi,
         $todayNairobi
     ]);
     $hasScheduledManufacturerSellingPeriod =
@@ -311,44 +310,7 @@ try {
             if ((float)$amount < (float)$currentPriceRows[0]['price_amount'] - 0.005) {
                 $priceDecreaseNotificationOnly = true;
             } else {
-            require_once __DIR__ . '/price-cascade-rules.php';
-
-            $pdo->beginTransaction();
-
-            $plan = price_cascade_build_plan(
-                $pdo,
-                $actor,
-                (int)$versionId,
-                (float)$amount,
-                true
-            );
-
-            price_cascade_apply_plan($pdo, $actor, $plan);
-
-            record_audit(
-                $pdo,
-                $actor,
-                'PRICE_SAVED',
-                'PRODUCT',
-                (int)$versionId,
-                'Saved manufacturer SELLING price ' .
-                number_format((float)$amount, 2, '.', '') .
-                " effective {$todayNairobi}; protection-enabled organisations were processed automatically."
-            );
-
-            $cascadeEffectiveTo = $currentPriceRows[0]['effective_to'] === null
-                ? null
-                : (string)$currentPriceRows[0]['effective_to'];
-
-            $pdo->commit();
-
-            respond(200, [
-                'success' => true,
-                'message' => 'Manufacturer selling price saved. Organisations with Price Change Protection enabled were processed automatically and receive private notices about their own price adjustments.',
-                'effective_from' => $todayNairobi,
-                'effective_to' => $cascadeEffectiveTo
-            ]);
-            exit;
+                respond_error(409, 'Review and apply a manufacturer price increase with Simulate change, so every affected organisation is reviewed first.');
             }
         }
     }

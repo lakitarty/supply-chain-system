@@ -8,6 +8,7 @@ require_once __DIR__ . '/../core/notifications.php';
 require_once __DIR__ . '/../core/audit.php';
 require_once __DIR__ . '/../core/price-confirmation.php';
 require_once __DIR__ . '/price-cascade-rules.php';
+require_once __DIR__ . '/pricing-rules.php';
 
 require_post();
 
@@ -20,10 +21,8 @@ try {
         FILTER_VALIDATE_INT
     );
 
-    $price = filter_var(
-        $input['mfg_new_price'] ?? null,
-        FILTER_VALIDATE_FLOAT
-    );
+    $priceText = parse_price_amount(trim((string)($input['mfg_new_price'] ?? '')));
+    $price = $priceText === null ? false : (float)$priceText;
 
     $signature = trim((string)($input['plan_signature'] ?? ''));
 
@@ -31,8 +30,8 @@ try {
         respond_error(400, 'Select a product version.');
     }
 
-    if ($price === false || !is_finite((float)$price) || $price <= 0) {
-        respond_error(400, 'Enter a valid manufacturer price greater than zero.');
+    if ($price === false) {
+        respond_error(400, 'Enter a manufacturer price above zero with at most two decimal places.');
     }
 
     if (!preg_match('/^[a-f0-9]{64}$/i', $signature)) {
@@ -69,6 +68,7 @@ try {
     respond(200, [
         'success' => true,
         'message' => 'The price change was processed. This response contains only your organisation’s pricing; participating organisations receive private notifications about their own adjustments.',
+        'counts' => $counts,
         'plan' => price_cascade_public_plan($plan, $actor)
     ]);
 } catch (DomainException $e) {

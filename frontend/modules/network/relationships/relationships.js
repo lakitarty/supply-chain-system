@@ -273,7 +273,7 @@ function detailRows(entry) {
         ["Relationship", directionText(entry)],
         ["Status", statusText(entry)],
         ...(isDirect(entry) && entry.start_date ? [["Since", entry.start_date]] : []),
-        ...(entry.end_date ? [["Ended on", entry.end_date]] : []),
+        ...(entry.end_date ? [[entry.status === "ACTIVE" ? "Ends on" : "Ended on", entry.end_date]] : []),
         ...contact
     ];
 }
@@ -298,7 +298,9 @@ function renderActions(entry) {
 
     endButton.textContent = entry?.status === "PENDING"
         ? "Withdraw request"
-        : "End relationship";
+        : (entry?.end_date
+            ? "Withdraw notice"
+            : (Number(entry?.notice_flow) === 1 ? "Give 14 days notice" : "End relationship"));
 
     relationshipActions.hidden = !answering && !endable;
 }
@@ -803,10 +805,28 @@ declineButton.addEventListener(
     () => runAction(declineButton, "network/respond.php", { decision: "DECLINE" })
 );
 
-endButton.addEventListener(
-    "click",
-    () => runAction(endButton, "network/end.php", {})
-);
+endButton.addEventListener("click", async () => {
+    const entry = selectedEntry();
+
+    if (!entry) return;
+
+    if (Number(entry.notice_flow) !== 1) {
+        runAction(endButton, "network/end.php", {});
+        return;
+    }
+
+    const withdrawing = Boolean(entry.end_date);
+    const consequence = withdrawing
+        ? "The ending notice will be withdrawn and supply will continue."
+        : "A 14-day notice will start. The appointments and offers between you end on the same date, and the retailers affected are told. A manufacturer must already have replacement suppliers appointed.";
+    const adminPassword = await requestAdminPassword(
+        `${entry.partner_name || "This organisation"}. ${consequence} Enter your administrator password to continue.`
+    );
+
+    if (!adminPassword) return;
+
+    runAction(endButton, "network/end.php", { action: withdrawing ? "withdraw" : "end", adminPassword });
+});
 
 relationshipSelect.addEventListener("change", renderSelected);
 detailCloseButton.addEventListener("click", closeDetailPanel);

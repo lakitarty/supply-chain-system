@@ -227,7 +227,7 @@
                     const placeholder = document.createElement("span");
                     placeholder.className = "item-img-placeholder";
                     placeholder.setAttribute("aria-hidden", "true");
-                    placeholder.textContent = "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“";
+                    placeholder.textContent = "\u2014";
                     image.replaceWith(placeholder);
                 }, { once: true });
                 item.appendChild(image);
@@ -235,7 +235,7 @@
                 const placeholder = document.createElement("span");
                 placeholder.className = "item-img-placeholder";
                 placeholder.setAttribute("aria-hidden", "true");
-                placeholder.textContent = "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“";
+                placeholder.textContent = "\u2014";
                 item.appendChild(placeholder);
             }
 
@@ -300,7 +300,7 @@
 
             const branchName = String(promotion.branch_name || "").trim();
             const showBranch = promotions.length > 1 && branchName;
-            meta.textContent = `Ends ${formattedEndDate}${showBranch ? ` Ãƒâ€šÃ‚Â· ${branchName}` : ""}`;
+            meta.textContent = `Ends ${formattedEndDate}${showBranch ? ` \u00B7 ${branchName}` : ""}`;
 
             summary.append(priceLabel, meta);
             copy.appendChild(summary);
@@ -439,8 +439,16 @@
     function calcMargin() {
         const cost = parseFloat(el.cost.value) || 0;
         const selling = parseFloat(el.selling.value) || 0;
-        const netCost = cost / 1.16;
-        const netSelling = selling / 1.16;
+        if (typeof state.vatPercent !== "number") {
+            el.profit.textContent = "-";
+            el.margin.textContent = "-";
+            return;
+        }
+
+        const factor = 1 + state.vatPercent / 100;
+        const ownManufacturer = !el.basisGroup.hidden;
+        const netCost = ownManufacturer ? cost : cost / factor;
+        const netSelling = ownManufacturer && el.basis.value === "EXCLUSIVE" ? selling : selling / factor;
         const profit = netSelling - netCost;
         const margin = netSelling > 0 ? (profit / netSelling) * 100 : 0;
         
@@ -664,6 +672,7 @@
     }
 
     async function loadPricing(versionId) {
+        state.vatPercent = null;
         pricingLoaded = false;
         originalCostPrice = "";
         originalSellingPrice = "";
@@ -682,6 +691,8 @@
             if (res.ok === false || data.success === false) {
                 throw new Error(data.error || data.message || "Unable to load current prices.");
             }
+
+            state.vatPercent = data.vat_percent ?? null;
 
             if (data && data.prices) {
                 data.prices.forEach(p => {
@@ -838,7 +849,7 @@
         const reference = Number(recommendation.amount);
         const delta = ((selling - reference) / reference) * 100;
         const label = type === "RRP" ? "RRP" : "RSP";
-        el.recommendationComparisonLabel.textContent = `Selling price ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· ${recommendationMoney(selling)}`;
+        el.recommendationComparisonLabel.textContent = `Selling price \u00B7 ${recommendationMoney(selling)}`;
 
         if (delta < -0.05) {
             el.recommendationComparisonValue.textContent = `${Math.abs(delta).toFixed(1)}% below ${label}`;
@@ -1075,6 +1086,18 @@
             ["MANUFACTURER", "MANUFACTURER_SUPPLIER"].includes(state.organizationType) &&
             Number(selectedProduct.manufacturer_id) === Number(state.organizationId)
         );
+
+        if (
+            isOwnManufacturedProduct && sellingChanged && !basisChanged()
+            && Number(selling) > Number(originalSellingPrice)
+        ) {
+            document.getElementById("manufacturerNewPrice").value = selling;
+            el.selling.value = originalSellingPrice;
+            calcMargin();
+            updateSaveButtonState();
+            document.getElementById("simulateHikeBtn").click();
+            return;
+        }
 
         let confirmationPassword = "";
 

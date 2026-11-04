@@ -155,11 +155,16 @@ $itemsStatement = $pdo->prepare(
                      AND (tc.effective_to IS NULL OR tc.effective_to >= so.order_date)
                    ORDER BY tc.effective_from DESC, tc.product_tax_classification_id DESC LIMIT 1)) AS tax_category,
                 i.supplier_product_offer_id, i.source_product_price_id,
-                p.product_name, pv.barcode AS lpo_code, pv.barcode, pv.pack_size, pv.packaging_description, NULL AS unit_of_measure, i.quantity_ordered, i.quantity_received, i.unit_price
+                p.product_name, pv.barcode AS lpo_code, pv.barcode, pv.pack_size, pv.packaging_description, NULL AS unit_of_measure, i.quantity_ordered, i.quantity_received, i.unit_price,
+                ack.quantity_ordered AS acknowledged_quantity_ordered,
+                ack.quantity_available, ack.quantity_short,
+                ack.quantity_out_of_stock, ack.expected_delivery_date
          FROM supply_order_items i
          INNER JOIN products p ON p.product_id = i.product_id
          LEFT JOIN product_versions pv ON pv.product_version_id = i.product_version_id
          INNER JOIN supply_orders so ON so.supply_order_id = i.supply_order_id
+         LEFT JOIN supply_order_item_acknowledgements ack
+            ON ack.supply_order_item_id = i.supply_order_item_id
          WHERE i.supply_order_id = ?
          ORDER BY p.product_name, i.supply_order_item_id"
     );

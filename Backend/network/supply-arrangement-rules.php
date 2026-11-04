@@ -67,3 +67,35 @@ function supply_arrangements(PDO $pdo, string $date, ?int $retailerId = null, ?i
 
     return $statement->fetchAll(PDO::FETCH_ASSOC);
 }
+
+function notify_organizations(PDO $pdo, array $organizationIds, int $referenceId, string $title, string $message): void
+{
+    foreach (array_unique(array_map('intval', $organizationIds)) as $organizationId) {
+        create_organization_notification($pdo, $organizationId, 'SUPPLY_CHANGE', $referenceId, $title, $message);
+    }
+}
+
+function tax_change_recipients(PDO $pdo, int $manufacturerId, int $productId, string $date): array
+{
+    $statement = $pdo->prepare(
+        "SELECT ps.product_supplier_id, ps.supplier_id
+         FROM product_suppliers ps
+         INNER JOIN products p ON p.product_id = ps.product_id
+         WHERE ps.product_id = ?
+           AND p.manufacturer_id = ?
+           AND ps.status = 'ACTIVE'
+           AND (ps.end_date IS NULL OR ps.end_date >= ?)"
+    );
+    $statement->execute([$productId, $manufacturerId, $date]);
+    $recipients = [];
+
+    foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $appointment) {
+        $recipients[] = (int)$appointment['supplier_id'];
+
+        foreach (supply_arrangements($pdo, $date, null, (int)$appointment['product_supplier_id']) as $arrangement) {
+            $recipients[] = (int)$arrangement['retailer_id'];
+        }
+    }
+
+    return array_values(array_unique($recipients));
+}

@@ -26,6 +26,7 @@ const DECISION_ORDER = { PENDING: 0, ACCEPTED: 1, DECLINED: 2 };
 
 let arrangements = [];
 let busy = false;
+let supplierMode = false;
 
 function showMessage(text, type = "error") {
     arrangementMessage.textContent = text;
@@ -85,15 +86,23 @@ function renderSelect(keepId) {
     renderDetail();
 }
 
+function supplierArrangement(appointment) {
+    return {
+        ...appointment,
+        supplier_name: appointment.manufacturer_name,
+        decision: { PENDING: "PENDING", ACTIVE: "ACCEPTED", DECLINED: "DECLINED" }[appointment.status]
+    };
+}
+
 async function loadArrangements(keepId) {
-    const result = await getJson("network/supply-arrangements-list.php");
+    const result = await getJson(supplierMode ? "network/supplier-appointments-list.php" : "network/supply-arrangements-list.php");
     const data = result?.data || {};
 
     if (!result?.ok || data.success !== true) {
         throw new Error(data.error || data.message || "Unable to load supply arrangements.");
     }
 
-    arrangements = [...data.arrangements].sort((a, b) =>
+    arrangements = (supplierMode ? data.appointments.map(supplierArrangement) : [...data.arrangements]).sort((a, b) =>
         DECISION_ORDER[a.decision] - DECISION_ORDER[b.decision]
         || a.product_name.localeCompare(b.product_name)
     );
@@ -114,10 +123,22 @@ async function decide(decision) {
     }
 
     if (
-        decision === "DECLINED"
+        decision === "DECLINED" && !supplierMode
         && !window.confirm(`Decline the supply of ${arrangement.product_name} by ${arrangement.supplier_name} in ${arrangement.area_name}?`)
     ) {
         return;
+    }
+
+    let adminPassword = null;
+
+    if (supplierMode) {
+        adminPassword = await requestAdminPassword(
+            `${decision === "ACCEPTED" ? "Accept" : "Decline"} the appointment to supply ${arrangement.product_name} in ${arrangement.area_name}. Enter your administrator password to continue.`
+        );
+
+        if (!adminPassword) {
+            return;
+        }
     }
 
     busy = true;
@@ -125,9 +146,10 @@ async function decide(decision) {
     showMessage("Saving your decision...", "info");
 
     try {
-        const result = await postJson("network/supply-arrangement-decide.php", {
+        const result = await postJson(supplierMode ? "network/supplier-appointment-decide.php" : "network/supply-arrangement-decide.php", {
             appointmentId: Number(arrangement.product_supplier_id),
-            decision
+            decision,
+            ...(supplierMode ? { adminPassword } : {})
         });
         const data = result?.data || {};
 
@@ -163,12 +185,19 @@ async function initialiseArrangements() {
             return;
         }
 
-        const allowed = account.organization.organization_type === "RETAILER" && account.user.role === "ADMIN";
+        const type = account.organization.organization_type;
+        supplierMode = type === "SUPPLIER" || type === "MANUFACTURER_SUPPLIER";
+        const allowed = (type === "RETAILER" || supplierMode) && account.user.role === "ADMIN";
 
         if (!allowed) {
             arrangementContent.hidden = true;
-            showMessage("Supply arrangements are available only to retailer organisation administrators.");
+            showMessage("Supply arrangements are available only to retailer and supplier organisation administrators.");
             return;
+        }
+
+        if (supplierMode) {
+            document.getElementById("detailPartyLabel").textContent = "Manufacturer";
+            document.getElementById("arrangementsIntro").textContent = "When a manufacturer appoints you to supply a product in a county, the appointment waits here for your decision. Accepting starts your offer to retailers and creates your cost and selling prices from the manufacturer's price and recommendation.";
         }
 
         await loadArrangements();

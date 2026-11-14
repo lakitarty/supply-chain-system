@@ -204,7 +204,7 @@ try {
 
     respond(201, [
         'success' => true,
-        'message' => 'Product tax classification saved. The category is a manufacturer declaration; confirm its legal eligibility before relying on it for tax reporting.',
+        'message' => 'Product tax classification saved.' . ($repriced !== [] ? ' Manufacturer prices were adjusted to keep the same net revenue.' : '') . ' The category is a manufacturer declaration; confirm its legal eligibility before relying on it for tax reporting.',
         'classification_id' => $classificationId,
         'tax_category' => $category,
         'rate_percent_at_start' => (string)$rate['rate_percent'],

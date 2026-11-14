@@ -227,19 +227,14 @@
 
             const organizationType = state.account.organization.organization_type;
             const role = state.account.user.role;
-            const allowed = ["MANUFACTURER", "MANUFACTURER_SUPPLIER"].includes(organizationType) && role === "ADMIN";
+            const canDeclare = ["MANUFACTURER", "MANUFACTURER_SUPPLIER"].includes(organizationType) && role === "ADMIN";
 
-            if (!allowed) {
-                byId("taxApp").hidden = true;
-                byId("refreshTax").disabled = true;
-                setStatus("Product tax declarations are available only to manufacturer organisation administrators.", "error");
-                return;
-            }
-
-            byId("taxApp").hidden = false;
+            byId("taxApp").hidden = !canDeclare;
             byId("effectiveFrom").value = localToday();
             await loadData();
-            setStatus("Product versions and tax declaration history loaded.");
+            setStatus(canDeclare
+                ? "Product versions and tax declaration history loaded."
+                : "Tax classifications for the products you can see. Only a manufacturer administrator can change them.");
         } catch (error) {
             setStatus(error.message || "Unable to initialise the tax classification page.", "error");
         }

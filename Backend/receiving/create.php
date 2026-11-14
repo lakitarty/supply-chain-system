@@ -121,7 +121,7 @@ try {
             i.quantity_ordered,
             i.quantity_received,
             i.unit_price,
-            i.price_basis,
+            i.price_basis, i.supplier_order_unit, i.supplier_units_per_carton,
             p.product_name,
             pv.barcode,
             pv.pack_size,
@@ -218,7 +218,7 @@ try {
             $item['product_name'],
             $item['barcode'],
             $item['pack_size'],
-            (int)$item['quantity_ordered'],
+            (int)$item['quantity_ordered'] * ($item['supplier_order_unit'] === 'CTN' ? max(1, (int)$item['supplier_units_per_carton']) : 1),
             $item['unit_price'],
             $item['price_basis']
         ]);

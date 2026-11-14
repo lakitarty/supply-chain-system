@@ -13,6 +13,7 @@
 
     let trackPageListeners = false;
     let pageGlobalListeners = [];
+    let pageCleanups = [];
     let navigationSequence = 0;
     let moduleSequence = 0;
 
@@ -84,6 +85,39 @@
         trackPageListeners = true;
     }
 
+    function registerPageCleanup(cleanup) {
+        if (typeof cleanup !== "function") {
+            throw new TypeError("Page cleanup must be a function.");
+        }
+
+        pageCleanups.push(cleanup);
+
+        let registered = true;
+
+        return () => {
+            if (!registered) return;
+
+            registered = false;
+
+            const index = pageCleanups.indexOf(cleanup);
+            if (index !== -1) {
+                pageCleanups.splice(index, 1);
+            }
+        };
+    }
+
+    function disposePageResources() {
+        const cleanups = pageCleanups;
+        pageCleanups = [];
+
+        for (const cleanup of cleanups) {
+            try {
+                cleanup();
+            } catch (error) {
+                console.error("Page resource cleanup failed.", error);
+            }
+        }
+    }
     function builtPathFor(value) {
         const url = new URL(value, window.location.href);
         const root = new URL(frontendRoot);
@@ -347,6 +381,7 @@
                 oldStylesheet.disabled = true;
             }
 
+            disposePageResources();
             removePageGlobalListeners();
             clearModalState();
 
@@ -479,7 +514,8 @@
     }
 
     window.__nexoraPageRouter = {
-        navigate: value => renderRoute(value, true)
+        navigate: value => renderRoute(value, true),
+        registerCleanup: registerPageCleanup
     };
 
     nativeAdd.call(document, "click", handleDocumentClick, true);

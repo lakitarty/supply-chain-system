@@ -38,10 +38,36 @@ function getJson(path) {
     return request(path, { method: "GET" });
 }
 
-function postJson(path, body = {}) {
+let csrfTokenPromise = null;
+
+function loadCsrfToken() {
+    csrfTokenPromise ??= fetch(apiUrl("auth/csrf.php"), { credentials: "include", cache: "no-store" })
+        .then(readJson)
+        .then(data => {
+            if (data.success !== true) {
+                throw new Error(data.error || "Unable to start a secure session.");
+            }
+
+            return data.csrf_token;
+        })
+        .catch(error => {
+            csrfTokenPromise = null;
+            throw error;
+        });
+
+    return csrfTokenPromise;
+}
+
+async function csrfHeaders() {
+    return { "X-CSRF-Token": await loadCsrfToken() };
+}
+
+async function postJson(path, body = {}) {
+    const security = await csrfHeaders().catch(() => ({}));
+
     return request(path, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...security },
         body: JSON.stringify(body)
     });
 }

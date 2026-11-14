@@ -1,0 +1,624 @@
+<?php
+declare(strict_types=1);
+
+require_once __DIR__ . '/../core/bootstrap.php';
+require_once __DIR__ . '/../core/guard.php';
+require_once __DIR__ . '/receiving-rules.php';
+
+function grn_update_decimal($value, string $field, float $maximum = 999999999999.999): float
+{
+    if (!is_numeric($value)) {
+        respond_error(422, "Invalid value for {$field}.");
+    }
+
+    $number = (float)$value;
+
+    if (!is_finite($number) || $number < 0 || $number > $maximum) {
+        respond_error(422, "Invalid value for {$field}.");
+    }
+
+    return $number;
+}
+
+function grn_update_date($value, string $field): ?string
+{
+    if ($value === null || $value === '') {
+        return null;
+    }
+
+    if (!is_string($value)) {
+        respond_error(422, "Invalid date for {$field}.");
+    }
+
+    $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+
+    if (!$date || $date->format('Y-m-d') !== $value) {
+        respond_error(422, "Invalid date for {$field}.");
+    }
+
+    return $value;
+}
+
+function grn_update_text($value, string $field, int $maximumLength): ?string
+{
+    if ($value === null || $value === '') {
+        return null;
+    }
+
+    if (!is_string($value) || mb_strlen($value) > $maximumLength) {
+        respond_error(422, "Invalid value for {$field}.");
+    }
+
+    return trim($value);
+}
+
+try {
+    require_post();
+
+    $actor = require_login($pdo);
+
+    if (!in_array($actor['role'] ?? '', ['ADMIN', 'BRANCH_ADMIN', 'STAFF'], true)) {
+        respond_error(403, 'Your account does not have access to receiving.');
+    }
+
+    $body = read_json_body();
+
+    $grnId = filter_var(
+        $body['grn_id'] ?? null,
+        FILTER_VALIDATE_INT,
+        ['options' => ['min_range' => 1]]
+    );
+
+    if ($grnId === false || !isset($body['items']) || !is_array($body['items'])) {
+        respond_error(400, 'A valid GRN and its product lines are required.');
+    }
+
+    $pdo->beginTransaction();
+
+    $headerStatement = $pdo->prepare(
+        "SELECT
+            grn_id,
+            retailer_id,
+            branch_id,
+            supply_order_id,
+            received_date,
+            status
+         FROM goods_received_notes
+         WHERE grn_id = ?
+           AND retailer_id = ?
+         LIMIT 1
+         FOR UPDATE"
+    );
+
+    $headerStatement->execute([
+        (int)$grnId,
+        (int)$actor['organization_id']
+    ]);
+
+    $grn = $headerStatement->fetch(PDO::FETCH_ASSOC);
+
+    if (!$grn) {
+        $pdo->rollBack();
+        respond_error(404, 'The requested GRN was not found.');
+    }
+
+    if ($grn['status'] !== 'DRAFT') {
+        $pdo->rollBack();
+        respond_error(409, 'Only draft GRNs can be edited.');
+    }
+
+    receiving_resolve_branch(
+        $pdo,
+        $actor,
+        (int)$grn['branch_id']
+    );
+
+    $invoiceNumber = grn_update_text(
+        $body['supplier_invoice_number'] ?? null,
+        'supplier invoice number',
+        100
+    );
+
+    $invoiceDate = grn_update_date(
+        $body['supplier_invoice_date'] ?? null,
+        'supplier invoice date'
+    );
+
+    $receivedDate = grn_update_date(
+        $body['received_date'] ?? $grn['received_date'],
+        'received date'
+    );
+
+    if ($receivedDate === null) {
+        $pdo->rollBack();
+        respond_error(422, 'A received date is required.');
+    }
+
+    $taxDate = $invoiceDate ?? $receivedDate;
+
+    $deliveryNote = grn_update_text(
+        $body['delivery_note_number'] ?? null,
+        'delivery note number',
+        100
+    );
+
+    $dispatchAdvice = grn_update_text(
+        $body['dispatch_advice_number'] ?? null,
+        'dispatch advice number',
+        100
+    );
+
+    $vehicleRegistration = grn_update_text(
+        $body['vehicle_registration'] ?? null,
+        'vehicle registration',
+        50
+    );
+
+    $driverName = grn_update_text(
+        $body['driver_name'] ?? null,
+        'driver name',
+        150
+    );
+
+    $remarks = grn_update_text(
+        $body['remarks'] ?? null,
+        'remarks',
+        2000
+    );
+
+    $varianceReason = grn_update_text(
+        $body['variance_reason'] ?? null,
+        'variance reason',
+        1000
+    );
+
+    $declaredGoodsValue = isset($body['invoice_goods_value'])
+        ? grn_update_decimal($body['invoice_goods_value'], 'invoice goods value')
+        : null;
+
+    $declaredVatAmount = isset($body['invoice_vat_amount'])
+        ? grn_update_decimal($body['invoice_vat_amount'], 'invoice VAT amount')
+        : null;
+
+    $declaredInvoiceTotal = isset($body['invoice_total'])
+        ? grn_update_decimal($body['invoice_total'], 'invoice total')
+        : null;
+
+    $existingItemsStatement = $pdo->prepare(
+        "SELECT
+            grn_item_id,
+            supply_order_item_id,
+            product_id,
+            product_version_id,
+            lpo_quantity_each
+         FROM goods_received_note_items
+         WHERE grn_id = ?
+         ORDER BY grn_item_id
+         FOR UPDATE"
+    );
+
+    $existingItemsStatement->execute([(int)$grnId]);
+    $existingItems = $existingItemsStatement->fetchAll(PDO::FETCH_ASSOC);
+
+    if (count($existingItems) !== count($body['items'])) {
+        $pdo->rollBack();
+        respond_error(422, 'All GRN product lines must be submitted exactly once.');
+    }
+
+    $existingById = [];
+
+    foreach ($existingItems as $existingItem) {
+        $existingById[(int)$existingItem['grn_item_id']] = $existingItem;
+    }
+
+    $productStatement = $pdo->prepare(
+        "SELECT
+            p.manufacturer_id
+         FROM products p
+         WHERE p.product_id = ?
+         LIMIT 1"
+    );
+
+    $classificationStatement = $pdo->prepare(
+        "SELECT tax_category
+         FROM product_tax_classifications
+         WHERE product_version_id = ?
+           AND manufacturer_id = ?
+           AND effective_from <= ?
+           AND (effective_to IS NULL OR effective_to >= ?)
+         ORDER BY effective_from DESC
+         LIMIT 2"
+    );
+
+    $rateStatement = $pdo->prepare(
+        "SELECT rate_percent, taxable_supply
+         FROM tax_rate_schedule
+         WHERE tax_category = ?
+           AND effective_from <= ?
+           AND (effective_to IS NULL OR effective_to >= ?)
+         ORDER BY effective_from DESC
+         LIMIT 2"
+    );
+
+    $previousReceivedStatement = $pdo->prepare(
+        "SELECT COALESCE(SUM(item.quantity_accepted_each), 0)
+         FROM goods_received_note_items item
+         INNER JOIN goods_received_notes previous_grn
+            ON previous_grn.grn_id = item.grn_id
+         WHERE item.supply_order_item_id = ?
+           AND previous_grn.status = 'POSTED'
+           AND previous_grn.grn_id <> ?"
+    );
+
+    $updateItemStatement = $pdo->prepare(
+        "UPDATE goods_received_note_items
+         SET
+            invoice_quantity = ?,
+            invoice_unit = ?,
+            units_per_invoice_unit = ?,
+            invoice_unit_price = ?,
+            price_basis = ?,
+            tax_category = ?,
+            tax_rate_percent = ?,
+            taxable_supply = ?,
+            tax_calculation_status = ?,
+            invoice_goods_value = ?,
+            invoice_vat_amount = ?,
+            invoice_line_total = ?,
+            quantity_delivered_each = ?,
+            quantity_accepted_each = ?,
+            quantity_rejected_each = ?,
+            discrepancy_reason = ?
+         WHERE grn_item_id = ?
+           AND grn_id = ?"
+    );
+
+    $seenIds = [];
+    $calculatedGoodsValue = 0.0;
+    $calculatedVatAmount = 0.0;
+    $calculatedTotal = 0.0;
+    $allTaxCalculated = true;
+
+    foreach ($body['items'] as $submittedItem) {
+        if (!is_array($submittedItem)) {
+            $pdo->rollBack();
+            respond_error(422, 'Invalid GRN product line.');
+        }
+
+        $itemId = filter_var(
+            $submittedItem['grn_item_id'] ?? null,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1]]
+        );
+
+        if (
+            $itemId === false
+            || !isset($existingById[(int)$itemId])
+            || isset($seenIds[(int)$itemId])
+        ) {
+            $pdo->rollBack();
+            respond_error(422, 'A GRN product line is invalid or duplicated.');
+        }
+
+        $seenIds[(int)$itemId] = true;
+        $existingItem = $existingById[(int)$itemId];
+
+        $invoiceQuantity = grn_update_decimal(
+            $submittedItem['invoice_quantity'] ?? null,
+            'invoice quantity',
+            999999999.999
+        );
+
+        $invoiceUnit = $submittedItem['invoice_unit'] ?? null;
+
+        if (!in_array($invoiceUnit, ['EACH', 'CTN'], true)) {
+            $pdo->rollBack();
+            respond_error(422, 'Invoice unit must be EACH or CTN.');
+        }
+
+        $unitsPerInvoiceUnit = filter_var(
+            $submittedItem['units_per_invoice_unit'] ?? null,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1, 'max_range' => 4294967295]]
+        );
+
+        if (
+            $unitsPerInvoiceUnit === false
+            || ($invoiceUnit === 'EACH' && (int)$unitsPerInvoiceUnit !== 1)
+        ) {
+            $pdo->rollBack();
+            respond_error(422, 'Invalid invoice unit conversion.');
+        }
+
+        $deliveredExact = $invoiceQuantity * (int)$unitsPerInvoiceUnit;
+        $deliveredEach = (int)round($deliveredExact);
+
+        if (
+            abs($deliveredExact - $deliveredEach) > 0.000001
+            || $deliveredEach > 4294967295
+        ) {
+            $pdo->rollBack();
+            respond_error(422, 'The invoice quantity must convert to a whole number of individual units.');
+        }
+
+        $accepted = filter_var(
+            $submittedItem['quantity_accepted_each'] ?? null,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 0, 'max_range' => 4294967295]]
+        );
+
+        $rejected = filter_var(
+            $submittedItem['quantity_rejected_each'] ?? null,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 0, 'max_range' => 4294967295]]
+        );
+
+        if (
+            $accepted === false
+            || $rejected === false
+            || (int)$accepted + (int)$rejected !== $deliveredEach
+        ) {
+            $pdo->rollBack();
+            respond_error(422, 'Accepted and rejected quantities must equal the delivered quantity.');
+        }
+
+        $previousReceivedStatement->execute([
+            (int)$existingItem['supply_order_item_id'],
+            (int)$grnId
+        ]);
+
+        $previouslyReceived = (int)$previousReceivedStatement->fetchColumn();
+
+        $remaining = max(
+            0,
+            (int)$existingItem['lpo_quantity_each'] - $previouslyReceived
+        );
+
+        if ((int)$accepted > $remaining) {
+            $pdo->rollBack();
+            respond_error(422, 'Accepted quantity exceeds the remaining LPO quantity for a product.');
+        }
+
+        $invoiceUnitPrice = grn_update_decimal(
+            $submittedItem['invoice_unit_price'] ?? null,
+            'invoice unit price'
+        );
+
+        $priceBasis = $submittedItem['price_basis'] ?? null;
+
+        if (!in_array($priceBasis, ['VAT_INCLUSIVE', 'VAT_EXCLUSIVE'], true)) {
+            $pdo->rollBack();
+            respond_error(422, 'Invalid invoice price basis.');
+        }
+
+        $discrepancyReason = grn_update_text(
+            $submittedItem['discrepancy_reason'] ?? null,
+            'discrepancy reason',
+            1000
+        );
+
+        $productStatement->execute([(int)$existingItem['product_id']]);
+        $product = $productStatement->fetch(PDO::FETCH_ASSOC);
+
+        if (!$product) {
+            $pdo->rollBack();
+            respond_error(422, 'A product linked to this GRN could not be found.');
+        }
+
+        $taxCategory = null;
+        $taxRate = null;
+        $taxableSupply = null;
+        $taxStatus = 'MISSING_CLASSIFICATION';
+        $lineNet = null;
+        $lineVat = null;
+
+        if ($existingItem['product_version_id'] !== null) {
+            $classificationStatement->execute([
+                (int)$existingItem['product_version_id'],
+                (int)$product['manufacturer_id'],
+                $taxDate,
+                $taxDate
+            ]);
+
+            $classifications = $classificationStatement->fetchAll(PDO::FETCH_ASSOC);
+
+            if (count($classifications) > 1) {
+                $taxStatus = 'AMBIGUOUS_CLASSIFICATION';
+            } elseif (count($classifications) === 1) {
+                $taxCategory = (string)$classifications[0]['tax_category'];
+
+                $rateStatement->execute([
+                    $taxCategory,
+                    $taxDate,
+                    $taxDate
+                ]);
+
+                $rates = $rateStatement->fetchAll(PDO::FETCH_ASSOC);
+
+                if (count($rates) === 0) {
+                    $taxStatus = 'MISSING_RATE';
+                } elseif (count($rates) > 1) {
+                    $taxStatus = 'AMBIGUOUS_RATE';
+                } else {
+                    $rate = $rates[0];
+                    $taxRate = number_format((float)$rate['rate_percent'], 2, '.', '');
+                    $taxableSupply = (int)$rate['taxable_supply'];
+
+                    $amount = round(
+                        $invoiceQuantity * $invoiceUnitPrice,
+                        2,
+                        PHP_ROUND_HALF_UP
+                    );
+
+                    $rateValue = (float)$taxRate;
+
+                    if ($taxableSupply === 0 || $rateValue === 0.0) {
+                        $lineVat = 0.0;
+                        $lineNet = $amount;
+                    } elseif ($priceBasis === 'VAT_INCLUSIVE') {
+                        $lineVat = round(
+                            $amount * $rateValue / (100.0 + $rateValue),
+                            2,
+                            PHP_ROUND_HALF_UP
+                        );
+                        $lineNet = round($amount - $lineVat, 2, PHP_ROUND_HALF_UP);
+                    } else {
+                        $lineNet = $amount;
+                        $lineVat = round(
+                            $amount * $rateValue / 100.0,
+                            2,
+                            PHP_ROUND_HALF_UP
+                        );
+                    }
+
+                    $taxStatus = 'CALCULATED';
+                }
+            }
+        }
+
+        $lineAmount = round(
+            $invoiceQuantity * $invoiceUnitPrice,
+            2,
+            PHP_ROUND_HALF_UP
+        );
+
+        if ($taxStatus === 'CALCULATED') {
+            $lineTotal = round($lineNet + $lineVat, 2, PHP_ROUND_HALF_UP);
+            $calculatedGoodsValue += $lineNet;
+            $calculatedVatAmount += $lineVat;
+        } else {
+            $lineTotal = $lineAmount;
+            $allTaxCalculated = false;
+        }
+
+        $calculatedTotal += $lineTotal;
+
+        $updateItemStatement->execute([
+            number_format($invoiceQuantity, 3, '.', ''),
+            $invoiceUnit,
+            (int)$unitsPerInvoiceUnit,
+            number_format($invoiceUnitPrice, 4, '.', ''),
+            $priceBasis,
+            $taxCategory,
+            $taxRate,
+            $taxableSupply,
+            $taxStatus,
+            $lineNet !== null ? number_format($lineNet, 2, '.', '') : null,
+            $lineVat !== null ? number_format($lineVat, 2, '.', '') : null,
+            number_format($lineTotal, 2, '.', ''),
+            $deliveredEach,
+            (int)$accepted,
+            (int)$rejected,
+            $discrepancyReason,
+            (int)$itemId,
+            (int)$grnId
+        ]);
+    }
+
+    $calculatedGoodsValue = $allTaxCalculated
+        ? number_format($calculatedGoodsValue, 2, '.', '')
+        : null;
+
+    $calculatedVatAmount = $allTaxCalculated
+        ? number_format($calculatedVatAmount, 2, '.', '')
+        : null;
+
+    $calculatedTotal = number_format($calculatedTotal, 2, '.', '');
+
+    $reconciliationDifference = null;
+    $reconciliationStatus = 'PENDING';
+
+    if ($declaredInvoiceTotal !== null && $allTaxCalculated) {
+        $reconciliationDifference = number_format(
+            $declaredInvoiceTotal - (float)$calculatedTotal,
+            2,
+            '.',
+            ''
+        );
+
+        if (abs((float)$reconciliationDifference) <= 0.01) {
+            $reconciliationStatus = 'MATCHED';
+        }
+    }
+
+    $updateHeaderStatement = $pdo->prepare(
+        "UPDATE goods_received_notes
+         SET
+            supplier_invoice_number = ?,
+            supplier_invoice_date = ?,
+            received_date = ?,
+            delivery_note_number = ?,
+            dispatch_advice_number = ?,
+            vehicle_registration = ?,
+            driver_name = ?,
+            invoice_goods_value = ?,
+            invoice_vat_amount = ?,
+            invoice_total = ?,
+            calculated_goods_value = ?,
+            calculated_vat_amount = ?,
+            calculated_total = ?,
+            reconciliation_difference = ?,
+            reconciliation_status = ?,
+            variance_reason = ?,
+            remarks = ?
+         WHERE grn_id = ?
+           AND retailer_id = ?
+           AND status = 'DRAFT'"
+    );
+
+    $updateHeaderStatement->execute([
+        $invoiceNumber,
+        $invoiceDate,
+        $receivedDate,
+        $deliveryNote,
+        $dispatchAdvice,
+        $vehicleRegistration,
+        $driverName,
+        $declaredGoodsValue !== null
+            ? number_format($declaredGoodsValue, 2, '.', '')
+            : null,
+        $declaredVatAmount !== null
+            ? number_format($declaredVatAmount, 2, '.', '')
+            : null,
+        $declaredInvoiceTotal !== null
+            ? number_format($declaredInvoiceTotal, 2, '.', '')
+            : null,
+        $calculatedGoodsValue,
+        $calculatedVatAmount,
+        $calculatedTotal,
+        $reconciliationDifference,
+        $reconciliationStatus,
+        $varianceReason,
+        $remarks,
+        (int)$grnId,
+        (int)$actor['organization_id']
+    ]);
+
+    $pdo->commit();
+
+    respond(200, [
+        'success' => true,
+        'message' => 'GRN draft updated successfully.',
+        'grn_id' => (int)$grnId,
+        'item_count' => count($existingItems),
+        'calculated_goods_value' => $calculatedGoodsValue,
+        'calculated_vat_amount' => $calculatedVatAmount,
+        'calculated_total' => $calculatedTotal,
+        'reconciliation_status' => $reconciliationStatus
+    ]);
+
+} catch (PDOException $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+
+    log_error('GRN draft update', $e);
+    respond_error(500, 'Unable to update the GRN draft.');
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+
+    log_error('GRN draft update unexpected', $e);
+    respond_error(500, 'Unable to update the GRN draft.');
+}

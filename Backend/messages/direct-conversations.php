@@ -279,11 +279,14 @@ try {
             respond_error(404, 'Conversation not found.');
         }
 
+        $pdo->beginTransaction();
+
         $insert = $pdo->prepare(
             "INSERT INTO messages (conversation_id, sender_user_id, message_text)
              VALUES (?, ?, ?)"
         );
         $insert->execute([$conversationId, $actor['user_id'], $messageText]);
+        $messageId = (int)$pdo->lastInsertId();
 
         $recipientStatement = $pdo->prepare(
             "SELECT cp.organization_id
@@ -320,10 +323,12 @@ try {
             );
         }
 
+        $pdo->commit();
+
         respond(201, [
             'success' => true,
             'message' => 'Sent.',
-            'message_id' => (int)$pdo->lastInsertId()
+            'message_id' => $messageId
         ]);
     }
 

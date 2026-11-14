@@ -15,8 +15,8 @@ try {
     $actor = require_login($pdo);
 
     if ($actor['organization_type'] !== 'RETAILER'
-        || !in_array($actor['role'], ['ADMIN', 'BRANCH_ADMIN'], true)) {
-        respond_error(403, 'Retailer administrator or branch administrator access is required.');
+        || !in_array($actor['role'], ['ADMIN', 'STAFF', 'BRANCH_ADMIN'], true)) {
+        respond_error(403, 'Retailer purchasing access is required.');
     }
 
     $body = read_json_body();

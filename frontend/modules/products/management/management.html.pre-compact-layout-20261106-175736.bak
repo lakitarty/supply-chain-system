@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../shared/css/base.css">
+    <link rel="stylesheet" href="../../../shared/css/shell.css">
+    <link rel="stylesheet" href="management.css">
+    <title>Product Management | ChainBridge</title>
+</head>
+<body>
+    <div id="shell"></div>
+
+    <main class="page product-management-page">
+
+        <div class="product-page-heading">
+            <div>
+                <div class="product-breadcrumb">Products / Product catalogue</div>
+                <h1 class="page-title">Product management</h1>
+            </div>
+
+            <div class="product-selector">
+                <label for="existingProduct">Product record</label>
+                <select id="existingProduct">
+                    <option value="">Create a new product</option>
+                </select>
+            </div>
+        </div>
+
+        <form id="productForm" enctype="multipart/form-data" novalidate>
+
+            <header class="product-object-header">
+                <div>
+                    <div class="object-header-eyebrow">PRODUCT MASTER</div>
+                    <h2 id="formTitle">Create a product</h2>
+                    <p>Maintain product identity, configuration and commercial information.</p>
+                </div>
+            </header>
+
+            <nav class="product-object-nav" aria-label="Product information sections">
+                <a href="#general-information" class="active">General information</a>
+                <a href="#product-setup">Product setup</a>
+                <a href="#commercial-tax" data-create-only>Commercial and tax</a>
+                <a href="#product-description">Description</a>
+            </nav>
+
+            <section id="general-information"
+                     class="object-section"
+                     aria-labelledby="generalInformationTitle">
+
+                <div class="object-section-heading">
+                    <div>
+                        <h3 id="generalInformationTitle">General information</h3>
+                        <p>Product identity and image</p>
+                    </div>
+                </div>
+
+                <div class="general-information-layout">
+
+                    <div class="general-information-fields">
+
+                        <div class="form-group">
+                            <label for="productName">Product name</label>
+                            <input type="text"
+                                   id="productName"
+                                   maxlength="150"
+                                   required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="category">Category</label>
+                            <input type="text"
+                                   id="category"
+                                   maxlength="100"
+                                   placeholder="e.g. Personal Care">
+                        </div>
+
+                    </div>
+
+                    <div class="product-image-panel">
+                        <div class="product-image-heading">Product image</div>
+
+                        <div id="imagePreviewContainer" hidden>
+                            <p class="field-hint" id="imagePreviewLabel">Image preview</p>
+                            <img id="imagePreview"
+                                 alt="Product image preview"
+                                 width="180">
+                        </div>
+
+                        <label for="productImage" class="image-upload-label">
+                            Select image <span>(optional)</span>
+                        </label>
+
+                        <input type="file"
+                               id="productImage"
+                               accept="image/jpeg,image/png,image/webp">
+
+                        <p class="field-hint">JPG, PNG or WebP. Maximum 5 MB.</p>
+                    </div>
+
+                </div>
+            </section>
+
+            <section id="product-setup"
+                     class="object-section"
+                     aria-labelledby="productSetupTitle">
+
+                <div class="object-section-heading">
+                    <div>
+                        <h3 id="productSetupTitle">Product setup</h3>
+                        <p>Product identification and packaging details</p>
+                    </div>
+                </div>
+
+                <div class="object-field-grid">
+
+                    <div class="form-group">
+                        <label for="availabilityStatus">Launch availability</label>
+                        <select id="availabilityStatus" required>
+                            <option value="COMING_SOON">Coming soon</option>
+                            <option value="AVAILABLE" selected>Available now</option>
+                        </select>
+                        <p class="field-hint">Separate from the product's active status.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="barcode">Initial barcode</label>
+                        <input type="text"
+                               id="barcode"
+                               maxlength="14"
+                               inputmode="numeric"
+                               required>
+                        <p class="field-hint">For new products. Use Updates for later barcode changes.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="packSize">Pack size</label>
+                        <input type="text"
+                               id="packSize"
+                               maxlength="100"
+                               placeholder="e.g. 40 ml">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="packaging">Packaging description</label>
+                        <input type="text"
+                               id="packaging"
+                               maxlength="255"
+                               placeholder="e.g. Roll-on bottle">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="effectiveDate">Effective date</label>
+                        <input type="date" id="effectiveDate" required>
+                    </div>
+
+                </div>
+            </section>
+
+            <section id="commercial-tax"
+                     class="object-section"
+                     data-create-only
+                     aria-labelledby="commercialTaxTitle">
+
+                <div class="object-section-heading">
+                    <div>
+                        <h3 id="commercialTaxTitle">Commercial and tax</h3>
+                        <p>Initial manufacturer pricing and tax classification</p>
+                    </div>
+                </div>
+
+                <div class="object-field-grid">
+
+                    <div class="form-group">
+                        <label for="sellingPrice">Manufacturer selling price (KSh)</label>
+                        <input type="text"
+                               id="sellingPrice"
+                               inputmode="decimal"
+                               placeholder="e.g. 120.00"
+                               required>
+                        <p class="field-hint">Production cost and recommended prices are added after creation.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="taxBasis">Selling price VAT basis</label>
+                        <select id="taxBasis" required>
+                            <option value="">Select one</option>
+                            <option value="INCLUSIVE">VAT included in price</option>
+                            <option value="EXCLUSIVE">VAT added on top</option>
+                        </select>
+                        <p class="field-hint">RRP and RSP follow this choice.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="taxCategory">Tax category</label>
+                        <select id="taxCategory" required>
+                            <option value="">Select one</option>
+                            <option value="STANDARD_RATED">Standard-rated</option>
+                            <option value="ZERO_RATED">Zero-rated</option>
+                            <option value="EXEMPT">Exempt</option>
+                        </select>
+                        <p class="field-hint">Declares the product's tax classification.</p>
+                    </div>
+
+                </div>
+            </section>
+
+            <section id="product-description"
+                     class="object-section"
+                     aria-labelledby="productDescriptionTitle">
+
+                <div class="object-section-heading">
+                    <div>
+                        <h3 id="productDescriptionTitle">Description</h3>
+                        <p>Additional product information</p>
+                    </div>
+                </div>
+
+                <div class="description-field">
+                    <label for="description">Product description</label>
+                    <textarea id="description"
+                              rows="4"
+                              maxlength="10000"></textarea>
+                </div>
+            </section>
+
+            <div id="productMessage"
+                 class="form-message"
+                 role="alert"
+                 aria-live="polite"></div>
+
+            <footer class="product-action-bar">
+                <div class="action-context">Product information</div>
+
+                <div class="form-actions">
+                    <button type="button" id="cancelEditButton" hidden>
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="primary-button"
+                            id="saveProductButton">
+                        Create product
+                    </button>
+                </div>
+            </footer>
+
+        </form>
+    </main>
+
+    <script src="../../../shared/js/api.js"></script>
+    <script src="../../../shared/js/form-helpers.js"></script>
+    <script src="../../../shared/js/navigation.js"></script>
+    <script src="../../../shared/js/shell.js"></script>
+    <script src="../../../shared/js/page-router.js"></script>
+    <script src="management.js"></script>
+
+    <script>
+        document.querySelectorAll(".product-object-nav a").forEach(link => {
+            link.addEventListener("click", () => {
+                document.querySelectorAll(".product-object-nav a").forEach(item => {
+                    item.classList.toggle("active", item === link);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

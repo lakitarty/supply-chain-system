@@ -198,13 +198,10 @@ try {
         respond_error(403, 'Your organisation is not authorised to edit prices for this product.');
     }
 
-    if ($ownsProduct) {
-        if ($priceType === 'COST') {
-            $includesVat = 0;
-        } elseif (!is_bool($input['price_includes_vat'] ?? null)) {
-            respond_field_error(400, field_error('price_includes_vat', 'State whether the manufacturer selling price includes VAT.'));
-        }
+    if ($ownsProduct && $priceType === 'SELLING' && !is_bool($input['price_includes_vat'] ?? null)) {
+        respond_field_error(400, field_error('price_includes_vat', 'State whether the manufacturer selling price includes VAT.'));
     }
+
     if ($ownsProduct && $priceType === 'SELLING') {
         $lockMessage = promotion_lock_message($pdo, $manufacturerId, $productId, max($fromDate, nairobi_today()));
 
@@ -212,20 +209,47 @@ try {
             respond_error(409, $lockMessage);
         }
     }
+
     $statement = $pdo->prepare(
-        "SELECT tax_category
-         FROM product_tax_classifications
-         WHERE product_version_id = ?
-           AND effective_from <= ?
-           AND (effective_to IS NULL OR effective_to >= ?)
-         ORDER BY effective_from DESC
+        "SELECT
+             tc.tax_category,
+             trs.rate_percent,
+             trs.taxable_supply
+         FROM product_tax_classifications tc
+         LEFT JOIN tax_rate_schedule trs
+           ON trs.tax_category = tc.tax_category
+          AND trs.effective_from <= ?
+          AND (trs.effective_to IS NULL OR trs.effective_to >= ?)
+         WHERE tc.product_version_id = ?
+           AND tc.effective_from <= ?
+           AND (tc.effective_to IS NULL OR tc.effective_to >= ?)
+         ORDER BY tc.effective_from DESC, trs.effective_from DESC
          LIMIT 1"
     );
-    $statement->execute([$versionId, $fromDate, $fromDate]);
-       $taxCategory = $statement->fetchColumn();
+    $statement->execute([
+        $fromDate,
+        $fromDate,
+        $versionId,
+        $fromDate,
+        $fromDate
+    ]);
+    $taxSchedule = $statement->fetch(PDO::FETCH_ASSOC);
 
-    if ($taxCategory === false) {
+    if ($taxSchedule === false) {
         respond_error(409, 'No tax category has been declared for this product version on the selected date. The manufacturer must declare it before prices can be saved.');
+    }
+
+    if ($taxSchedule['rate_percent'] === null || $taxSchedule['taxable_supply'] === null) {
+        respond_error(409, 'No applicable tax rate is recorded for this product on the selected date.');
+    }
+
+    $taxCategory = (string)$taxSchedule['tax_category'];
+
+    if ($ownsProduct && $priceType === 'COST') {
+        $includesVat = (
+            (int)$taxSchedule['taxable_supply'] === 1
+            && (float)$taxSchedule['rate_percent'] > 0
+        ) ? 1 : 0;
     }
 
     $todayNairobi = (new DateTimeImmutable('now', new DateTimeZone('Africa/Nairobi')))

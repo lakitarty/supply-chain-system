@@ -14,8 +14,8 @@ try {
     $isSupplierBuyer = in_array($type, ['SUPPLIER', 'MANUFACTURER_SUPPLIER'], true);
     $isManufacturer = $type === 'MANUFACTURER';
 
-    if ($role !== 'ADMIN' && !($type === 'RETAILER' && $role === 'BRANCH_ADMIN')) {
-        respond_error(403, 'Purchasing administrator access is required.');
+    if (!in_array($role, ['ADMIN', 'STAFF'], true) && !($type === 'RETAILER' && $role === 'BRANCH_ADMIN')) {
+        respond_error(403, 'Purchasing access is not available for this account.');
     }
     if (!$isRetailer && !$isSupplierBuyer && !$isManufacturer) {
         respond_error(403, 'Purchasing access is not available for this account.');
@@ -25,7 +25,7 @@ try {
     $suppliers = [];
     $assignedBranchId = null;
 
-    if ($isRetailer && $role === 'ADMIN') {
+    if ($isRetailer && in_array($role, ['ADMIN', 'STAFF'], true)) {
         $branchStatement = $pdo->prepare(
             "SELECT b.branch_id, b.branch_name, b.area_id, area.area_name
              FROM branches b

@@ -277,6 +277,7 @@
                     </div>
                     <div class="purchasing-detail-actions">
                         <button id="backToReceivingLposButton" class="secondary-button" type="button">Back to LPOs</button>
+                        <select id="receivingCreateLocation" aria-label="Receiving location"></select>
                         <button id="createGrnFromLpoButton" class="primary-button" type="button" disabled>Create GRN</button>
                     </div>
                 </header>
@@ -320,16 +321,12 @@
                 </section>
             </section>
             <section id="receivingEditor" class="receiving-editor" hidden aria-labelledby="receivingEditorHeading">
-                <header class="purchasing-section-heading">
+                <div class="receiving-editor-bar">
                     <div>
                         <h3 id="receivingEditorHeading">Goods Received Note</h3>
-                        <p id="receivingEditorDescription"></p>
                     </div>
-                    <div class="purchasing-detail-actions">
-                        <span id="grnEditorStatus" class="purchasing-state-chip">Draft</span>
-                        <button id="closeReceivingEditorButton" class="secondary-button" type="button">Back to register</button>
-                    </div>
-                </header>
+                    <span id="grnEditorStatus" class="purchasing-state-chip" hidden>Draft</span>
+                </div>
 
                 <div class="receiving-document-meta">
                     <div><span>GRN number</span><strong id="grnNumberDisplay">Not created</strong></div>
@@ -339,7 +336,7 @@
                 </div>
 
                 <section class="receiving-form-section" aria-labelledby="receivingLocationHeading">
-                    <h4 id="receivingLocationHeading">Receiving location</h4>
+                    <h4 id="receivingLocationHeading">Receiving</h4>
                     <div class="purchasing-fields">
                         <div class="purchasing-field">
                             <label for="grnLocation">Inventory location</label>
@@ -353,62 +350,36 @@
                 </section>
 
                 <section class="receiving-form-section" aria-labelledby="supplierInvoiceHeading">
-                    <h4 id="supplierInvoiceHeading">Supplier invoice details</h4>
+                    <h4 id="supplierInvoiceHeading">Supplier invoice</h4>
                     <div class="purchasing-fields">
                         <div class="purchasing-field">
-                            <label for="grnInvoiceNumber">Supplier invoice number</label>
+                            <label for="grnInvoiceNumber">Invoice number</label>
                             <input id="grnInvoiceNumber" type="text" maxlength="100">
                         </div>
                         <div class="purchasing-field">
-                            <label for="grnInvoiceDate">Supplier invoice date</label>
+                            <label for="grnInvoiceDate">Invoice date</label>
                             <input id="grnInvoiceDate" type="date">
-                        </div>
-                        <div class="purchasing-field">
-                            <label for="grnInvoiceGoods">Invoice goods value (KES)</label>
-                            <input id="grnInvoiceGoods" type="number" min="0" step="0.01">
-                        </div>
-                        <div class="purchasing-field">
-                            <label for="grnInvoiceVat">Invoice VAT amount (KES)</label>
-                            <input id="grnInvoiceVat" type="number" min="0" step="0.01">
-                        </div>
-                        <div class="purchasing-field">
-                            <label for="grnInvoiceTotal">Invoice total (KES)</label>
-                            <input id="grnInvoiceTotal" type="number" min="0" step="0.01">
                         </div>
                     </div>
                 </section>
 
-                <section class="receiving-form-section" aria-labelledby="deliveryDetailsHeading">
-                    <h4 id="deliveryDetailsHeading">Delivery details</h4>
-                    <div class="purchasing-fields">
-                        <div class="purchasing-field">
-                            <label for="grnDeliveryNote">Delivery note number</label>
-                            <input id="grnDeliveryNote" type="text" maxlength="100">
-                        </div>
-                        <div class="purchasing-field">
-                            <label for="grnDispatchAdvice">Dispatch advice number</label>
-                            <input id="grnDispatchAdvice" type="text" maxlength="100">
-                        </div>
-                        <div class="purchasing-field">
-                            <label for="grnVehicle">Vehicle registration</label>
-                            <input id="grnVehicle" type="text" maxlength="30">
-                        </div>
-                        <div class="purchasing-field">
-                            <label for="grnDriver">Driver name</label>
-                            <input id="grnDriver" type="text" maxlength="150">
-                        </div>
+                <section class="receiving-form-section" aria-labelledby="receivingRemarksHeading">
+                    <h4 id="receivingRemarksHeading">Remarks</h4>
+                    <div class="purchasing-field">
+                        <label for="grnRemarks">Remarks</label>
+                        <textarea id="grnRemarks" rows="2" maxlength="2000"></textarea>
                     </div>
                 </section>
 
                 <section class="receiving-form-section" aria-labelledby="receivingItemsHeading">
-                    <header class="purchasing-section-heading">
-                        <div>
-                            <h4 id="receivingItemsHeading">Received products</h4>
-                            <p>Enter quantities and prices from the supplier's actual invoice.</p>
-                        </div>
+                    <div class="receiving-items-head">
+                        <h4 id="receivingItemsHeading">Received products</h4>
                         <span id="grnItemCount" class="purchasing-subtle-count">0 lines</span>
-                    </header>
-
+                        <div id="grnAddLine" class="receiving-add-line">
+                            <select id="grnAddProduct" aria-label="Product to add"></select>
+                            <button id="grnAddLineButton" class="secondary-button" type="button">Add line</button>
+                        </div>
+                    </div>
                     <div class="purchasing-table-wrap">
                         <table class="purchasing-table receiving-items-table">
                             <thead>
@@ -416,45 +387,40 @@
                                     <th scope="col">Product</th>
                                     <th scope="col">LPO quantity</th>
                                     <th scope="col">Previously received</th>
-                                    <th scope="col">Invoice quantity</th>
-                                    <th scope="col">Invoice unit</th>
+                                    <th scope="col">Quantity received</th>
+                                    <th scope="col">Unit</th>
                                     <th scope="col">Units per pack</th>
-                                    <th scope="col">Invoice unit price</th>
+                                    <th scope="col">Unit cost</th>
                                     <th scope="col">Price basis</th>
-                                    <th scope="col">Delivered (each)</th>
-                                    <th scope="col">Accepted (each)</th>
-                                    <th scope="col">Rejected (each)</th>
-                                    <th scope="col">Discrepancy reason</th>
+                                    <th scope="col">Stock units</th>
+                                    <th scope="col">Line total</th>
+                                    <th scope="col">LPO balance</th>
+                                    <th scope="col" aria-label="Remove"></th>
                                 </tr>
                             </thead>
-                            <tbody id="grnItemsBody">
-                                <tr><td colspan="12" class="purchasing-empty-cell">Select an LPO to load its products.</td></tr>
-                            </tbody>
+                            <tbody id="grnItemsBody"></tbody>
                         </table>
                     </div>
                 </section>
 
                 <section class="receiving-form-section" aria-labelledby="receivingReconciliationHeading">
-                    <h4 id="receivingReconciliationHeading">Reconciliation and remarks</h4>
-                    <div class="purchasing-fields">
-                        <div class="purchasing-field">
-                            <label for="grnVarianceReason">Variance reason</label>
-                            <textarea id="grnVarianceReason" maxlength="500" rows="2"></textarea>
-                        </div>
-                        <div class="purchasing-field">
-                            <label for="grnRemarks">Remarks</label>
-                            <textarea id="grnRemarks" rows="2"></textarea>
-                        </div>
-                    </div>
+                    <h4 id="receivingReconciliationHeading">Totals and LPO balance</h4>
+                    <div id="grnBalanceSummary" class="receiving-balance-summary"></div>
                     <div id="grnReconciliationSummary" class="receiving-reconciliation-summary"></div>
                 </section>
 
                 <footer class="purchasing-editor-footer">
                     <div>
-                        <small id="grnSaveMessage">Changes are saved as a draft. Stock is not updated.</small>
+                        <small id="grnSaveMessage"></small>
                     </div>
                     <div class="purchasing-editor-actions">
-                        <button id="saveGrnDraftButton" class="primary-button" type="button">Save GRN Draft</button>
+                        <button id="closeReceivingEditorButton" class="secondary-button grn-icon-button" type="button" title="Back to register" aria-label="Back to register">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6M9 12h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <button id="saveGrnDraftButton" class="secondary-button grn-icon-button" type="button" title="Save GRN Draft" aria-label="Save GRN Draft">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h12l4 4v14H3V3h2zm2 0v6h10V3M7 21v-7h10v7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <button id="postGrnButton" class="primary-button" type="button">Post GRN</button>
                     </div>
                 </footer>
             </section>

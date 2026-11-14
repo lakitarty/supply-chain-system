@@ -12,8 +12,8 @@ require_post();
 try {
     $actor = require_login($pdo);
 
-    if ($actor['role'] !== 'ADMIN') {
-        respond_error(403, 'Organisation administrator access is required to verify an LPO.');
+    if (!in_array($actor['role'], ['ADMIN', 'STAFF'], true)) {
+        respond_error(403, 'Organisation purchasing access is required to verify an LPO.');
     }
 
     $type = (string)$actor['organization_type'];

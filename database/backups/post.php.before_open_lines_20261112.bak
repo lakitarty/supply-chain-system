@@ -1,0 +1,377 @@
+<?php
+declare(strict_types=1);
+
+require_once __DIR__ . '/../core/bootstrap.php';
+require_once __DIR__ . '/../core/guard.php';
+require_once __DIR__ . '/../core/audit.php';
+require_once __DIR__ . '/receiving-rules.php';
+
+try {
+    require_post();
+
+    $actor = require_login($pdo);
+
+    if (!in_array($actor['role'] ?? '', ['ADMIN', 'BRANCH_ADMIN', 'STAFF'], true)) {
+        respond_error(403, 'Your account does not have access to receiving.');
+    }
+
+    $body = read_json_body();
+
+    $grnId = filter_var(
+        $body['grn_id'] ?? null,
+        FILTER_VALIDATE_INT,
+        ['options' => ['min_range' => 1]]
+    );
+
+    if ($grnId === false) {
+        respond_error(400, 'A valid GRN is required.');
+    }
+
+    $pdo->beginTransaction();
+
+    $grnStatement = $pdo->prepare(
+        "SELECT
+            grn_id,
+            retailer_id,
+            branch_id,
+            inventory_location_id,
+            supply_order_id,
+            grn_number,
+            received_date,
+            supplier_invoice_number,
+            invoice_total,
+            reconciliation_status,
+            variance_reason,
+            status
+         FROM goods_received_notes
+         WHERE grn_id = ?
+           AND retailer_id = ?
+         LIMIT 1
+         FOR UPDATE"
+    );
+
+    $grnStatement->execute([(int)$grnId, (int)$actor['organization_id']]);
+    $grn = $grnStatement->fetch(PDO::FETCH_ASSOC);
+
+    if (!$grn) {
+        $pdo->rollBack();
+        respond_error(404, 'The requested GRN was not found.');
+    }
+
+    if ($grn['status'] !== 'DRAFT') {
+        $pdo->rollBack();
+        respond_error(409, 'Only draft GRNs can be posted.');
+    }
+
+    receiving_resolve_branch($pdo, $actor, (int)$grn['branch_id']);
+
+    if ($grn['inventory_location_id'] === null) {
+        $pdo->rollBack();
+        respond_error(422, 'The GRN has no receiving location.');
+    }
+
+    if (trim((string)$grn['supplier_invoice_number']) === '') {
+        $pdo->rollBack();
+        respond_error(422, 'Enter the supplier invoice number before posting.');
+    }
+
+    if ($grn['invoice_total'] === null) {
+        $pdo->rollBack();
+        respond_error(422, 'Enter the supplier invoice total before posting.');
+    }
+
+    $reconciliationStatus = (string)$grn['reconciliation_status'];
+
+    if ($reconciliationStatus !== 'MATCHED') {
+        if (trim((string)$grn['variance_reason']) === '') {
+            $pdo->rollBack();
+            respond_error(422, 'The invoice total differs from the calculated total. Enter a variance reason.');
+        }
+
+        $reconciliationStatus = 'VARIANCE_ACCEPTED';
+    }
+
+    $orderStatement = $pdo->prepare(
+        "SELECT supply_order_id, lpo_number, status
+         FROM supply_orders
+         WHERE supply_order_id = ?
+           AND retailer_id = ?
+         LIMIT 1
+         FOR UPDATE"
+    );
+
+    $orderStatement->execute([
+        (int)$grn['supply_order_id'],
+        (int)$actor['organization_id']
+    ]);
+
+    $order = $orderStatement->fetch(PDO::FETCH_ASSOC);
+
+    if (!$order || !in_array($order['status'], ['CONFIRMED', 'PARTIALLY_DELIVERED'], true)) {
+        $pdo->rollBack();
+        respond_error(422, 'The LPO is no longer open for receiving.');
+    }
+
+    $itemsStatement = $pdo->prepare(
+        "SELECT
+            grn_item_id,
+            supply_order_item_id,
+            product_id,
+            product_version_id,
+            lpo_quantity_each,
+            invoice_goods_value,
+            tax_category,
+            tax_calculation_status,
+            quantity_delivered_each,
+            quantity_accepted_each
+         FROM goods_received_note_items
+         WHERE grn_id = ?
+         ORDER BY grn_item_id
+         FOR UPDATE"
+    );
+
+    $itemsStatement->execute([(int)$grnId]);
+    $items = $itemsStatement->fetchAll(PDO::FETCH_ASSOC);
+
+    $totalAccepted = 0;
+
+    foreach ($items as $item) {
+        if ($item['tax_calculation_status'] !== 'CALCULATED') {
+            $pdo->rollBack();
+            respond_error(422, 'Every line must have its tax calculated before posting.');
+        }
+
+        if ((int)$item['quantity_accepted_each'] > 0 && $item['product_version_id'] === null) {
+            $pdo->rollBack();
+            respond_error(422, 'A received product has no product version.');
+        }
+
+        $totalAccepted += (int)$item['quantity_accepted_each'];
+    }
+
+    if ($totalAccepted < 1) {
+        $pdo->rollBack();
+        respond_error(422, 'Accept at least one unit before posting.');
+    }
+
+    $previouslyReceivedStatement = $pdo->prepare(
+        "SELECT COALESCE(SUM(gi.quantity_accepted_each), 0)
+         FROM goods_received_note_items gi
+         INNER JOIN goods_received_notes g
+            ON g.grn_id = gi.grn_id
+         WHERE gi.supply_order_item_id = ?
+           AND g.status = 'POSTED'"
+    );
+
+    $stockStatement = $pdo->prepare(
+        "INSERT INTO inventory_stock (
+            organization_id,
+            branch_id,
+            inventory_location_id,
+            product_id,
+            product_version_id,
+            quantity_on_hand
+         ) VALUES (?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+            quantity_on_hand = quantity_on_hand + VALUES(quantity_on_hand)"
+    );
+
+    $currentCostStatement = $pdo->prepare(
+        "SELECT price_id, price_amount
+         FROM product_prices
+         WHERE organization_id = ?
+           AND product_id = ?
+           AND product_version_id = ?
+           AND price_type = 'COST'
+           AND effective_to IS NULL
+         ORDER BY effective_from DESC, price_id DESC
+         LIMIT 1
+         FOR UPDATE"
+    );
+
+    $closeCostStatement = $pdo->prepare(
+        "UPDATE product_prices
+         SET effective_to = GREATEST(effective_from, DATE_SUB(?, INTERVAL 1 DAY))
+         WHERE price_id = ?"
+    );
+
+    $insertCostStatement = $pdo->prepare(
+        "INSERT INTO product_prices (
+            organization_id,
+            product_id,
+            product_version_id,
+            price_type,
+            price_amount,
+            price_includes_vat,
+            tax_category,
+            effective_from,
+            source_grn_id
+         ) VALUES (?, ?, ?, 'COST', ?, 0, ?, ?, ?)"
+    );
+
+    $itemCostStatement = $pdo->prepare(
+        "UPDATE goods_received_note_items
+         SET unit_cost_each = ?, previous_cost_snapshot = ?
+         WHERE grn_item_id = ?"
+    );
+
+    foreach ($items as $item) {
+        $accepted = (int)$item['quantity_accepted_each'];
+
+        if ($accepted < 1) {
+            continue;
+        }
+
+        $previouslyReceivedStatement->execute([(int)$item['supply_order_item_id']]);
+        $previouslyReceived = (int)$previouslyReceivedStatement->fetchColumn();
+
+        if ($previouslyReceived + $accepted > (int)$item['lpo_quantity_each']) {
+            $pdo->rollBack();
+            respond_error(409, 'Accepted quantity exceeds the remaining LPO quantity for a product.');
+        }
+
+        $stockStatement->execute([
+            (int)$actor['organization_id'],
+            (int)$grn['branch_id'],
+            (int)$grn['inventory_location_id'],
+            (int)$item['product_id'],
+            (int)$item['product_version_id'],
+            $accepted
+        ]);
+
+        $delivered = (int)$item['quantity_delivered_each'];
+
+        if ($delivered < 1 || $item['invoice_goods_value'] === null) {
+            continue;
+        }
+
+        $unitCost = round((float)$item['invoice_goods_value'] / $delivered, 4);
+
+        if ($unitCost <= 0) {
+            continue;
+        }
+
+        $currentCostStatement->execute([
+            (int)$actor['organization_id'],
+            (int)$item['product_id'],
+            (int)$item['product_version_id']
+        ]);
+
+        $currentCost = $currentCostStatement->fetch(PDO::FETCH_ASSOC);
+
+        $itemCostStatement->execute([
+            number_format($unitCost, 4, '.', ''),
+            $currentCost ? $currentCost['price_amount'] : null,
+            (int)$item['grn_item_id']
+        ]);
+
+        if ($currentCost && abs((float)$currentCost['price_amount'] - $unitCost) < 0.00005) {
+            continue;
+        }
+
+        if ($currentCost) {
+            $closeCostStatement->execute([$grn['received_date'], (int)$currentCost['price_id']]);
+        }
+
+        $insertCostStatement->execute([
+            (int)$actor['organization_id'],
+            (int)$item['product_id'],
+            (int)$item['product_version_id'],
+            number_format($unitCost, 4, '.', ''),
+            $item['tax_category'],
+            $grn['received_date'],
+            (int)$grnId
+        ]);
+    }
+
+    $postStatement = $pdo->prepare(
+        "UPDATE goods_received_notes
+         SET status = 'POSTED',
+             reconciliation_status = ?,
+             posted_by = ?,
+             posted_at = NOW()
+         WHERE grn_id = ?
+           AND status = 'DRAFT'"
+    );
+
+    $postStatement->execute([
+        $reconciliationStatus,
+        (int)$actor['user_id'],
+        (int)$grnId
+    ]);
+
+    $postedEach = "COALESCE((
+            SELECT SUM(gi.quantity_accepted_each)
+            FROM goods_received_note_items gi
+            INNER JOIN goods_received_notes g ON g.grn_id = gi.grn_id
+            WHERE gi.supply_order_item_id = i.supply_order_item_id
+              AND g.status = 'POSTED'
+        ), 0)";
+
+    $unitFactor = "(CASE WHEN i.supplier_order_unit = 'CTN'
+                         THEN i.supplier_units_per_carton
+                         ELSE 1 END)";
+
+    $receivedStatement = $pdo->prepare(
+        "UPDATE supply_order_items i
+         SET i.quantity_received = CAST(FLOOR({$postedEach} / {$unitFactor}) AS UNSIGNED)
+         WHERE i.supply_order_id = ?"
+    );
+
+    $receivedStatement->execute([(int)$order['supply_order_id']]);
+
+    $outstandingStatement = $pdo->prepare(
+        "SELECT COUNT(*)
+         FROM supply_order_items i
+         WHERE i.supply_order_id = ?
+           AND {$postedEach} < i.quantity_ordered * {$unitFactor}"
+    );
+
+    $outstandingStatement->execute([(int)$order['supply_order_id']]);
+
+    $orderStatus = (int)$outstandingStatement->fetchColumn() === 0
+        ? 'DELIVERED'
+        : 'PARTIALLY_DELIVERED';
+
+    $orderUpdateStatement = $pdo->prepare(
+        "UPDATE supply_orders SET status = ? WHERE supply_order_id = ?"
+    );
+
+    $orderUpdateStatement->execute([$orderStatus, (int)$order['supply_order_id']]);
+
+    record_audit(
+        $pdo,
+        $actor,
+        'GRN_POSTED',
+        'GOODS_RECEIVED_NOTE',
+        (int)$grnId,
+        "Posted {$grn['grn_number']} for {$order['lpo_number']}: {$totalAccepted} units accepted, LPO now {$orderStatus}"
+    );
+
+    $pdo->commit();
+
+    respond(200, [
+        'success' => true,
+        'message' => 'GRN posted and stock updated.',
+        'grn_id' => (int)$grnId,
+        'grn_number' => $grn['grn_number'],
+        'units_added' => $totalAccepted,
+        'lpo_status' => $orderStatus,
+        'reconciliation_status' => $reconciliationStatus
+    ]);
+
+} catch (PDOException $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+
+    log_error('GRN posting', $e);
+    respond_error(500, 'Unable to post the GRN.');
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+
+    log_error('GRN posting unexpected', $e);
+    respond_error(500, 'Unable to post the GRN.');
+}

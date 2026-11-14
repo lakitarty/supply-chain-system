@@ -1,0 +1,350 @@
+.product-management-page {
+    width: min(100% - 64px, 1080px);
+    margin: 0 auto;
+    padding: 27px 0 45px;
+    color: #18231d;
+}
+
+.product-management-page > .page-title {
+    margin: 0 0 23px;
+    color: #18231d;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.45px;
+}
+
+.product-management-page > .page-section:first-of-type {
+    display: grid;
+    grid-template-columns: 175px minmax(0, 1fr);
+    align-items: center;
+    gap: 5px 20px;
+    max-width: 900px;
+    margin: 0 0 26px;
+    padding: 10px 0;
+    background: transparent;
+}
+
+.product-management-page > .page-section:first-of-type .section-title {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    margin: 0;
+    color: #bf6835;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.product-management-page > .page-section:first-of-type .form-group {
+    display: grid;
+    grid-template-columns: 115px minmax(0, 1fr);
+    align-items: center;
+    grid-column: 2;
+    max-width: 650px;
+    margin: 0;
+    column-gap: 12px;
+}
+
+.product-management-page > .page-section:first-of-type .form-group label {
+    margin: 0;
+}
+
+.product-management-page > .page-section:first-of-type .field-hint {
+    grid-column: 2;
+    margin: 4px 0 0;
+}
+
+.product-management-page > .page-section:nth-of-type(2) {
+    max-width: 940px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.product-management-page > .page-section:nth-of-type(2) > .section-title {
+    margin: 0 0 21px;
+    padding: 0;
+    color: #18231d;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+/* Product identity */
+
+.product-management-page .product-identity-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 215px;
+    align-items: start;
+    gap: 30px;
+    max-width: 900px;
+    margin: 0 0 26px;
+    padding: 0;
+    background: transparent;
+}
+
+.product-management-page .product-identity-details {
+    min-width: 0;
+}
+
+.product-management-page .product-identity-inputs {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+}
+
+.product-management-page .form-grid-heading,
+.product-management-page .form-detail-heading {
+    color: #bf6835;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.product-management-page .form-grid-heading {
+    grid-column: 1 / -1;
+    margin: 0 0 14px;
+}
+
+.product-management-page .product-image-panel {
+    min-width: 0;
+    padding: 12px;
+    background: #f3f3ed;
+    border-radius: 5px;
+}
+
+.product-management-page .product-image-panel .form-grid-heading {
+    margin-bottom: 11px;
+}
+
+/* Compact property rows */
+
+.product-management-page .form-group {
+    min-width: 0;
+    margin: 0;
+}
+
+.product-management-page .form-group label {
+    display: block;
+    margin: 0;
+    color: #26332b;
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.4;
+}
+
+.product-management-page .form-group input,
+.product-management-page .form-group select,
+.product-management-page .form-group textarea {
+    width: 100%;
+    max-width: 100%;
+    border: 1px solid #b9c2ba;
+    border-radius: 4px;
+    background: #ffffff;
+    color: #17231d;
+    font-family: inherit;
+    font-size: 13px;
+    transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.product-management-page .form-group input,
+.product-management-page .form-group select {
+    height: 38px;
+    padding: 0 10px;
+}
+
+.product-management-page .form-group textarea {
+    min-height: 85px;
+    padding: 9px 10px;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.product-management-page .form-group input::placeholder,
+.product-management-page .form-group textarea::placeholder {
+    color: #59645d;
+    opacity: 1;
+}
+
+.product-management-page .form-group input:hover,
+.product-management-page .form-group select:hover,
+.product-management-page .form-group textarea:hover {
+    border-color: #829087;
+}
+
+.product-management-page .form-group input:focus,
+.product-management-page .form-group select:focus,
+.product-management-page .form-group textarea:focus {
+    border-color: #0f766e;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.12);
+}
+
+.product-management-page #productForm .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 30px;
+    row-gap: 14px;
+    max-width: 940px;
+}
+
+.product-management-page #productForm .form-grid > .form-group {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 11px;
+    row-gap: 0;
+}
+
+.product-management-page #productForm .form-grid > .form-group label {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.product-management-page #productForm .form-grid > .form-group input,
+.product-management-page #productForm .form-grid > .form-group select {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.product-management-page .field-hint {
+    margin: 5px 0 0;
+    color: #465249;
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.product-management-page #productForm .form-grid > .form-group .field-hint {
+    grid-column: 2;
+}
+
+.product-management-page .optional {
+    color: #465249;
+    font-size: 11px;
+    font-weight: 400;
+}
+
+/* Image area */
+
+.product-management-page .product-image-panel .form-group {
+    display: block;
+}
+
+.product-management-page .product-image-panel .form-group label {
+    margin-bottom: 6px;
+}
+
+.product-management-page #productImage {
+    height: auto;
+    min-height: 36px;
+    padding: 5px;
+    background: #ffffff;
+    font-size: 10px;
+}
+
+.product-management-page #productImage::file-selector-button {
+    margin-right: 6px;
+    padding: 6px 7px;
+    border: 0;
+    border-radius: 3px;
+    background: #e6eee8;
+    color: #245344;
+    font: inherit;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.product-management-page #imagePreviewContainer:not([hidden]) {
+    margin-top: 10px;
+}
+
+.product-management-page #imagePreviewLabel {
+    margin: 0 0 6px;
+}
+
+.product-management-page #imagePreview {
+    display: block;
+    width: 100%;
+    max-width: 175px;
+    height: 115px;
+    object-fit: contain;
+    border-radius: 3px;
+    background: #ffffff;
+}
+
+/* Description and actions */
+
+.product-management-page .form-detail-heading {
+    margin: 23px 0 11px;
+}
+
+.product-management-page #productForm > .form-group {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    align-items: start;
+    column-gap: 11px;
+    max-width: 940px;
+}
+
+.product-management-page #productForm > .form-group label {
+    padding-top: 9px;
+}
+
+.product-management-page #productMessage {
+    max-width: 940px;
+    margin-top: 12px;
+}
+
+.product-management-page .form-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 940px;
+    margin: 19px 0 0 123px;
+    padding: 0;
+    border: 0;
+}
+
+.product-management-page .form-actions .primary-button {
+    width: auto;
+    min-width: 150px;
+    height: 39px;
+    padding: 0 17px;
+    border: 1px solid #0f766e;
+    border-radius: 4px;
+    background: #0f766e;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.product-management-page .form-actions .primary-button:hover {
+    border-color: #115e59;
+    background: #115e59;
+}
+
+.product-management-page #cancelEditButton {
+    min-height: 39px;
+    padding: 0 15px;
+    border: 1px solid #87958b;
+    border-radius: 4px;
+    background: transparent;
+    color: #26372d;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.product-management-page #cancelEditButton:hover {
+    background: #edf2ed;
+}
+
+.product-management-page button:focus-visible {
+    outline: 2px solid rgba(15, 118, 110, 0.3);
+    outline-offset: 2px;
+}
+
+.product-management-page [hidden] {
+    display: none !important;
+}

@@ -1,0 +1,1011 @@
+const dashboardCardGrid = field("dashboardCardGrid");
+const dashboardMessage = field("dashboardMessage");
+
+let dashboardRotators = [];
+let dashboardRotationTimer = null;
+
+function createElement(tag, className, text) {
+    const node = document.createElement(tag);
+
+    if (className) node.className = className;
+    if (text !== undefined && text !== null) {
+        node.textContent = String(text);
+    }
+
+    return node;
+}
+
+function formatCardDate(value) {
+    if (!value) return "";
+
+    const date = new Date(String(value).replace(" ", "T"));
+
+    if (Number.isNaN(date.getTime())) return "";
+
+    return new Intl.DateTimeFormat("en-GB", {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "Africa/Nairobi"
+    }).format(date);
+}
+
+function dateValue(value) {
+    if (!value) return 0;
+
+    const date = new Date(String(value).replace(" ", "T"));
+    return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function moneyLabel(value) {
+    const amount = Number(value || 0);
+
+    if (!Number.isFinite(amount)) return "KSh 0";
+
+    return `KSh ${new Intl.NumberFormat("en-KE", {
+        maximumFractionDigits: 0
+    }).format(amount)}`;
+}
+
+function quantityLabel(value) {
+    return new Intl.NumberFormat("en-KE", {
+        maximumFractionDigits: 0
+    }).format(Number(value || 0));
+}
+
+function statusLabel(value) {
+    return String(value || "UNKNOWN")
+        .replaceAll("_", " ")
+        .toLowerCase()
+        .replace(/\b\w/g, character => character.toUpperCase());
+}
+
+function dashboardUrl(path, parameters = {}) {
+    const url = new URL(pageUrl(path));
+
+    for (const [key, value] of Object.entries(parameters)) {
+        if (value !== undefined && value !== null && value !== "") {
+            url.searchParams.set(key, String(value));
+        }
+    }
+
+    return url.href;
+}
+
+function makePageLink(path, label, className = "dashboard-row-action") {
+    if (!path) return null;
+
+    const link = createElement("a", className, label);
+    link.href = pageUrl(path);
+
+    return link;
+}
+
+function imageSource(path) {
+    if (!path) return "";
+
+    const value = String(path).trim();
+
+    if (/^(https?:\/\/|data:|\/)/i.test(value)) {
+        return value;
+    }
+
+    return new URL(value, pageUrl("")).href;
+}
+
+async function optionalDashboardRequest(path) {
+    try {
+        const response = await getJson(path);
+
+        if (!response.ok || response.data?.success !== true) {
+            console.warn(`Dashboard data unavailable: ${path}`);
+            return null;
+        }
+
+        return response.data;
+    } catch (error) {
+        console.warn(`Dashboard request failed: ${path}`, error);
+        return null;
+    }
+}
+
+async function loadDashboardFeeds(account) {
+    const organizationType = String(
+        account?.organization?.organization_type || ""
+    ).toUpperCase();
+
+    const role = String(account?.user?.role || "").toUpperCase();
+    const branchId = account?.user?.branch_id || "";
+
+    const calls = {
+        conversations: optionalDashboardRequest(
+            "messages/direct-conversations.php?action=list"
+        ),
+        notifications: optionalDashboardRequest(
+            "messages/notifications-list.php"
+        ),
+        announcements: optionalDashboardRequest(
+            "announcements/list.php"
+        ),
+        changes: optionalDashboardRequest(
+            "changes/list.php"
+        )
+    };
+
+    let branchQuery = "";
+
+    if (branchId && role !== "ADMIN") {
+        branchQuery = `?branchId=${encodeURIComponent(branchId)}`;
+    }
+
+    let orderQuery = "";
+
+    if (organizationType === "RETAILER" && branchQuery) {
+        orderQuery = branchQuery;
+    }
+
+    calls.orders = optionalDashboardRequest(
+        `purchasing/orders-list.php${orderQuery}`
+    );
+
+    if (organizationType === "RETAILER") {
+        const salesQuery = new URLSearchParams({
+            period: "LAST_7_DAYS"
+        });
+
+        if (branchId && role !== "ADMIN") {
+            salesQuery.set("branchId", String(branchId));
+        }
+
+        calls.sales = optionalDashboardRequest(
+            `stock/sales-report.php?${salesQuery.toString()}`
+        );
+
+        calls.receivingLpos = optionalDashboardRequest(
+            `receiving/lpo-list.php${branchQuery}`
+        );
+
+        calls.grns = optionalDashboardRequest(
+            `receiving/list.php${branchQuery}`
+        );
+    }
+
+    const results = await Promise.all(
+        Object.entries(calls).map(async ([key, request]) => [
+            key,
+            await request
+        ])
+    );
+
+    return Object.fromEntries(results);
+}
+
+function makeInboxEntries(overview, feeds) {
+    const entries = [];
+
+    const requests = Array.isArray(overview?.items)
+        ? overview.items
+        : [];
+
+    for (const item of requests) {
+        const title = String(item.title || "");
+        const searchable = `${title} ${item.group || ""}`.toLowerCase();
+
+        if (!/supply request|relationship request|connection request|invitation/.test(searchable)) {
+            continue;
+        }
+
+        entries.push({
+            kind: "Request",
+            title: title || "Organisation request",
+            detail: item.detail || "",
+            meta: formatCardDate(item.date || item.created_at),
+            date: item.date || item.created_at,
+            priority: 3,
+            path: item.path || "modules/network/relationships/relationships.html"
+        });
+    }
+
+    const notifications = Array.isArray(feeds.notifications?.notifications)
+        ? feeds.notifications.notifications
+        : [];
+
+    for (const notification of notifications) {
+        const title = String(notification.title || "Notification");
+        const type = String(notification.notification_type || "").toUpperCase();
+
+        if (
+            type.includes("DIRECT_MESSAGE") ||
+            title.toLowerCase().includes("new direct message")
+        ) {
+            continue;
+        }
+
+        const unread = String(notification.status || "").toUpperCase() !== "READ";
+
+        entries.push({
+            kind: unread ? "Unread" : "Notification",
+            title,
+            detail: notification.message || "",
+            meta: formatCardDate(notification.created_at),
+            date: notification.created_at,
+            priority: unread ? 2 : 0,
+            path: "modules/messages/notifications/notifications.html"
+        });
+    }
+
+    const conversations = Array.isArray(feeds.conversations?.conversations)
+        ? feeds.conversations.conversations
+        : [];
+
+    for (const conversation of conversations) {
+        entries.push({
+            kind: "Message",
+            title: conversation.other_organization_name || "Organisation",
+            detail: conversation.last_message || "Open conversation",
+            meta: formatCardDate(conversation.last_message_at),
+            date: conversation.last_message_at,
+            priority: 1,
+            path: "modules/messages/conversations/conversations.html"
+        });
+    }
+
+    return entries
+        .sort((a, b) =>
+            (b.priority - a.priority) ||
+            (dateValue(b.date) - dateValue(a.date))
+        )
+        .slice(0, 20);
+}
+
+function describeChange(change) {
+    const details = [];
+
+    if (change.old_barcode || change.new_barcode) {
+        details.push(
+            `Barcode: ${change.old_barcode || "New"} to ${change.new_barcode || "Not recorded"}`
+        );
+    }
+
+    if (change.old_pack_size || change.new_pack_size) {
+        details.push(
+            `Pack size: ${change.old_pack_size || "Not recorded"} to ${change.new_pack_size || "Not recorded"}`
+        );
+    }
+
+    if (change.old_packaging || change.new_packaging) {
+        details.push(
+            `Packaging: ${change.old_packaging || "Not recorded"} to ${change.new_packaging || "Not recorded"}`
+        );
+    }
+
+    if (change.reason) details.push(change.reason);
+
+    return details.join(" · ") || "Published product information update.";
+}
+
+function makeMarketEntries(feeds) {
+    const entries = [];
+
+    const announcements = Array.isArray(feeds.announcements?.announcements)
+        ? feeds.announcements.announcements
+        : [];
+
+    for (const announcement of announcements) {
+        if (
+            announcement.status &&
+            String(announcement.status).toUpperCase() !== "PUBLISHED"
+        ) {
+            continue;
+        }
+
+        const published = announcement.published_at || announcement.created_at;
+
+        entries.push({
+            kind: "Announcement",
+            title: announcement.announcement_title ||
+                announcement.product_name ||
+                "Manufacturer announcement",
+            detail: announcement.announcement_message ||
+                (announcement.product_name
+                    ? `Product update: ${announcement.product_name}`
+                    : ""),
+            meta: [
+                announcement.manufacturer_name,
+                formatCardDate(published)
+            ].filter(Boolean).join(" · "),
+            date: published,
+            image: announcement.image_path || "",
+            path: "modules/messages/announcements/announcements.html"
+        });
+    }
+
+    const changes = Array.isArray(feeds.changes?.changes)
+        ? feeds.changes.changes
+        : [];
+
+    for (const change of changes) {
+        if (String(change.status || "").toUpperCase() !== "PUBLISHED") {
+            continue;
+        }
+
+        const published = change.published_at || change.created_at;
+
+        entries.push({
+            kind: statusLabel(change.change_type),
+            title: change.product_name || "Product change",
+            detail: describeChange(change),
+            meta: [
+                change.manufacturer_name,
+                formatCardDate(published)
+            ].filter(Boolean).join(" · "),
+            date: published,
+            path: "modules/products/updates/updates.html"
+        });
+    }
+
+    return entries
+        .sort((a, b) => dateValue(b.date) - dateValue(a.date))
+        .slice(0, 20);
+}
+
+function makeOrderEntry(order, organizationType) {
+    const direction = String(order.order_direction || "").toUpperCase();
+
+    let partner = "";
+    let relationship = "";
+
+    if (organizationType === "RETAILER") {
+        partner = order.supplier_name || "Supplier";
+        relationship = "To";
+    } else if (
+        ["SUPPLIER", "MANUFACTURER_SUPPLIER"].includes(organizationType) &&
+        direction === "SUPPLIER_TO_MANUFACTURER"
+    ) {
+        partner = order.supplier_name || "Manufacturer";
+        relationship = "To";
+    } else {
+        partner = order.retailer_name || "Supply partner";
+        relationship = "From";
+    }
+
+    const orderId = Number(order.supply_order_id);
+
+    return {
+        kind: statusLabel(order.status),
+        title: `LPO ${order.lpo_number || orderId}`,
+        detail: [
+            `${relationship} ${partner}`,
+            `${quantityLabel(order.item_count)} product lines`,
+            `${quantityLabel(order.quantity_ordered)} units`
+        ].join(" · "),
+        meta: formatCardDate(order.order_date),
+        date: order.order_date,
+        path: "modules/purchasing/orders/orders.html",
+        parameters: orderId > 0 ? { lpo: orderId } : {}
+    };
+}
+
+function makeReceivingEntries(feeds, mode = "all") {
+    const entries = [];
+
+    if (mode !== "received") {
+        const outstandingOrders = Array.isArray(feeds.receivingLpos?.orders)
+            ? feeds.receivingLpos.orders
+            : [];
+
+        for (const order of outstandingOrders) {
+            const items = Array.isArray(order.items) ? order.items : [];
+            const outstanding = items.reduce(
+                (total, item) => total + Number(item.outstanding_quantity || 0),
+                0
+            );
+
+            entries.push({
+                kind: "Awaiting receipt",
+                title: `LPO ${order.lpo_number || order.supply_order_id}`,
+                detail: [
+                    order.supplier_name || "Supplier",
+                    `${quantityLabel(outstanding)} units outstanding`,
+                    `${quantityLabel(items.length)} products`
+                ].join(" · "),
+                meta: order.expected_delivery_date
+                    ? `Expected ${formatCardDate(order.expected_delivery_date)}`
+                    : `Ordered ${formatCardDate(order.order_date)}`,
+                date: order.expected_delivery_date || order.order_date,
+                path: "modules/purchasing/orders/orders.html",
+                parameters: { view: "receiving" }
+            });
+        }
+    }
+
+    if (mode !== "outstanding") {
+        const grns = Array.isArray(feeds.grns?.grns)
+            ? feeds.grns.grns
+            : [];
+
+        for (const grn of grns) {
+            entries.push({
+                kind: statusLabel(grn.reconciliation_status || grn.status || "Received"),
+                title: `GRN ${grn.grn_number || grn.grn_id}`,
+                detail: [
+                    grn.supplier_name || "Supplier",
+                    `${quantityLabel(grn.accepted_quantity)} accepted`,
+                    `${quantityLabel(grn.rejected_quantity)} rejected`
+                ].join(" · "),
+                meta: formatCardDate(grn.received_date || grn.created_at),
+                date: grn.received_date || grn.created_at,
+                path: "modules/purchasing/orders/orders.html",
+                parameters: {
+                    view: "receiving",
+                    receiving: "register"
+                }
+            });
+        }
+    }
+
+    return entries.sort(
+        (a, b) => dateValue(b.date) - dateValue(a.date)
+    );
+}
+
+function createRegion(title, className) {
+    const region = createElement("section", `dashboard-region ${className}`);
+    const heading = createElement("div", "dashboard-region-heading");
+
+    heading.setAttribute("role", "heading");
+    heading.setAttribute("aria-level", "2");
+    heading.append(createElement("span", "dashboard-region-label", title));
+
+    const body = createElement("div", "dashboard-region-body");
+
+    region.append(heading, body);
+
+    return { region, body };
+}
+
+function renderPreviewItem(entry) {
+    const item = createElement(
+        entry.path ? "a" : "article",
+        "dashboard-preview-item"
+    );
+
+    if (entry.path) {
+        item.href = dashboardUrl(entry.path, entry.parameters || {});
+        item.setAttribute(
+            "aria-label",
+            `${entry.title || "Dashboard update"}. Open details.`
+        );
+    }
+
+    if (entry.image) {
+        const imageFrame = createElement("div", "dashboard-preview-image-frame");
+        const image = document.createElement("img");
+
+        image.className = "dashboard-preview-image";
+        image.alt = "";
+        image.loading = "lazy";
+        image.src = imageSource(entry.image);
+
+        image.addEventListener("error", () => {
+            imageFrame.remove();
+        }, { once: true });
+
+        imageFrame.append(image);
+        item.append(imageFrame);
+    }
+
+    const copy = createElement("div", "dashboard-preview-copy");
+
+    if (entry.kind) {
+        copy.append(
+            createElement("span", "dashboard-preview-kind", entry.kind)
+        );
+    }
+
+    copy.append(
+        createElement(
+            "div",
+            "dashboard-preview-title",
+            entry.title || "Update"
+        )
+    );
+
+    if (entry.detail) {
+        copy.append(
+            createElement("p", "dashboard-preview-detail", entry.detail)
+        );
+    }
+
+    if (entry.meta) {
+        copy.append(
+            createElement("p", "dashboard-preview-meta", entry.meta)
+        );
+    }
+
+    item.append(copy);
+    item.classList.add("is-entering");
+
+    return item;
+}
+
+function addPreviewRotator(
+    container,
+    entries,
+    emptyText,
+    emptyPath = "",
+    visibleCount = 5
+) {
+    const section = createElement("section", "dashboard-rotator");
+    const viewport = createElement("div", "dashboard-rotator-viewport");
+
+    const records = entries.length
+        ? entries
+        : [{
+            title: emptyText,
+            detail: "",
+            kind: "",
+            path: emptyPath
+        }];
+
+    const state = {
+        section,
+        viewport,
+        entries: records,
+        visibleCount: Math.max(1, Number(visibleCount) || 5),
+        index: 0,
+        paused: false,
+
+        render() {
+            const visible = [];
+            const count = Math.min(this.visibleCount, records.length);
+
+            for (let offset = 0; offset < count; offset++) {
+                const recordIndex = (this.index + offset) % records.length;
+                visible.push(renderPreviewItem(records[recordIndex]));
+            }
+
+            viewport.replaceChildren(...visible);
+        }
+    };
+
+    section.addEventListener("mouseenter", () => {
+        state.paused = true;
+    });
+
+    section.addEventListener("mouseleave", () => {
+        state.paused = section.contains(document.activeElement);
+    });
+
+    section.addEventListener("focusin", () => {
+        state.paused = true;
+    });
+
+    section.addEventListener("focusout", event => {
+        if (!section.contains(event.relatedTarget)) {
+            state.paused = section.matches(":hover");
+        }
+    });
+
+    state.render();
+
+    section.append(viewport);
+    container.append(section);
+
+    if (entries.length > state.visibleCount) {
+        dashboardRotators.push(state);
+    }
+
+    return section;
+}
+
+function addOperationRotator(
+    container,
+    title,
+    entries,
+    emptyText,
+    visibleCount = 4
+) {
+    const section = createElement("section", "dashboard-operation");
+    const heading = createElement("div", "dashboard-operation-heading");
+
+    heading.setAttribute("role", "heading");
+    heading.setAttribute("aria-level", "3");
+    heading.append(
+        createElement("span", "dashboard-operation-title", title)
+    );
+
+    section.append(heading);
+
+    addPreviewRotator(
+        section,
+        entries,
+        emptyText,
+        "modules/purchasing/orders/orders.html",
+        visibleCount
+    );
+
+    container.append(section);
+}
+
+function renderSalesSummary(container, salesData) {
+    const summary = salesData?.totals;
+
+    const link = createElement("a", "dashboard-sales-summary");
+    link.href = pageUrl("modules/stock/sales/sales.html");
+
+    const heading = createElement(
+        "span",
+        "dashboard-sales-label",
+        "Sales · Last 7 days"
+    );
+
+    let value = "Sales report unavailable";
+    let detail = "Open the sales register";
+
+    if (summary) {
+        const entryCount = Number(summary.entry_count || 0);
+        const units = quantityLabel(summary.units_sold);
+
+        value = entryCount
+            ? moneyLabel(summary.amount_entered)
+            : "No sales recorded";
+
+        detail = entryCount
+            ? `${units} units · ${quantityLabel(entryCount)} entries`
+            : "No sales entries were recorded during this period.";
+    }
+
+    link.append(
+        heading,
+        createElement("strong", "dashboard-sales-value", value),
+        createElement("span", "dashboard-sales-detail", detail)
+    );
+
+    container.append(link);
+}
+
+function renderInbox(overview, feeds) {
+    const entries = makeInboxEntries(overview, feeds);
+    const region = createRegion("Inbox", "dashboard-inbox");
+
+    addPreviewRotator(
+        region.body,
+        entries,
+        "No recent messages or organisation requests.",
+        "modules/messages/conversations/conversations.html",
+        5
+    );
+
+    return region.region;
+}
+
+function renderTopSalesProducts(container, salesData) {
+    const rows = Array.isArray(salesData?.rows)
+        ? [...salesData.rows]
+        : [];
+
+    const movers = rows
+        .filter(row => Number(row.units_sold) > 0)
+        .sort((a, b) => Number(b.units_sold) - Number(a.units_sold))
+        .slice(0, 3);
+
+    if (!movers.length) return;
+
+    const section = createElement("section", "dashboard-top-movers");
+    const heading = createElement(
+        "div",
+        "dashboard-top-movers-heading",
+        "Top product movement"
+    );
+
+    const list = createElement("div", "dashboard-top-movers-list");
+
+    for (const mover of movers) {
+        const item = createElement("div", "dashboard-top-mover");
+        const productName = createElement(
+            "span",
+            "dashboard-top-mover-name",
+            mover.product_name || "Product"
+        );
+
+        const details = [
+            mover.pack_size,
+            mover.branch_name
+        ].filter(Boolean).join(" · ");
+
+        item.append(
+            productName,
+            createElement(
+                "span",
+                "dashboard-top-mover-quantity",
+                `${quantityLabel(mover.units_sold)} units`
+            )
+        );
+
+        if (details) {
+            item.append(
+                createElement("span", "dashboard-top-mover-detail", details)
+            );
+        }
+
+        list.append(item);
+    }
+
+    section.append(heading, list);
+    container.append(section);
+}
+
+function renderOperations(account, feeds) {
+    const organizationType = String(
+        account?.organization?.organization_type || ""
+    ).toUpperCase();
+
+    const orders = Array.isArray(feeds.orders?.orders)
+        ? feeds.orders.orders
+        : [];
+
+    const region = createRegion("Operations", "dashboard-operations");
+
+    if (organizationType === "RETAILER") {
+        renderSalesSummary(region.body, feeds.sales);
+        renderTopSalesProducts(region.body, feeds.sales);
+
+        const grid = createElement("div", "dashboard-operations-grid");
+
+        const orderEntries = orders.map(order =>
+            makeOrderEntry(order, organizationType)
+        );
+
+        const receivingEntries = makeReceivingEntries(feeds);
+
+        addOperationRotator(
+            grid,
+            "Orders",
+            orderEntries,
+            feeds.orders
+                ? "No purchase orders recorded."
+                : "Order information unavailable.",
+            4
+        );
+
+        addOperationRotator(
+            grid,
+            "Deliveries & receiving",
+            receivingEntries,
+            feeds.receivingLpos && feeds.grns
+                ? "No outstanding receipts or received goods."
+                : "Receiving information unavailable.",
+            4
+        );
+
+        region.body.append(grid);
+        return region.region;
+    }
+
+    const grid = createElement("div", "dashboard-operations-grid");
+
+    if (["SUPPLIER", "MANUFACTURER_SUPPLIER"].includes(organizationType)) {
+        const retailerOrders = orders
+            .filter(order => order.order_direction === "RETAILER_TO_SUPPLIER")
+            .map(order => makeOrderEntry(order, organizationType));
+
+        const manufacturerOrders = orders
+            .filter(order => order.order_direction === "SUPPLIER_TO_MANUFACTURER")
+            .map(order => makeOrderEntry(order, organizationType));
+
+        addOperationRotator(
+            grid,
+            "Retailer orders",
+            retailerOrders,
+            "No retailer orders recorded.",
+            4
+        );
+
+        addOperationRotator(
+            grid,
+            "Manufacturer orders",
+            manufacturerOrders,
+            "No manufacturer orders recorded.",
+            4
+        );
+    } else {
+        const incomingOrders = orders
+            .map(order => makeOrderEntry(order, organizationType));
+
+        const awaitingReview = orders
+            .filter(order => String(order.status).toUpperCase() === "SUBMITTED")
+            .map(order => makeOrderEntry(order, organizationType));
+
+        const processedOrders = orders
+            .filter(order => String(order.status).toUpperCase() !== "SUBMITTED")
+            .map(order => makeOrderEntry(order, organizationType));
+
+        addOperationRotator(
+            grid,
+            "Incoming supplier orders",
+            incomingOrders,
+            "No supplier orders recorded.",
+            4
+        );
+
+        addOperationRotator(
+            grid,
+            "Awaiting review",
+            awaitingReview.length ? awaitingReview : processedOrders,
+            awaitingReview.length
+                ? "No orders awaiting review."
+                : "No reviewed supplier orders recorded.",
+            4
+        );
+    }
+
+    region.body.append(grid);
+
+    return region.region;
+}
+
+function renderMarketPulse(feeds) {
+    const entries = makeMarketEntries(feeds);
+    const region = createRegion("Market Pulse", "dashboard-market-pulse");
+
+    addPreviewRotator(
+        region.body,
+        entries,
+        "No published product updates or announcements.",
+        "modules/messages/announcements/announcements.html",
+        5
+    );
+
+    return region.region;
+}
+
+function stopDashboardRotations() {
+    if (dashboardRotationTimer !== null) {
+        window.clearInterval(dashboardRotationTimer);
+        dashboardRotationTimer = null;
+    }
+
+    dashboardRotators = [];
+}
+
+function startDashboardRotations() {
+    if (dashboardRotationTimer !== null) {
+        window.clearInterval(dashboardRotationTimer);
+    }
+
+    if (!dashboardRotators.length) return;
+
+    dashboardRotationTimer = window.setInterval(() => {
+        if (document.hidden) return;
+
+        for (const rotator of dashboardRotators) {
+            if (rotator.paused || rotator.section.matches(":hover")) {
+                continue;
+            }
+
+            if (rotator.section.contains(document.activeElement)) {
+                continue;
+            }
+
+            rotator.index = (rotator.index + 1) % rotator.entries.length;
+            rotator.render();
+        }
+    }, 5000);
+}
+
+function renderDashboard(data, feeds, account) {
+    stopDashboardRotations();
+    dashboardCardGrid.replaceChildren();
+
+    const root = createElement("div", "dashboard-command-center");
+    const layout = createElement("div", "dashboard-layout");
+
+    layout.append(
+        renderInbox(data, feeds),
+        renderOperations(account, feeds),
+        renderMarketPulse(feeds)
+    );
+
+    root.append(layout);
+    dashboardCardGrid.append(root);
+
+    dashboardCardGrid.setAttribute("aria-busy", "false");
+
+    startDashboardRotations();
+}
+
+async function loadDashboard() {
+    dashboardCardGrid.setAttribute("aria-busy", "true");
+
+    try {
+        const { ok, data } = await getJson("dashboard/overview.php");
+
+        if (!ok || !data || data.success !== true) {
+            throw new Error(data?.error || "Unable to load the dashboard.");
+        }
+
+        const account = window.__nexoraAccount || {};
+        const feeds = await loadDashboardFeeds(account);
+
+        dashboardMessage.replaceChildren();
+        dashboardMessage.className = "form-message";
+
+        renderDashboard(data, feeds, account);
+    } catch (error) {
+        console.error("Unable to load ChainBridge dashboard:", error);
+
+        dashboardCardGrid.replaceChildren();
+        dashboardCardGrid.append(
+            createElement(
+                "p",
+                "dashboard-empty dashboard-load-error",
+                "Dashboard information could not be loaded. Check your connection and try again."
+            )
+        );
+
+        dashboardCardGrid.setAttribute("aria-busy", "false");
+
+        showMessage(
+            dashboardMessage,
+            error.message || "Unable to load dashboard information.",
+            "error"
+        );
+    }
+}
+
+async function checkNegativeStockWarning() {
+    try {
+        const { ok, data } = await getJson("stock/negative-stock-count.php");
+        const count = Number(data?.negative_count || 0);
+
+        const existing = dashboardCardGrid.parentNode?.querySelector(
+            ".dashboard-alert-warning"
+        );
+
+        existing?.remove();
+
+        if (!ok || !data?.success || !Number.isFinite(count) || count <= 0) {
+            return;
+        }
+
+        const warning = createElement("div", "dashboard-alert-warning");
+        const heading = createElement("strong", "", "Stock accuracy alert");
+
+        const message = createElement(
+            "span",
+            "",
+            `${count} product${count === 1 ? "" : "s"} have negative stock balances.`
+        );
+
+        const link = makePageLink(
+            "modules/stock/stock/stock.html",
+            "Review stock"
+        );
+
+        warning.append(heading, message);
+
+        if (link) warning.append(link);
+
+        dashboardCardGrid.parentNode?.insertBefore(warning, dashboardCardGrid);
+    } catch (error) {
+        console.error("Unable to check negative stock:", error);
+    }
+}
+
+const registerDashboardCleanup =
+    window.__nexoraPageRouter?.registerCleanup;
+
+if (typeof registerDashboardCleanup === "function") {
+    registerDashboardCleanup(stopDashboardRotations);
+}
+
+window.addEventListener("pagehide", stopDashboardRotations, { once: true });
+
+shellReady.then(account => {
+    if (account) {
+        loadDashboard();
+        checkNegativeStockWarning();
+    } else {
+        dashboardCardGrid.setAttribute("aria-busy", "false");
+    }
+});

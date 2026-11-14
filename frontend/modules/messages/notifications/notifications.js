@@ -15,6 +15,12 @@ let notifications = [];
 let unreadNotificationCount = 0;
 let previewTrigger = null;
 let selectedNotificationId = null;
+let notificationsLoading = false;
+let notificationsLoadPromise = null;
+let notificationsLoadPending = false;
+let notificationsPageActive = true;
+let unsubscribeRealtimeEvents = null;
+let unsubscribeRealtimeStatus = null;
 
 function element(tag, className, text) {
     const node = document.createElement(tag);
@@ -192,48 +198,74 @@ function closeNotificationPreview() {
     selectedNotificationId = null;
 }
 
-async function loadNotifications(silent = false) {
+function loadNotifications(silent = false) {
+    if (!notificationsPageActive) return Promise.resolve();
+
+    if (notificationsLoadPromise) {
+        notificationsLoadPending = true;
+        return notificationsLoadPromise;
+    }
+
+    notificationsLoading = true;
+
     if (!silent) {
         notificationStatus.textContent = "Loading notifications...";
     }
 
-    try {
-        const result = await getJson("messages/notifications-list.php");
+    const request = (async () => {
+        do {
+            notificationsLoadPending = false;
 
-        if (!result.ok || result.data.success !== true) {
-            throw new Error(result.data.error || "Unable to load notifications.");
-        }
+            const result = await getJson("messages/notifications-list.php");
 
-        notifications = Array.isArray(result.data.notifications)
-            ? result.data.notifications
-            : [];
+            if (!notificationsPageActive) return;
 
-        unreadNotificationCount = Number.isFinite(Number(result.data.unread_count)) ? Number(result.data.unread_count) : notifications.filter(item => item.status === "UNREAD").length;
+            if (!result.ok || result.data.success !== true) {
+                throw new Error(result.data.error || "Unable to load notifications.");
+            }
 
-        renderNotifications();
+            notifications = Array.isArray(result.data.notifications)
+                ? result.data.notifications
+                : [];
 
-        if (!silent && selectedNotificationId) {
-            const selected = notifications.find(
-                item => String(item.notification_id) === selectedNotificationId
-            );
+            unreadNotificationCount = Number.isFinite(Number(result.data.unread_count))
+                ? Number(result.data.unread_count)
+                : notifications.filter(item => item.status === "UNREAD").length;
 
-            if (selected) {
-                const row = notificationList.querySelector(
-                    `[data-notification-id="${CSS.escape(selectedNotificationId)}"]`
+            renderNotifications();
+
+            if (!silent && selectedNotificationId) {
+                const selected = notifications.find(
+                    item => String(item.notification_id) === selectedNotificationId
                 );
 
-                if (row) previewTrigger = row;
-                openNotificationPreview(selected, row || previewTrigger);
+                if (selected) {
+                    const row = notificationList.querySelector(
+                        `[data-notification-id="${CSS.escape(selectedNotificationId)}"]`
+                    );
+
+                    if (row) previewTrigger = row;
+                    openNotificationPreview(selected, row || previewTrigger);
+                }
             }
-        }
-    } catch (error) {
-        if (!silent) {
+        } while (notificationsLoadPending && notificationsPageActive);
+    })();
+
+    notificationsLoadPromise = request.catch(error => {
+        if (!silent && notificationsPageActive) {
             notificationStatus.textContent =
                 error.message || "Unable to load notifications.";
         }
-    }
-}
 
+        throw error;
+    }).finally(() => {
+        notificationsLoading = false;
+        notificationsLoadPromise = null;
+        notificationsLoadPending = false;
+    });
+
+    return notificationsLoadPromise;
+}
 async function markAsRead(item, button) {
     if (button.disabled || item.status !== "UNREAD") return;
 
@@ -325,19 +357,60 @@ document.addEventListener("keydown", event => {
 async function initialiseNotifications() {
     try {
         const account = await shellReady;
-        if (!account) return;
+        if (!account || !notificationsPageActive) return;
+
+        if (window.chainBridgeRealtime) {
+            unsubscribeRealtimeEvents = window.chainBridgeRealtime.subscribe(event => {
+                if (
+                    !notificationsPageActive ||
+                    event?.type !== "notification.created"
+                ) return;
+
+                return loadNotifications(true);
+            });
+
+            unsubscribeRealtimeStatus = window.chainBridgeRealtime.subscribeStatus(status => {
+                if (
+                    !notificationsPageActive ||
+                    status?.connected !== true
+                ) return;
+
+                void loadNotifications(true).catch(error => {
+                    console.error("Notification reconnect refresh failed.", error);
+                });
+            });
+        }
 
         await loadNotifications();
 
-        window.setInterval(() => {
-            if (document.visibilityState === "visible") {
-                void loadNotifications(true);
-            }
-        }, 5000);
+        if (!notificationsPageActive) return;
+
     } catch (error) {
-        notificationStatus.textContent =
-            error.message || "Unable to initialise notifications.";
+        if (notificationsPageActive) {
+            notificationStatus.textContent =
+                error.message || "Unable to initialise notifications.";
+        }
     }
+}
+const registerPageCleanup = window.__nexoraPageRouter?.registerCleanup;
+
+if (typeof registerPageCleanup === "function") {
+    registerPageCleanup(() => {
+        notificationsPageActive = false;
+
+
+        if (typeof unsubscribeRealtimeEvents === "function") {
+            unsubscribeRealtimeEvents();
+            unsubscribeRealtimeEvents = null;
+        }
+
+        if (typeof unsubscribeRealtimeStatus === "function") {
+            unsubscribeRealtimeStatus();
+            unsubscribeRealtimeStatus = null;
+        }
+
+
+    });
 }
 
 initialiseNotifications();

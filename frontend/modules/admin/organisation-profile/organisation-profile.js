@@ -266,6 +266,7 @@ async function uploadOrganizationLogo() {
 
     try {
         const response = await fetch(apiUrl("organizations/upload-logo.php"), {
+            headers: await csrfHeaders(),
             method: "POST",
             credentials: "include",
             cache: "no-store",

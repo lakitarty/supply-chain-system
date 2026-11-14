@@ -1,4 +1,4 @@
-﻿const SYSTEM_NAME = "Bridge";
+const SYSTEM_NAME = "Bridge";
 
 function readable(code) {
     const text = code.toLowerCase().replaceAll("_", " ");
@@ -201,7 +201,11 @@ function buildSessionFooter(account) {
         String(organization.organization_type || "").toUpperCase()
     );
 
+    let priceProtectionStatusLoading = false;
+
     async function updatePriceProtectionStatus() {
+        if (priceProtectionStatusLoading) return;
+        priceProtectionStatusLoading = true;
         try {
             const response = await getJson("settings/price-protection.php");
             const data = response.data || {};
@@ -230,6 +234,8 @@ function buildSessionFooter(account) {
             protectionStatus.style.cursor = "";
             protectionStatus.textContent = "PRICE PROTECTION STATUS UNAVAILABLE";
             protectionStatus.dataset.enabled = "unknown";
+        } finally {
+            priceProtectionStatusLoading = false;
         }
     }
 
@@ -308,29 +314,272 @@ function showShellError(message) {
     );
 }
 
-async function refreshNotificationIndicator() {
+let notificationIndicatorLoading = false;
+let notificationIndicatorRefreshPending = false;
+let notificationIndicatorRefreshPromise = null;
+let notificationIndicatorRealtimeUnsubscribe = null;
+let notificationIndicatorStatusUnsubscribe = null;
+let notificationIndicatorVisibilityHandler = null;
+
+function refreshNotificationIndicator() {
+    if (notificationIndicatorRefreshPromise) {
+        notificationIndicatorRefreshPending = true;
+        return notificationIndicatorRefreshPromise;
+    }
+
     const button = document.querySelector(".chainbridge-utility-notifications");
     const dot = button?.querySelector(".chainbridge-notification-dot");
 
-    if (!dot || document.visibilityState !== "visible") return;
+    if (!dot || document.visibilityState !== "visible") {
+        return Promise.resolve();
+    }
+
+    notificationIndicatorLoading = true;
+
+    notificationIndicatorRefreshPromise = (async () => {
+        do {
+            notificationIndicatorRefreshPending = false;
+
+            const result = await getJson("messages/notifications-count.php");
+
+            if (!result.ok || result.data?.success !== true) {
+                throw new Error(
+                    result.data?.error || "Unable to refresh the notification indicator."
+                );
+            }
+
+            const unread = Number(result.data.unread_count) > 0;
+            dot.hidden = !unread;
+
+            button.setAttribute(
+                "aria-label",
+                unread ? "Notifications, unread items" : "Notifications"
+            );
+
+            button.title = unread ? "Notifications, unread items" : "Notifications";
+        } while (
+            notificationIndicatorRefreshPending &&
+            document.visibilityState === "visible"
+        );
+    })().finally(() => {
+        notificationIndicatorLoading = false;
+        notificationIndicatorRefreshPromise = null;
+        notificationIndicatorRefreshPending = false;
+    });
+
+    return notificationIndicatorRefreshPromise;
+}
+
+function initialiseNotificationIndicatorRealtime() {
+    const realtime = window.chainBridgeRealtime;
+
+    if (!realtime || notificationIndicatorRealtimeUnsubscribe) return;
+
+    notificationIndicatorRealtimeUnsubscribe = realtime.subscribe(event => {
+        if (event?.type === "notification.created") {
+            return refreshNotificationIndicator();
+        }
+    });
+
+    notificationIndicatorStatusUnsubscribe = realtime.subscribeStatus(status => {
+        if (status?.connected === true) {
+            void refreshNotificationIndicator().catch(error => {
+                console.error("Notification indicator reconnect refresh failed.", error);
+            });
+        }
+    });
+
+    notificationIndicatorVisibilityHandler = () => {
+        if (document.visibilityState === "visible") {
+            void refreshNotificationIndicator().catch(error => {
+                console.error("Notification indicator visibility refresh failed.", error);
+            });
+        }
+    };
+
+    document.addEventListener(
+        "visibilitychange",
+        notificationIndicatorVisibilityHandler
+    );
+}
+let chainBridgeRealtimeSocket = null;
+const chainBridgeRealtimeHandlers = new Set();
+let chainBridgeRealtimeReconnectTimer = null;
+let chainBridgeRealtimeReconnectAttempts = 0;
+let chainBridgeRealtimeEnabled = true;
+
+function publishChainBridgeRealtimeStatus(connected, reason = "") {
+    window.dispatchEvent(new CustomEvent("chainbridge:realtime-status", {
+        detail: { connected, reason }
+    }));
+}
+
+function scheduleChainBridgeRealtimeReconnect() {
+    if (!chainBridgeRealtimeEnabled || chainBridgeRealtimeReconnectTimer !== null) {
+        return;
+    }
+
+    const delay = Math.min(
+        30000,
+        1000 * (2 ** Math.min(chainBridgeRealtimeReconnectAttempts, 5))
+    );
+
+    chainBridgeRealtimeReconnectAttempts++;
+
+    chainBridgeRealtimeReconnectTimer = window.setTimeout(() => {
+        chainBridgeRealtimeReconnectTimer = null;
+        connectChainBridgeRealtime();
+    }, delay);
+}
+
+function connectChainBridgeRealtime() {
+    if (!chainBridgeRealtimeEnabled) return;
+
+    if (
+        chainBridgeRealtimeSocket &&
+        (
+            chainBridgeRealtimeSocket.readyState === WebSocket.OPEN ||
+            chainBridgeRealtimeSocket.readyState === WebSocket.CONNECTING
+        )
+    ) {
+        return;
+    }
+
+    let socket;
 
     try {
-        const result = await getJson("messages/notifications-list.php");
-
-        if (!result.ok || result.data.success !== true) return;
-
-        const unread = Number(result.data.unread_count) > 0;
-        dot.hidden = !unread;
-
-        button.setAttribute(
-            "aria-label",
-            unread ? "Notifications, unread items" : "Notifications"
-        );
-
-        button.title = unread ? "Notifications, unread items" : "Notifications";
+        socket = new WebSocket("ws://localhost:3001/ws");
     } catch (error) {
+        publishChainBridgeRealtimeStatus(false, "connection_error");
+        scheduleChainBridgeRealtimeReconnect();
+        return;
     }
+
+    chainBridgeRealtimeSocket = socket;
+
+    socket.addEventListener("open", () => {
+        chainBridgeRealtimeReconnectAttempts = 0;
+        publishChainBridgeRealtimeStatus(true, "connected");
+    });
+
+    socket.addEventListener("message", event => {
+        let message;
+
+        try {
+            message = JSON.parse(event.data);
+        } catch {
+            return;
+        }
+
+        window.dispatchEvent(new CustomEvent("chainbridge:realtime-event", {
+            detail: message
+        }));
+
+        if (
+            message.type !== "notification.created" ||
+            !/^[0-9]{1,20}$/.test(String(message.eventId || "")) ||
+            !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(message.dispatchToken || ""))
+        ) {
+            return;
+        }
+
+        const handlers = Array.from(chainBridgeRealtimeHandlers);
+
+        Promise.all(
+            handlers.map(handler => Promise.resolve().then(() => handler(message)))
+        ).then(() => {
+            if (
+                chainBridgeRealtimeSocket !== socket ||
+                socket.readyState !== WebSocket.OPEN
+            ) {
+                return;
+            }
+
+            socket.send(JSON.stringify({
+                type: "client.ack",
+                eventId: message.eventId,
+                dispatchToken: message.dispatchToken
+            }));
+        }).catch(error => {
+            console.error(
+                "Realtime event processing failed; acknowledgement withheld.",
+                error
+            );
+        });
+    });
+
+    socket.addEventListener("close", () => {
+        if (chainBridgeRealtimeSocket !== socket) return;
+
+        chainBridgeRealtimeSocket = null;
+        publishChainBridgeRealtimeStatus(false, "disconnected");
+        scheduleChainBridgeRealtimeReconnect();
+    });
+
+    socket.addEventListener("error", () => {
+        try {
+            socket.close();
+        } catch {}
+    });
 }
+
+window.chainBridgeRealtime = Object.freeze({
+    get connected() {
+        return Boolean(
+            chainBridgeRealtimeSocket &&
+            chainBridgeRealtimeSocket.readyState === WebSocket.OPEN
+        );
+    },
+
+    subscribe(handler) {
+        if (typeof handler !== "function") {
+            throw new TypeError("Realtime event handler must be a function.");
+        }
+
+        chainBridgeRealtimeHandlers.add(handler);
+
+        return () => {
+            chainBridgeRealtimeHandlers.delete(handler);
+        };
+    },
+
+    subscribeStatus(handler) {
+        if (typeof handler !== "function") {
+            throw new TypeError("Realtime status handler must be a function.");
+        }
+
+        const listener = event => handler(event.detail);
+
+        window.addEventListener("chainbridge:realtime-status", listener);
+
+        handler({
+            connected: this.connected,
+            reason: this.connected ? "connected" : "connecting"
+        });
+
+        return () => {
+            window.removeEventListener("chainbridge:realtime-status", listener);
+        };
+    },
+
+    disconnect() {
+        chainBridgeRealtimeEnabled = false;
+
+        if (chainBridgeRealtimeReconnectTimer !== null) {
+            window.clearTimeout(chainBridgeRealtimeReconnectTimer);
+            chainBridgeRealtimeReconnectTimer = null;
+        }
+
+        const socket = chainBridgeRealtimeSocket;
+        chainBridgeRealtimeSocket = null;
+
+        if (socket && socket.readyState < WebSocket.CLOSING) {
+            socket.close(1000, "Application disconnected.");
+        }
+
+        publishChainBridgeRealtimeStatus(false, "disconnected");
+    }
+});
 
 async function initialiseShell() {
     try {
@@ -342,12 +591,11 @@ async function initialiseShell() {
         }
 
         renderShell(data);
+        connectChainBridgeRealtime();
         document.body.classList.add("shell-ready");
 
+        initialiseNotificationIndicatorRealtime();
         void refreshNotificationIndicator();
-        window.setInterval(() => {
-            void refreshNotificationIndicator();
-        }, 5000);
 
         return data;
     } catch (error) {

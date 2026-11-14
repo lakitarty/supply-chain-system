@@ -83,3 +83,98 @@ function receiving_resolve_branch(
 
     return $branch;
 }
+function receiving_line_tax(PDO $pdo, ?int $productVersionId, int $manufacturerId, string $date): array
+{
+    $tax = [
+        'tax_category' => null,
+        'tax_rate_percent' => null,
+        'taxable_supply' => null,
+        'tax_calculation_status' => 'MISSING_CLASSIFICATION'
+    ];
+
+    if ($productVersionId === null) {
+        return $tax;
+    }
+
+    $classificationStatement = $pdo->prepare(
+        "SELECT tax_category
+         FROM product_tax_classifications
+         WHERE product_version_id = ?
+           AND manufacturer_id = ?
+           AND effective_from <= ?
+           AND (effective_to IS NULL OR effective_to >= ?)
+         ORDER BY effective_from DESC
+         LIMIT 2"
+    );
+
+    $classificationStatement->execute([$productVersionId, $manufacturerId, $date, $date]);
+    $classifications = $classificationStatement->fetchAll(PDO::FETCH_ASSOC);
+
+    if (count($classifications) > 1) {
+        $tax['tax_calculation_status'] = 'AMBIGUOUS_CLASSIFICATION';
+        return $tax;
+    }
+
+    if ($classifications === []) {
+        return $tax;
+    }
+
+    $tax['tax_category'] = (string)$classifications[0]['tax_category'];
+
+    $rateStatement = $pdo->prepare(
+        "SELECT rate_percent, taxable_supply
+         FROM tax_rate_schedule
+         WHERE tax_category = ?
+           AND effective_from <= ?
+           AND (effective_to IS NULL OR effective_to >= ?)
+         ORDER BY effective_from DESC
+         LIMIT 2"
+    );
+
+    $rateStatement->execute([$tax['tax_category'], $date, $date]);
+    $rates = $rateStatement->fetchAll(PDO::FETCH_ASSOC);
+
+    if (count($rates) !== 1) {
+        $tax['tax_calculation_status'] = $rates === [] ? 'MISSING_RATE' : 'AMBIGUOUS_RATE';
+        return $tax;
+    }
+
+    $tax['tax_rate_percent'] = number_format((float)$rates[0]['rate_percent'], 2, '.', '');
+    $tax['taxable_supply'] = (int)$rates[0]['taxable_supply'];
+    $tax['tax_calculation_status'] = 'CALCULATED';
+
+    return $tax;
+}
+
+function receiving_line_amounts(float $quantity, float $unitPrice, string $priceBasis, array $tax): array
+{
+    $amount = round($quantity * $unitPrice, 2, PHP_ROUND_HALF_UP);
+
+    if ($tax['tax_calculation_status'] !== 'CALCULATED') {
+        return ['net' => null, 'vat' => null, 'total' => $amount];
+    }
+
+    $rate = (float)$tax['tax_rate_percent'];
+
+    if ((int)$tax['taxable_supply'] === 0 || $rate === 0.0) {
+        return ['net' => $amount, 'vat' => 0.0, 'total' => $amount];
+    }
+
+    if ($priceBasis === 'VAT_INCLUSIVE') {
+        $vat = round($amount * $rate / (100.0 + $rate), 2, PHP_ROUND_HALF_UP);
+
+        return [
+            'net' => round($amount - $vat, 2, PHP_ROUND_HALF_UP),
+            'vat' => $vat,
+            'total' => $amount
+        ];
+    }
+
+    $vat = round($amount * $rate / 100.0, 2, PHP_ROUND_HALF_UP);
+
+    return [
+        'net' => $amount,
+        'vat' => $vat,
+        'total' => round($amount + $vat, 2, PHP_ROUND_HALF_UP)
+    ];
+}

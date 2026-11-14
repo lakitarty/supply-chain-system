@@ -171,7 +171,7 @@ try {
          WHERE product_id = ?
            AND supplier_id = ?
            AND area_id = ?
-           AND status = 'ACTIVE'
+           AND status IN ('ACTIVE', 'PENDING')
            AND start_date <= ?
            AND (end_date IS NULL OR end_date >= ?)
          LIMIT 1"
@@ -188,7 +188,7 @@ try {
          INNER JOIN organizations supplier ON supplier.organization_id = ps.supplier_id
          WHERE ps.product_id = ?
            AND ps.area_id = ?
-           AND ps.status = 'ACTIVE'
+           AND ps.status IN ('ACTIVE', 'PENDING')
            AND ps.supplier_id <> ?
            AND ps.start_date <= ?
            AND (ps.end_date IS NULL OR ps.end_date >= ?)
@@ -205,7 +205,7 @@ try {
     $statement = $pdo->prepare(
         "INSERT INTO product_suppliers
             (product_id, supplier_id, area_id, is_exclusive, start_date, end_date, status)
-         VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE')"
+         VALUES (?, ?, ?, ?, ?, ?, 'PENDING')"
     );
     $statement->execute([(int)$productId, (int)$supplierId, (int)$areaId, $isExclusive, $startDate, $endDate]);
     $appointmentId = (int)$pdo->lastInsertId();
@@ -326,11 +326,11 @@ try {
         'PRODUCT_DISTRIBUTION_APPOINTED',
         'PRODUCT_SUPPLIER',
         $appointmentId,
-        "Appointed {$supplier['organization_name']} for {$product['product_name']} in {$areaName} from {$startDate}" . ($endDate !== null ? " to {$endDate}" : ' with no planned end date') . ($isExclusive ? ' (exclusive).' : ' (non-exclusive).')
+        "Proposed the appointment of {$supplier['organization_name']} for {$product['product_name']} in {$areaName} from {$startDate}" . ($endDate !== null ? " to {$endDate}" : ' with no planned end date') . ($isExclusive ? ' (exclusive).' : ' (non-exclusive).')
     );
 
     $appointmentPeriod = $endDate !== null ? "through {$endDate}" : 'with no planned end date';
-    $notificationMessage = "Regional appointment for {$product['product_name']} in {$areaName}: {$supplier['organization_name']} was appointed from {$startDate} {$appointmentPeriod}.";
+    $notificationMessage = "Regional appointment for {$product['product_name']} in {$areaName}: {$supplier['organization_name']} was invited to supply from {$startDate} {$appointmentPeriod}, subject to the supplier accepting.";
 
 
     create_organization_notification(
@@ -346,8 +346,8 @@ try {
         (int)$supplier['organization_id'],
         'SUPPLY_CHANGE',
         $appointmentId,
-        'New regional product appointment',
-        $notificationMessage
+        'Appointment awaiting your acceptance',
+        $notificationMessage . ' Open Supply arrangements to accept or decline it.'
     );
 
     foreach (supply_arrangements($pdo, nairobi_today(), null, $appointmentId) as $arrangement) {
@@ -364,7 +364,7 @@ try {
 
     respond(201, [
         'success' => true,
-        'message' => 'Regional distribution appointment created.',
+        'message' => 'Appointment sent to the supplier for acceptance.',
         'appointment_id' => $appointmentId
     ]);
 

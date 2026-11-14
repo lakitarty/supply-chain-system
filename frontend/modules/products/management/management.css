@@ -1,222 +1,420 @@
-
 .product-management-page {
-    width: min(100% - 64px, 1320px);
+    box-sizing: border-box;
+    width: calc(100% - 36px);
+    max-width: 1400px;
     margin: 0 auto;
-    padding: 30px 0 48px;
-    color: #182230;
+    padding: 5px 0 7px;
+    color: #17262b;
 }
 
-.product-management-page > .page-title {
-    font-size: 29px;
+.product-management-page *,
+.product-management-page *::before,
+.product-management-page *::after {
+    box-sizing: border-box;
+}
+
+/* Page heading */
+
+.product-page-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    min-height: 35px;
+    margin-bottom: 5px;
+}
+
+.product-breadcrumb {
+    margin-bottom: 1px;
+    color: #52616a;
+    font-size: 9px;
+}
+
+.product-management-page > .product-page-heading .page-title {
+    margin: 0;
+    color: #17262b;
+    font-size: 20px;
     font-weight: 650;
-    letter-spacing: -0.6px;
+    letter-spacing: -0.3px;
 }
 
-.product-management-page > .page-description {
-    max-width: 760px;
-    margin-top: 7px;
-    color: #667085;
-    font-size: 15px;
-    line-height: 1.6;
+.product-selector {
+    display: grid;
+    grid-template-columns: auto minmax(220px, 300px);
+    align-items: center;
+    gap: 9px;
 }
 
-.product-management-page > .page-section {
-    margin-top: 22px;
-    padding: 24px 26px;
-    border: 1px solid #e1e7ed;
-    border-radius: 12px;
-    background: #ffffff;
-    box-shadow: 0 3px 12px rgba(16, 24, 40, 0.04);
-}
-
-.product-management-page .section-title {
-    margin: 0 0 20px;
-    padding-bottom: 13px;
-    border-bottom: 1px solid #edf0f3;
-    color: #182230;
-    font-size: 17px;
-    font-weight: 650;
-}
-
-.product-management-page .form-group label {
-    margin-bottom: 7px;
-    color: #344054;
-    font-size: 13px;
+.product-selector label {
+    color: #293941;
+    font-size: 11px;
     font-weight: 600;
+}
+
+.product-selector select {
+    width: 100%;
+    height: 30px;
+    padding: 0 9px;
+    border: 1px solid #bac5c8;
+    border-radius: 3px;
+    background: #ffffff;
+    color: #17262b;
+    font-family: inherit;
+    font-size: 11px;
+}
+
+/* Product record header */
+
+.product-object-header {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 6px 13px;
+    border: 1px solid #d8dfe1;
+    background: #ffffff;
+}
+
+.object-header-eyebrow {
+    margin-bottom: 1px;
+    color: #52616a;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+}
+
+.product-object-header h2 {
+    margin: 0;
+    color: #17262b;
+    font-size: 16px;
+    font-weight: 650;
+}
+
+.product-object-header p {
+    display: none;
+}
+
+/* Section containers */
+
+.object-section {
+    min-width: 0;
+    margin: 0;
+    padding: 8px 13px 9px;
+    border: 1px solid #d8dfe1;
+    border-top: 0;
+    background: #ffffff;
+}
+
+.object-section-heading {
+    display: flex;
+    align-items: center;
+    margin-bottom: 7px;
+}
+
+.object-section-heading h3 {
+    margin: 0;
+    color: #17262b;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.object-section-heading p {
+    display: none;
+}
+
+/* General information */
+
+.general-information-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 185px;
+    align-items: center;
+    gap: 20px;
+}
+
+.general-information-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 22px;
+}
+
+.general-information-fields .form-group {
+    grid-template-columns: 105px minmax(0, 1fr);
+}
+
+.product-image-panel {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4px;
+    min-width: 0;
+    padding-left: 14px;
+    border-left: 1px solid #e0e5e7;
+}
+
+.product-image-heading {
+    color: #293941;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.product-image-panel .image-upload-label {
+    margin: 0;
+    color: #293941;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.product-image-panel .image-upload-label span {
+    color: #52616a;
+    font-weight: 400;
+}
+
+.product-management-page #productImage {
+    width: 100%;
+    height: auto;
+    min-height: 27px;
+    padding: 3px;
+    border: 1px solid #bac5c8;
+    border-radius: 3px;
+    background: #ffffff;
+    font-size: 9px;
+}
+
+.product-management-page #productImage::file-selector-button {
+    margin-right: 5px;
+    padding: 4px 6px;
+    border: 0;
+    border-radius: 2px;
+    background: #edf1f2;
+    color: #293941;
+    font: inherit;
+    cursor: pointer;
+}
+
+.product-management-page #imagePreviewContainer:not([hidden]) {
+    margin-bottom: 3px;
+}
+
+.product-management-page #imagePreviewLabel {
+    margin: 0 0 3px;
+    color: #52616a;
+    font-size: 9px;
+}
+
+.product-management-page #imagePreview {
+    display: block;
+    width: 100%;
+    max-width: 90px;
+    height: 55px;
+    object-fit: contain;
+    border: 1px solid #e1e5e7;
+    border-radius: 2px;
+    background: #ffffff;
+}
+
+/* Setup and commercial sections */
+
+.product-detail-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    align-items: stretch;
+    gap: 7px;
+}
+
+.product-detail-columns .object-section {
+    min-width: 0;
+    padding: 8px 11px;
+}
+
+.product-detail-columns:has(#commercial-tax[hidden]) {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.object-field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 12px;
+}
+
+.product-management-page #commercial-tax .object-field-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+}
+
+/* Field alignment */
+
+.product-management-page .form-group {
+    display: grid;
+    grid-template-columns: minmax(90px, 110px) minmax(0, 1fr);
+    align-items: center;
+    column-gap: 7px;
+    min-width: 0;
+    margin: 0;
+}
+
+.product-management-page .form-group > label {
+    color: #293941;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.35;
 }
 
 .product-management-page .form-group input,
 .product-management-page .form-group select,
 .product-management-page .form-group textarea {
     width: 100%;
-    border: 1px solid #d0d7e0;
-    border-radius: 7px;
+    min-width: 0;
+    border: 1px solid #bac5c8;
+    border-radius: 3px;
     background: #ffffff;
-    color: #182230;
+    color: #17262b;
     font-family: inherit;
-    font-size: 14px;
-    transition: border-color 150ms ease, box-shadow 150ms ease;
+    font-size: 11px;
 }
 
 .product-management-page .form-group input,
 .product-management-page .form-group select {
-    height: 42px;
-    padding: 0 12px;
+    height: 29px;
+    padding: 0 7px;
 }
 
 .product-management-page .form-group textarea {
-    min-height: 108px;
-    padding: 11px 12px;
+    min-height: 42px;
+    padding: 6px 8px;
     resize: vertical;
-    line-height: 1.6;
+    line-height: 1.4;
+}
+
+.product-management-page .form-group input::placeholder,
+.product-management-page .form-group textarea::placeholder {
+    color: #52616a;
+    opacity: 1;
 }
 
 .product-management-page .form-group input:focus,
 .product-management-page .form-group select:focus,
-.product-management-page .form-group textarea:focus {
-    border-color: #0f9488;
+.product-management-page .form-group textarea:focus,
+.product-management-page .product-selector select:focus {
+    border-color: #0f766e;
     outline: none;
-    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+    box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.11);
 }
 
 .product-management-page .field-hint {
-    margin-top: 7px;
-    color: #667085;
-    font-size: 12px;
-    line-height: 1.5;
+    grid-column: 2;
+    margin: 2px 0 0;
+    color: #52616a;
+    font-size: 9px;
+    line-height: 1.25;
 }
 
-.product-management-page #existingProduct {
-    max-width: 680px;
+/* Product description */
+
+#product-description {
+    padding-top: 6px;
+    padding-bottom: 7px;
 }
 
-.product-management-page #productForm .form-grid {
+.description-field {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 0 26px;
+    grid-template-columns: 110px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
 }
 
-.product-management-page #productForm > .form-group {
-    max-width: 100%;
+.description-field label {
+    color: #293941;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.description-field textarea {
+    width: 100%;
+    min-height: 40px;
+    max-height: 44px;
+    padding: 6px 8px;
+    border: 1px solid #bac5c8;
+    border-radius: 3px;
+    color: #17262b;
+    font-family: inherit;
+    font-size: 11px;
+    resize: none;
+}
+
+.description-field textarea:focus {
+    border-color: #0f766e;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.11);
+}
+
+/* Messages and actions */
+
+.product-management-page #productMessage {
+    margin: 3px 0;
+    font-size: 10px;
+}
+
+.product-action-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 34px;
     margin-top: 4px;
-}
-
-.product-management-page #productImage {
-    height: auto;
-    min-height: 42px;
-    padding: 8px 10px;
-    background: #f9fafb;
-}
-
-.product-management-page #imagePreviewContainer {
-    margin: 8px 0 20px;
-    padding: 16px;
-    border: 1px dashed #cbd5df;
-    border-radius: 9px;
-    background: #f8fafc;
-}
-
-.product-management-page #imagePreview {
-    display: block;
-    width: auto;
-    max-width: 320px;
-    height: 220px;
-    object-fit: contain;
-    border: 1px solid #e1e7ed;
-    border-radius: 8px;
+    padding: 3px 10px;
+    border: 1px solid #d8dfe1;
     background: #ffffff;
+}
+
+.action-context {
+    color: #52616a;
+    font-size: 10px;
 }
 
 .product-management-page .form-actions {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-top: 22px;
-    padding-top: 19px;
-    border-top: 1px solid #edf0f3;
+    gap: 7px;
+    margin: 0;
 }
 
 .product-management-page .form-actions .primary-button {
-    width: auto;
-    min-width: 160px;
-    height: 42px;
-    padding: 0 18px;
-    border-radius: 7px;
+    min-width: 108px;
+    height: 28px;
+    padding: 0 12px;
+    border: 1px solid #0f766e;
+    border-radius: 3px;
     background: #0f766e;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.product-management-page .form-actions .primary-button:hover {
-    background: #115e59;
-}
-
-.product-management-page #cancelEditButton {
-    min-height: 42px;
-    padding: 0 16px;
-    border: 1px solid #d0d7e0;
-    border-radius: 7px;
-    background: #ffffff;
-    color: #344054;
-    font: inherit;
-    font-size: 14px;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 10px;
     font-weight: 600;
     cursor: pointer;
 }
 
+.product-management-page .form-actions .primary-button:hover {
+    border-color: #115e59;
+    background: #115e59;
+}
+
+.product-management-page #cancelEditButton {
+    min-height: 28px;
+    padding: 0 10px;
+    border: 1px solid #89979d;
+    border-radius: 3px;
+    background: #ffffff;
+    color: #293941;
+    font-family: inherit;
+    font-size: 10px;
+    cursor: pointer;
+}
+
 .product-management-page #cancelEditButton:hover {
-    background: #f8fafc;
+    background: #edf1f2;
 }
 
 .product-management-page button:focus-visible {
-    outline: 3px solid rgba(15, 118, 110, 0.25);
+    outline: 2px solid #0f766e;
     outline-offset: 2px;
-}
-
-.product-management-page #productMessage {
-    margin-top: 12px;
 }
 
 .product-management-page [hidden] {
     display: none !important;
-}
-
-.product-management-page > .page-section {
-    padding: 18px 22px;
-    border-radius: 8px;
-    box-shadow: none;
-}
-
-.product-management-page > .page-section .section-title {
-    margin-bottom: 14px;
-    padding-bottom: 10px;
-}
-
-.product-management-page > .page-section:first-of-type .form-group {
-    max-width: 560px;
-    margin-bottom: 8px;
-}
-
-.product-management-page > .page-section:first-of-type .field-hint {
-    margin-bottom: 0;
-}
-
-.product-management-page > .page-section + .page-section {
-    margin-top: 18px;
-}
-
-.product-management-page > .page-section:nth-of-type(2) {
-    padding: 22px;
-}
-
-.product-management-page .form-group input,
-.product-management-page .form-group select,
-.product-management-page .form-group textarea {
-    border-radius: 5px;
-    box-shadow: none;
-}
-
-.product-management-page .form-actions {
-    margin-top: 16px;
-    padding-top: 16px;
 }

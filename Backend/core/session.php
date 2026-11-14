@@ -12,6 +12,7 @@ function start_secure_session(): void
 
     $isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
 
+    ini_set('session.use_strict_mode', '1');
     session_name(SESSION_NAME);
 
     session_set_cookie_params([
@@ -29,6 +30,7 @@ function sign_in(array $account): void
 {
     start_secure_session();
     session_regenerate_id(true);
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 
     $_SESSION['authenticated'] = true;
     $_SESSION['user_id'] = $account['user']['user_id'];
@@ -56,4 +58,15 @@ function sign_out(): void
     }
 
     session_destroy();
+}
+
+function csrf_token(): string
+{
+    start_secure_session();
+
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+
+    return (string)$_SESSION['csrf_token'];
 }

@@ -64,7 +64,7 @@ try {
 
     $endDate = $appointment['end_date'];
 
-    if ($appointment['status'] !== 'ACTIVE' || ($endDate !== null && $endDate < $today)) {
+    if (!in_array($appointment['status'], ['ACTIVE', 'PENDING'], true) || ($endDate !== null && $endDate < $today)) {
         $pdo->rollBack();
         respond_error(409, 'This appointment has already ended or been cancelled.');
     }
@@ -78,7 +78,18 @@ try {
     $retailerIds = array_column(supply_arrangements($pdo, $today, null, (int)$appointmentId), 'retailer_id');
     $notifyRetailers = true;
 
-    if ($withdraw) {
+    if ($appointment['status'] === 'PENDING') {
+        $statement = $pdo->prepare("UPDATE product_suppliers SET status = 'INACTIVE' WHERE product_supplier_id = ?");
+        $statement->execute([(int)$appointmentId]);
+
+        $notifyRetailers = false;
+        $auditAction = 'PRODUCT_DISTRIBUTION_CANCELLED';
+        $title = 'Pending appointment cancelled';
+        $partyMessage = "The pending appointment of {$supplierName} for {$productName} in {$county} was cancelled before the supplier responded.";
+        $retailerMessage = $partyMessage;
+        $result = 'Pending appointment cancelled.';
+        $endsOn = null;
+    } elseif ($withdraw) {
         if ($endDate === null) {
             $pdo->rollBack();
             respond_error(409, 'There is no ending notice to withdraw.');

@@ -979,17 +979,27 @@
         }
         if (supplierBuyer && ["receiving", "returns"].includes(state.view)) state.view = "register";
     }
+    function fitReceivingEditor() {
+        const editor = byId("receivingEditor");
+        const page = document.querySelector(".purchasing-page");
+        if (!editor || !page || editor.hidden) return;
+        const room = Math.floor(page.getBoundingClientRect().bottom - editor.getBoundingClientRect().top - 2);
+        editor.style.height = `${Math.max(320, room)}px`;
+    }
+ 
     function fitCreateWorkspace() {
         const page = document.querySelector(".purchasing-page");
         const createView = byId("createView");
         if (!page || !createView) return;
+        const receivingEditing = !byId("receivingView").hidden && !byId("receivingEditor").hidden;
 
-        if (createView.hidden) {
+        if (createView.hidden && !receivingEditing) {
             page.classList.remove("purchasing-create-workspace");
             page.style.removeProperty("height");
             page.style.removeProperty("max-height");
             page.style.removeProperty("min-height");
             page.style.removeProperty("overflow");
+            byId("receivingEditor").style.removeProperty("height");
             return;
         }
 
@@ -1017,6 +1027,7 @@
         page.style.maxHeight = `${availableHeight}px`;
         page.style.minHeight = "0";
         page.style.overflow = "hidden";
+        fitReceivingEditor();
     }
 
     window.addEventListener("resize", fitCreateWorkspace);
@@ -1050,7 +1061,7 @@
                     <small>${escapeHtml(money(grn.reconciliation_difference))}</small>
                 </td>
                 <td><span class="${statusClass(grn.status)}">${escapeHtml(statusLabel(grn.status))}</span></td>
-                <td><button type="button" class="button button-secondary" disabled>Open</button></td>
+                <td><button type="button" class="button button-secondary" data-open-grn="${Number(grn.grn_id)}">Open</button></td>
             </tr>
         `).join("") : '<tr><td colspan="9">No goods received notes found.</td></tr>';
     }
@@ -1091,15 +1102,18 @@
     function setReceivingPane(view) {
         state.receiving.activeView = view;
         const hasSelectedOrder = Boolean(state.receiving.selectedOrder);
+        const editing = Boolean(state.receiving.selectedGrn);
 
         byId("receivingOrdersTab").classList.toggle("is-active", view === "orders");
         byId("receivingRegisterTab").classList.toggle("is-active", view === "register");
         byId("receivingOrdersTab").setAttribute("aria-pressed", String(view === "orders"));
         byId("receivingRegisterTab").setAttribute("aria-pressed", String(view === "register"));
 
-        byId("receivingLpoSection").hidden = view !== "orders" || hasSelectedOrder;
-        byId("receivingLpoDetail").hidden = view !== "orders" || !hasSelectedOrder;
-        byId("grnRegisterSection").hidden = view !== "register";
+        byId("receivingLpoSection").hidden = view !== "orders" || hasSelectedOrder || editing;
+        byId("receivingLpoDetail").hidden = view !== "orders" || !hasSelectedOrder || editing;
+        byId("grnRegisterSection").hidden = view !== "register" || editing;
+        byId("receivingEditor").hidden = !editing;
+        fitCreateWorkspace();
     }
 
     function openReceivingLpo(orderId) {
@@ -1154,6 +1168,404 @@
         byId("createGrnFromLpoButton").disabled = outstandingItems.length === 0;
         setReceivingPane("orders");
     }
+    const GRN_HEADER_FIELDS = {
+        grnReceivedDate: "received_date",
+        grnInvoiceNumber: "supplier_invoice_number",
+        grnInvoiceDate: "supplier_invoice_date",
+        grnRemarks: "remarks"
+    };
+
+    function renderCreateLocations() {
+        byId("receivingCreateLocation").innerHTML = state.receiving.locations.map(location =>
+            `<option value="${Number(location.inventory_location_id)}">${escapeHtml(location.location_name)}</option>`
+        ).join("");
+    }
+
+    function grnSupplierName(grn) {
+        const source = state.receiving.orders.find(order => Number(order.supply_order_id) === grn.supply_order_id)
+            || state.receiving.grns.find(item => Number(item.grn_id) === grn.grn_id);
+        return source ? source.supplier_name : "Not recorded";
+    }
+
+    function grnOptions(values, selected, labelOf) {
+        return values.map(value =>
+            `<option value="${value}"${value === selected ? " selected" : ""}>${escapeHtml(labelOf(value))}</option>`
+        ).join("");
+    }
+
+    function roundMoney(value) {
+        return Math.round((value + Number.EPSILON) * 100) / 100;
+    }
+
+    function grnAmount(value) {
+        return Number(value).toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function grnLineAmounts(quantity, price, basis, tax) {
+        const amount = roundMoney(quantity * price);
+
+        if (tax.status !== "CALCULATED") return { vat: null, total: amount };
+        if (!tax.taxable || tax.rate === 0) return { vat: 0, total: amount };
+
+        if (basis === "VAT_INCLUSIVE") {
+            return { vat: roundMoney(amount * tax.rate / (100 + tax.rate)), total: amount };
+        }
+
+        const vat = roundMoney(amount * tax.rate / 100);
+        return { vat, total: roundMoney(amount + vat) };
+    }
+
+    function grnItemRow(item, editable) {
+        const lock = editable ? "" : " disabled";
+        const saved = item.grn_item_id !== null;
+        const onLpo = saved ? (item.supply_order_item_id !== null ? "1" : "0") : "";
+        const lpoValue = value => (onLpo === "1" ? Number(value || 0).toLocaleString("en-KE") : "-");
+
+        return `
+            <tr data-grn-line data-grn-item-id="${saved ? Number(item.grn_item_id) : ""}" data-product-id="${Number(item.product_id)}" data-on-lpo="${onLpo}" data-lpo-each="${Number(item.lpo_quantity_each || 0)}" data-before-each="${Number(item.previously_received_each || 0)}" data-tax-rate="${escapeHtml(String(item.tax_rate_percent ?? ""))}" data-taxable="${Number(item.taxable_supply || 0)}" data-tax-status="${escapeHtml(item.tax_calculation_status || "PENDING")}">
+                <td>
+                    <strong>${escapeHtml(item.product_name_snapshot)}</strong>
+                    <small class="purchasing-product-subtitle">${escapeHtml(item.barcode_snapshot || "No barcode")}</small>
+                </td>
+                <td>${lpoValue(item.lpo_quantity_each)}</td>
+                <td>${lpoValue(item.previously_received_each)}</td>
+                <td><input type="number" min="0" step="0.001" data-grn-field="invoice_quantity" value="${escapeHtml(String(item.invoice_quantity))}"${lock}></td>
+                <td><select data-grn-field="invoice_unit"${lock}>${grnOptions(["EACH", "CTN"], item.invoice_unit, value => (value === "CTN" ? "Carton" : "Each"))}</select></td>
+                <td><input type="number" min="1" step="1" data-grn-field="units_per_invoice_unit" value="${Number(item.units_per_invoice_unit)}"${lock}></td>
+                <td><input type="number" min="0" step="0.0001" data-grn-field="invoice_unit_price" value="${escapeHtml(String(item.invoice_unit_price))}"${lock}></td>
+                <td><select data-grn-field="price_basis"${lock}>${grnOptions(["VAT_INCLUSIVE", "VAT_EXCLUSIVE"], item.price_basis, priceBasisLabel)}</select></td>
+                <td data-grn-units></td>
+                <td data-grn-total></td>
+                <td data-grn-balance></td>
+                <td>${editable ? '<button type="button" class="receiving-remove-line" data-remove-grn-line aria-label="Remove line">&times;</button>' : ""}</td>
+            </tr>
+        `;
+    }
+
+    function refreshGrnLine(row) {
+        const editable = state.receiving.selectedGrn.grn.status === "DRAFT";
+        const field = name => row.querySelector(`[data-grn-field="${name}"]`);
+        const unitsInput = field("units_per_invoice_unit");
+        const isEach = field("invoice_unit").value === "EACH";
+
+        if (isEach) unitsInput.value = 1;
+        unitsInput.disabled = !editable || isEach;
+
+        const quantity = Number(field("invoice_quantity").value || 0);
+        const price = Number(field("invoice_unit_price").value || 0);
+        const units = Math.round(quantity * Number(unitsInput.value || 1));
+        const tax = {
+            status: row.dataset.taxStatus,
+            rate: Number(row.dataset.taxRate || 0),
+            taxable: row.dataset.taxable === "1"
+        };
+        const amounts = grnLineAmounts(quantity, price, field("price_basis").value, tax);
+
+        row.dataset.units = String(units);
+        row.dataset.total = String(amounts.total);
+        row.dataset.vat = amounts.vat === null ? "" : String(amounts.vat);
+        row.dataset.priced = price > 0 ? "1" : "0";
+
+        row.querySelector("[data-grn-units]").textContent = units.toLocaleString("en-KE");
+        row.querySelector("[data-grn-total]").textContent = grnAmount(amounts.total);
+
+        const balanceCell = row.querySelector("[data-grn-balance]");
+
+        if (row.dataset.onLpo === "1") {
+            const balance = Number(row.dataset.lpoEach) - Number(row.dataset.beforeEach) - units;
+            row.dataset.state = balance > 0 ? "short" : balance === 0 ? "complete" : "over";
+            balanceCell.textContent = balance > 0
+                ? `${balance.toLocaleString("en-KE")} outstanding`
+                : balance === 0 ? "Complete" : `Over by ${(-balance).toLocaleString("en-KE")}`;
+        } else if (row.dataset.onLpo === "0") {
+            row.dataset.state = "off";
+            balanceCell.textContent = "Not on LPO";
+        } else {
+            row.dataset.state = "pending";
+            balanceCell.textContent = "Save to check";
+        }
+
+        balanceCell.dataset.state = row.dataset.state;
+    }
+
+    function renderGrnProductOptions() {
+        const used = new Set(
+            Array.from(byId("grnItemsBody").querySelectorAll("tr[data-grn-line]")).map(row => row.dataset.productId)
+        );
+        const available = state.receiving.selectedGrn.products.filter(product => !used.has(String(product.product_id)));
+
+        byId("grnAddProduct").innerHTML = '<option value="">Add a product...</option>' + available.map(product =>
+            `<option value="${Number(product.product_id)}">${escapeHtml(product.product_name)}${product.pack_size ? " - " + escapeHtml(product.pack_size) : ""}</option>`
+        ).join("");
+    }
+
+    function updateGrnTotals() {
+        const current = state.receiving.selectedGrn;
+        if (!current) return;
+
+        const rows = Array.from(byId("grnItemsBody").querySelectorAll("tr[data-grn-line]"));
+        const counts = { complete: 0, short: 0, over: 0, off: 0 };
+        let total = 0;
+        let vat = 0;
+        let taxReady = true;
+        let receivedLines = 0;
+        let unpriced = false;
+        let unclassified = false;
+
+        rows.forEach(row => {
+            total += Number(row.dataset.total);
+
+            if (row.dataset.vat === "") taxReady = false;
+            else vat += Number(row.dataset.vat);
+
+            if (row.dataset.grnItemId !== "" && row.dataset.taxStatus !== "CALCULATED") unclassified = true;
+
+            if (Number(row.dataset.units) > 0) {
+                receivedLines += 1;
+                if (row.dataset.priced !== "1") unpriced = true;
+            }
+
+            if (counts[row.dataset.state] !== undefined) counts[row.dataset.state] += 1;
+        });
+
+        total = roundMoney(total);
+        vat = roundMoney(vat);
+
+        const parts = [`${rows.length} line${rows.length === 1 ? "" : "s"}`];
+        if (counts.complete) parts.push(`${counts.complete} complete`);
+        if (counts.short) parts.push(`${counts.short} short`);
+        if (counts.over) parts.push(`${counts.over} over`);
+        if (counts.off) parts.push(`${counts.off} not on LPO`);
+        byId("grnBalanceSummary").textContent = parts.join(" - ");
+
+        byId("grnReconciliationSummary").innerHTML = `
+            <div><span>Goods value</span><strong>${taxReady ? escapeHtml(money(roundMoney(total - vat))) : "After save"}</strong></div>
+            <div><span>VAT</span><strong>${taxReady ? escapeHtml(money(vat)) : "After save"}</strong></div>
+            <div><span>GRN total</span><strong>${escapeHtml(money(total))}</strong></div>
+        `;
+
+        if (current.grn.status !== "DRAFT") return;
+
+        const invoiceMissing = byId("grnInvoiceNumber").value.trim() === "";
+        const problem = invoiceMissing ? "Enter the supplier invoice number to post."
+            : receivedLines === 0 ? "Enter a quantity received on at least one line to post."
+            : unpriced ? "Enter a unit cost on every line that has a quantity."
+            : unclassified ? "Every product needs a tax classification before posting."
+            : "";
+
+        byId("grnSaveMessage").textContent = problem || "Ready to post. Stock is updated only when the GRN is posted.";
+        byId("postGrnButton").disabled = problem !== "";
+    }
+
+    function syncGrnTable() {
+        const body = byId("grnItemsBody");
+        const rows = body.querySelectorAll("tr[data-grn-line]");
+        const placeholder = body.querySelector("tr[data-grn-empty]");
+
+        if (rows.length && placeholder) placeholder.remove();
+
+        if (!rows.length && !placeholder) {
+            body.innerHTML = '<tr data-grn-empty><td colspan="12" class="purchasing-empty-cell">No products on this GRN. Add a product to begin.</td></tr>';
+        }
+
+        byId("grnItemCount").textContent = `${rows.length} line${rows.length === 1 ? "" : "s"}`;
+        renderGrnProductOptions();
+        updateGrnTotals();
+    }
+
+    function renderGrnEditor() {
+        const { grn, items } = state.receiving.selectedGrn;
+        const editable = grn.status === "DRAFT";
+        const neverSaved = editable && items.every(item =>
+            Number(item.invoice_quantity) === 0 && Number(item.invoice_unit_price) === 0
+        );
+        const lines = neverSaved
+            ? items.map(item => ({
+                ...item,
+                invoice_quantity: item.remaining_before_this_grn_each,
+                invoice_unit_price: item.lpo_unit_price_snapshot ?? 0
+            }))
+            : items;
+
+        byId("grnNumberDisplay").textContent = grn.grn_number;
+        byId("grnLpoDisplay").textContent = grn.lpo_number_snapshot;
+        byId("grnSupplierDisplay").textContent = grnSupplierName(grn);
+        byId("grnBranchDisplay").textContent = grn.branch_name;
+        byId("grnEditorStatus").textContent = statusLabel(grn.status);
+        byId("grnLocation").innerHTML = `<option value="${Number(grn.inventory_location_id)}">${escapeHtml(grn.location_name || "")}</option>`;
+        byId("grnLocation").disabled = true;
+
+        Object.entries(GRN_HEADER_FIELDS).forEach(([id, key]) => {
+            const input = byId(id);
+            input.value = grn[key] ?? "";
+            input.disabled = !editable;
+        });
+
+        byId("grnAddLine").hidden = !editable;
+        byId("saveGrnDraftButton").hidden = !editable;
+        byId("postGrnButton").hidden = !editable;
+        byId("grnSaveMessage").textContent = editable ? "" : `Posted on ${formatDate(grn.posted_at)}. This GRN can no longer be edited.`;
+
+        byId("grnItemsBody").innerHTML = lines.map(item => grnItemRow(item, editable)).join("");
+        byId("grnItemsBody").querySelectorAll("tr[data-grn-line]").forEach(row => refreshGrnLine(row));
+        syncGrnTable();
+    }
+
+    async function openGrn(grnId) {
+        try {
+            const detail = await fetchData(`receiving/detail.php?grnId=${encodeURIComponent(grnId)}`, "Could not load the GRN.");
+            const products = detail.grn.status === "DRAFT"
+                ? (await fetchData(`receiving/products-list.php?grnId=${encodeURIComponent(grnId)}`, "Could not load the supplier products.")).products
+                : [];
+
+            state.receiving.selectedOrder = null;
+            state.receiving.selectedGrn = { grn: detail.grn, items: detail.items, products };
+            renderGrnEditor();
+            setReceivingPane(state.receiving.activeView || "orders");
+            setStatus("");
+        } catch (error) {
+            setStatus(error.message || "Could not load the GRN.", "error");
+        }
+    }
+
+    function closeGrnEditor() {
+        state.receiving.selectedGrn = null;
+        setReceivingPane("register");
+        loadReceivingData();
+    }
+
+    function addGrnLine() {
+        const product = state.receiving.selectedGrn.products.find(
+            item => String(item.product_id) === byId("grnAddProduct").value
+        );
+
+        if (!product) return;
+
+        const body = byId("grnItemsBody");
+
+        body.insertAdjacentHTML("beforeend", grnItemRow({
+            grn_item_id: null,
+            product_id: product.product_id,
+            product_name_snapshot: product.product_name,
+            barcode_snapshot: product.barcode,
+            lpo_quantity_each: 0,
+            previously_received_each: 0,
+            invoice_quantity: 0,
+            invoice_unit: "EACH",
+            units_per_invoice_unit: 1,
+            invoice_unit_price: 0,
+            price_basis: "VAT_INCLUSIVE",
+            tax_calculation_status: "PENDING"
+        }, true));
+
+        const row = body.lastElementChild;
+        refreshGrnLine(row);
+        syncGrnTable();
+        row.querySelector('[data-grn-field="invoice_quantity"]').focus();
+    }
+
+    function collectGrnHeader() {
+        return Object.fromEntries(Object.entries(GRN_HEADER_FIELDS).map(([id, key]) => {
+            const value = byId(id).value.trim();
+            return [key, value === "" ? null : value];
+        }));
+    }
+
+    function collectGrnItems() {
+        return Array.from(byId("grnItemsBody").querySelectorAll("tr[data-grn-line]")).map(row => {
+            const field = name => row.querySelector(`[data-grn-field="${name}"]`).value;
+            const item = {
+                product_id: Number(row.dataset.productId),
+                invoice_quantity: Number(field("invoice_quantity")),
+                invoice_unit: field("invoice_unit"),
+                units_per_invoice_unit: Number(field("units_per_invoice_unit")),
+                invoice_unit_price: Number(field("invoice_unit_price")),
+                price_basis: field("price_basis")
+            };
+
+            if (row.dataset.grnItemId !== "") item.grn_item_id = Number(row.dataset.grnItemId);
+
+            return item;
+        });
+    }
+
+    async function saveGrnDraft() {
+        return unwrap(await postJson("receiving/update.php", {
+            grn_id: state.receiving.selectedGrn.grn.grn_id,
+            ...collectGrnHeader(),
+            items: collectGrnItems()
+        }), "Unable to save the GRN draft.");
+    }
+
+    function setGrnBusy(busy) {
+        byId("saveGrnDraftButton").disabled = busy;
+        byId("postGrnButton").disabled = true;
+
+        if (!busy) updateGrnTotals();
+    }
+
+    async function handleCreateGrn() {
+        const order = state.receiving.selectedOrder;
+        const locationId = byId("receivingCreateLocation").value;
+
+        if (!order || !locationId) {
+            setStatus("Select a receiving location first.", "error");
+            return;
+        }
+
+        byId("createGrnFromLpoButton").disabled = true;
+
+        try {
+            setStatus("Creating the GRN draft...", "pending");
+            const result = unwrap(await postJson("receiving/create.php", {
+                supply_order_id: Number(order.supply_order_id),
+                inventory_location_id: Number(locationId)
+            }), "Unable to create the GRN draft.");
+            await openGrn(result.grn.grn_id);
+        } catch (error) {
+            setStatus(error.message || "Unable to create the GRN draft.", "error");
+        } finally {
+            byId("createGrnFromLpoButton").disabled = false;
+        }
+    }
+
+    async function handleSaveGrn() {
+        setGrnBusy(true);
+
+        try {
+            setStatus("Saving the GRN draft...", "pending");
+            await saveGrnDraft();
+            await openGrn(state.receiving.selectedGrn.grn.grn_id);
+            setStatus("GRN draft saved.", "success");
+        } catch (error) {
+            setStatus(error.message || "Unable to save the GRN draft.", "error");
+        } finally {
+            setGrnBusy(false);
+        }
+    }
+
+    async function handlePostGrn() {
+        if (!window.confirm("Post this GRN? Stock will be updated and the GRN can no longer be edited.")) return;
+
+        setGrnBusy(true);
+
+        try {
+            setStatus("Posting the GRN...", "pending");
+            await saveGrnDraft();
+            const result = unwrap(await postJson("receiving/post.php", {
+                grn_id: state.receiving.selectedGrn.grn.grn_id
+            }), "Unable to post the GRN.");
+            state.receiving.selectedGrn = null;
+            setReceivingPane("register");
+            await loadReceivingData();
+            setStatus(`${result.grn_number} posted. ${Number(result.units_added).toLocaleString("en-KE")} units added to stock.`, "success");
+        } catch (error) {
+            setStatus(error.message || "Unable to post the GRN.", "error");
+        } finally {
+            setGrnBusy(false);
+        }
+    }
+
     async function loadReceivingData() {
         if (!isRetailer() || state.receiving.loading) return;
 
@@ -1175,6 +1587,7 @@
             state.receiving.branch = registerData.branch || lpoData.branch || locationData.branch || null;
 
             renderGrnRegister();
+            renderCreateLocations();
             renderReceivingLpos();
             setReceivingPane(state.receiving.activeView || "orders");
             setStatus("");
@@ -1623,11 +2036,13 @@
         await loadReceivingData();
     });
     byId("receivingOrdersTab").addEventListener("click", () => {
+        state.receiving.selectedGrn = null;
         state.receiving.selectedOrder = null;
         setReceivingPane("orders");
     });
 
     byId("receivingRegisterTab").addEventListener("click", () => {
+        state.receiving.selectedGrn = null;
         setReceivingPane("register");
     });
 
@@ -1641,6 +2056,33 @@
         state.receiving.selectedOrder = null;
         setReceivingPane("orders");
     });
+    byId("createGrnFromLpoButton").addEventListener("click", handleCreateGrn);
+    byId("saveGrnDraftButton").addEventListener("click", handleSaveGrn);
+    byId("postGrnButton").addEventListener("click", handlePostGrn);
+    byId("closeReceivingEditorButton").addEventListener("click", closeGrnEditor);
+
+    byId("grnRegisterBody").addEventListener("click", event => {
+        const button = event.target.closest("[data-open-grn]");
+        if (button) openGrn(button.dataset.openGrn);
+    });
+
+    byId("grnItemsBody").addEventListener("input", event => {
+        const row = event.target.closest("tr[data-grn-line]");
+        if (!row) return;
+        refreshGrnLine(row);
+        updateGrnTotals();
+    });
+
+    byId("grnItemsBody").addEventListener("click", event => {
+        const button = event.target.closest("[data-remove-grn-line]");
+        if (!button) return;
+        button.closest("tr").remove();
+        syncGrnTable();
+    });
+
+    byId("grnInvoiceNumber").addEventListener("input", updateGrnTotals);
+    byId("grnAddLineButton").addEventListener("click", addGrnLine);
+
     function navigateToLpo(orderId) {
         const url = new URL(window.location.href);
         url.searchParams.set("lpo", orderId);
@@ -1704,11 +2146,25 @@
 
     async function start() {
         if (!await refreshData("", true)) return;
+
+        const query = new URLSearchParams(window.location.search);
+
+        if (query.get("view") === "receiving" && isRetailer()) {
+            activateView("receiving");
+            await loadReceivingData();
+
+            if (query.get("receiving") === "register") {
+                setReceivingPane("register");
+            }
+
+            return;
+        }
+
         activateView("register");
         renderOrders();
 
         const detailMode = applyLpoDetailMode();
-        const orderId = new URLSearchParams(window.location.search).get("lpo");
+        const orderId = query.get("lpo");
 
         if (detailMode && orderId && /^\d+$/.test(orderId)) {
             openOrderDetail(orderId);

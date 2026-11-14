@@ -15,6 +15,8 @@ function require_price_confirmation_password(
         respond_error(401, "Re-enter your administrator password to authorize this {$action}.");
     }
 
+    throttle_block($pdo, 'ADMIN_CONFIRM', (string)$actor['user_id']);
+
     $statement = $pdo->prepare(
         "SELECT password_hash
          FROM users
@@ -32,11 +34,12 @@ function require_price_confirmation_password(
 
     $hash = $statement->fetchColumn();
 
-    if (
-        !is_string($hash) ||
-        $hash === '' ||
-        !password_verify($password, $hash)
-    ) {
+    $valid = is_string($hash) && $hash !== '' && password_verify($password, $hash);
+
+    if (!$valid) {
+        throttle_record_failure($pdo, 'ADMIN_CONFIRM', (string)$actor['user_id']);
         respond_error(401, "Administrator password verification failed. No {$action} was saved.");
     }
+
+    throttle_clear($pdo, 'ADMIN_CONFIRM', (string)$actor['user_id']);
 }

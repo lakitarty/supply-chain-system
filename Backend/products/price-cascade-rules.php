@@ -578,6 +578,17 @@ function price_cascade_build_plan(
         price_cascade_fail(400, 'The proposed manufacturer price is the same as the current price.');
     }
 
+    $manufacturerWarnings = [];
+    $currentRsp = recommendation_in_effect($pdo, $versionId, 'RSP', $effectiveDate);
+
+    if ($currentRsp !== null && $newManufacturerPrice > (float)$currentRsp['amount'] + 0.005) {
+        $manufacturerWarnings[] = sprintf(
+            'The new manufacturer price KSh %s is above the current RSP of KSh %s. Publish new RSP and RRP recommendations after applying it; new supplier appointments for this product are blocked until you do.',
+            number_format($newManufacturerPrice, 2, '.', ''),
+            number_format((float)$currentRsp['amount'], 2, '.', '')
+        );
+    }
+
     $organizationChanges = [];
     $productPriceWrites = [];
     $branchPriceWrites = [];
@@ -1202,6 +1213,7 @@ function price_cascade_build_plan(
         'effective_date' => $effectiveDate,
         'supplier_notices' => $supplierNotices,
         'warnings' => array_values(array_unique($warnings)),
+        'manufacturer_warnings' => $manufacturerWarnings,
         'vat_factor' => round($vatFactor, 8)
     ];
 
@@ -1228,6 +1240,7 @@ function price_cascade_build_plan(
         'organizations' => array_values($organizationChanges),
         'branch_changes' => $branchChanges,
         'warnings' => array_values(array_unique($warnings)),
+        'manufacturer_warnings' => $manufacturerWarnings,
         'review_notifications' => $reviewNotifications,
         'supplier_notices' => $supplierNotices,
         'signature' => hash('sha256', $signatureJson),
@@ -1255,6 +1268,7 @@ function price_cascade_public_plan(array $plan, array $actor): array
     $publicWarnings = empty($plan['warnings'])
         ? []
         : ['Some price-chain participants require setup review. Other organisations’ prices and records remain private.'];
+    $publicWarnings = array_merge($publicWarnings, $plan['manufacturer_warnings'] ?? []);
 
     return [
         'product' => $plan['product'],

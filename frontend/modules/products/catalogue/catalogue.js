@@ -73,11 +73,14 @@
 
 
     let originalCostPrice = "";
+    let originalCostIncludesVat = false;
     let originalSellingPrice = "";
     let originalBasis = "";
     let pricingLoaded = false;
     let priceSaveInProgress = false;
     let livePriceRefreshInProgress = false;
+    let cataloguePageActive = true;
+    const activePromotionRequests = new Set();
 
     function basisChanged() {
         return el.basis.value !== originalBasis;
@@ -136,6 +139,7 @@
         if (el.recommendationType) el.recommendationType.addEventListener("change", updateRecommendationEditorAmount);
         
         await fetchProducts();
+        if (!cataloguePageActive) return;
         startLivePriceRefresh();
         startActivePromotionRefresh();
     }
@@ -439,24 +443,39 @@
     function calcMargin() {
         const cost = parseFloat(el.cost.value) || 0;
         const selling = parseFloat(el.selling.value) || 0;
+
         if (typeof state.vatPercent !== "number") {
             el.profit.textContent = "-";
             el.margin.textContent = "-";
+            el.profit.style.color = "";
+            el.margin.style.color = "";
             return;
         }
 
         const factor = 1 + state.vatPercent / 100;
         const ownManufacturer = !el.basisGroup.hidden;
-        const netCost = ownManufacturer ? cost : cost / factor;
-        const netSelling = ownManufacturer && el.basis.value === "EXCLUSIVE" ? selling : selling / factor;
+        const costChanged =
+            normalizePriceForComparison(el.cost.value) !== originalCostPrice;
+
+        const costIncludesVat = ownManufacturer
+            ? (costChanged ? state.vatPercent > 0 : originalCostIncludesVat)
+            : true;
+
+        const netCost = costIncludesVat ? cost / factor : cost;
+        const netSelling = ownManufacturer && el.basis.value === "EXCLUSIVE"
+            ? selling
+            : selling / factor;
+
         const profit = netSelling - netCost;
         const margin = netSelling > 0 ? (profit / netSelling) * 100 : 0;
-        
+        const isLoss = profit < 0;
+        el.profit.classList.toggle("text-green", !isLoss);
+
         el.profit.textContent = profit.toFixed(2);
         el.margin.textContent = margin.toFixed(1) + "%";
-        el.profit.style.color = profit < 0 ? '#dc2626' : '#16a34a';
+        el.profit.style.color = isLoss ? "#dc2626" : "";
+        el.margin.style.color = isLoss ? "#dc2626" : "";
     }
-
     async function refreshCurrentPricing() {
         if (
             livePriceRefreshInProgress ||
@@ -482,7 +501,7 @@
                 throw new Error(data.error || data.message || "Unable to refresh current prices.");
             }
             if (!data || !Array.isArray(data.prices)) return;
-            if (requestedVersionId !== state.currentVersionId) return;
+            if (!cataloguePageActive || requestedVersionId !== state.currentVersionId) return;
 
             let latestCostValue = "";
             let latestSellingValue = "";
@@ -626,6 +645,10 @@
             return;
         }
 
+        const requestKey = String(versionId);
+        if (!cataloguePageActive || activePromotionRequests.has(requestKey)) return;
+        activePromotionRequests.add(requestKey);
+
         el.activePromotionPrices.hidden = true;
         el.activePromotionList.replaceChildren();
         if (el.recordOfferStatus) el.recordOfferStatus.textContent = "No active promotion";
@@ -638,7 +661,7 @@
             if (response.ok === false || data.success !== true) {
                 throw new Error(data.error || data.message || "Unable to load active promotions.");
             }
-            if (Number(versionId) !== Number(state.currentVersionId)) return;
+            if (!cataloguePageActive || Number(versionId) !== Number(state.currentVersionId)) return;
 
             const today = String(data.today || todayNairobiDate());
             const promotions = (Array.isArray(data.promotions) ? data.promotions : [])
@@ -652,6 +675,8 @@
         } catch (error) {
             if (Number(versionId) === Number(state.currentVersionId)) clearActivePromotions();
             console.error("Unable to load active catalogue promotions:", error);
+        } finally {
+            activePromotionRequests.delete(requestKey);
         }
     }
 
@@ -675,6 +700,7 @@
         state.vatPercent = null;
         pricingLoaded = false;
         originalCostPrice = "";
+        originalCostIncludesVat = false;
         originalSellingPrice = "";
         originalBasis = "";
         el.basis.value = "";
@@ -696,7 +722,10 @@
 
             if (data && data.prices) {
                 data.prices.forEach(p => {
-                    if (p.price_type === "COST") el.cost.value = p.price_amount;
+                    if (p.price_type === "COST") {
+                        el.cost.value = p.price_amount;
+                        originalCostIncludesVat = Number(p.price_includes_vat) === 1;
+                    }
                     if (p.price_type === "SELLING") {
                         el.selling.value = p.price_amount;
                         el.basis.value = Number(p.price_includes_vat) === 1 ? "INCLUSIVE" : "EXCLUSIVE";
@@ -1168,7 +1197,7 @@
                     product_version_id: versionId,
                     price_type: "COST",
                     price_amount: parseFloat(cost),
-                    price_includes_vat: true,
+                    price_includes_vat: isOwnManufacturedProduct ? Number(state.vatPercent) > 0 : true,
                     effective_from: today
                 });
                 costSaved = true;
@@ -1430,6 +1459,21 @@ async function applyPriceCascade() {
     }
 }
 
+
+    const registerCataloguePageCleanup = window.__nexoraPageRouter?.registerCleanup;
+    if (typeof registerCataloguePageCleanup === "function") {
+        registerCataloguePageCleanup(() => {
+            cataloguePageActive = false;
+            if (window.__nexoraCataloguePriceRefreshTimer) {
+                window.clearInterval(window.__nexoraCataloguePriceRefreshTimer);
+                window.__nexoraCataloguePriceRefreshTimer = null;
+            }
+            if (window.__chainBridgeActivePromotionRefreshTimer) {
+                window.clearInterval(window.__chainBridgeActivePromotionRefreshTimer);
+                window.__chainBridgeActivePromotionRefreshTimer = null;
+            }
+        });
+    }
 
     if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", init); } else { init(); }
 })();

@@ -93,6 +93,7 @@ try {
     $itemsStatement = $pdo->prepare(
         "SELECT
             item.grn_item_id,
+            p.manufacturer_id,
             item.supply_order_item_id,
             item.product_id,
             item.product_version_id,
@@ -132,6 +133,8 @@ try {
                 0
             ) AS previously_received_each
          FROM goods_received_note_items item
+         INNER JOIN products p
+            ON p.product_id = item.product_id
          WHERE item.grn_id = ?
          ORDER BY item.grn_item_id"
     );
@@ -141,7 +144,7 @@ try {
 
     foreach ($items as &$item) {
         $item['grn_item_id'] = (int)$item['grn_item_id'];
-        $item['supply_order_item_id'] = (int)$item['supply_order_item_id'];
+        $item['supply_order_item_id'] = $item['supply_order_item_id'] !== null ? (int)$item['supply_order_item_id'] : null;
         $item['product_id'] = (int)$item['product_id'];
         $item['product_version_id'] = $item['product_version_id'] !== null
             ? (int)$item['product_version_id']
@@ -159,6 +162,21 @@ try {
             0,
             $item['lpo_quantity_each'] - $item['previously_received_each']
         );
+        if ($grn['status'] === 'DRAFT') {
+            $tax = receiving_line_tax(
+                $pdo,
+                $item['product_version_id'],
+                (int)$item['manufacturer_id'],
+                (string)($grn['supplier_invoice_date'] ?? $grn['received_date'])
+            );
+
+            $item['tax_category'] = $tax['tax_category'];
+            $item['tax_rate_percent'] = $tax['tax_rate_percent'];
+            $item['taxable_supply'] = $tax['taxable_supply'];
+            $item['tax_calculation_status'] = $tax['tax_calculation_status'];
+        }
+
+        unset($item['manufacturer_id']);
     }
     unset($item);
 

@@ -62,7 +62,7 @@ const TABS = [
                 path: page("products", "management"),
                 types: ["MANUFACTURER", "MANUFACTURER_SUPPLIER"]
             },
-            { label: "Tax classification", path: page("products", "tax"), types: ["MANUFACTURER", "MANUFACTURER_SUPPLIER"], roles: ["ADMIN"] },
+            { label: "Tax classification", path: page("products", "tax") },
             { label: "History", path: page("products", "history") }
         ]
     },
@@ -76,7 +76,7 @@ const TABS = [
             { label: "Supplier coverage", path: page("network", "coverage"), types: ["SUPPLIER", "MANUFACTURER_SUPPLIER"], roles: ["ADMIN"] },
             { label: "Supplier offers", path: page("network", "offers"), types: ["SUPPLIER", "MANUFACTURER_SUPPLIER"], roles: ["ADMIN"] },
             { label: "Distribution", path: page("network", "distribution"), types: ["MANUFACTURER", "MANUFACTURER_SUPPLIER"], roles: ["ADMIN"] },
-            { label: "Supply arrangements", path: page("network", "arrangements"), types: ["RETAILER"], roles: ["ADMIN"] },
+            { label: "Supply arrangements", path: page("network", "arrangements"), types: ["RETAILER", "SUPPLIER", "MANUFACTURER_SUPPLIER"], roles: ["ADMIN"] },
         ]
     },
     {

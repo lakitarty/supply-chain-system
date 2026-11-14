@@ -35,7 +35,7 @@ try {
     $params = [(int)$orderId];
 
     if ($organizationType === 'RETAILER') {
-        if (!in_array($role, ['ADMIN', 'BRANCH_ADMIN'], true)) respond_error(403, 'You do not have permission to view LPO details.');
+        if (!in_array($role, ['ADMIN', 'STAFF', 'BRANCH_ADMIN'], true)) respond_error(403, 'You do not have permission to view LPO details.');
         $sql .= " AND so.retailer_id = ? AND so.order_direction = 'RETAILER_TO_SUPPLIER'";
         $params[] = $organizationId;
         if ($role === 'BRANCH_ADMIN') {
@@ -45,13 +45,13 @@ try {
             $params[] = (int)$assignedBranchId;
         }
     } elseif (in_array($organizationType, ['SUPPLIER', 'MANUFACTURER_SUPPLIER'], true)) {
-        if ($role !== 'ADMIN') respond_error(403, 'Supplier administrator access is required to view LPO details.');
+        if (!in_array($role, ['ADMIN', 'STAFF'], true)) respond_error(403, 'Supplier purchasing access is required to view LPO details.');
         $sql .= " AND ((so.supplier_id = ? AND so.order_direction IN ('RETAILER_TO_SUPPLIER','SUPPLIER_TO_MANUFACTURER') AND so.status <> 'DRAFT')
                        OR (so.retailer_id = ? AND so.order_direction = 'SUPPLIER_TO_MANUFACTURER'))";
         $params[] = $organizationId;
         $params[] = $organizationId;
     } elseif ($organizationType === 'MANUFACTURER') {
-        if ($role !== 'ADMIN') respond_error(403, 'Manufacturer administrator access is required to view incoming LPO details.');
+        if (!in_array($role, ['ADMIN', 'STAFF'], true)) respond_error(403, 'Manufacturer purchasing access is required to view incoming LPO details.');
         $sql .= " AND so.supplier_id = ? AND so.order_direction = 'SUPPLIER_TO_MANUFACTURER' AND so.status <> 'DRAFT'";
         $params[] = $organizationId;
     } else {

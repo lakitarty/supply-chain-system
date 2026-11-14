@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="../../../shared/css/base.css">
     <link rel="stylesheet" href="../../../shared/css/shell.css">
     <link rel="stylesheet" href="arrangements.css">
+    <link rel="stylesheet" href="../../../shared/css/password-dialog.css">
 </head>
 <body>
     <div id="shell"></div>
@@ -17,7 +18,7 @@
             <button type="button" class="secondary-button" id="refreshArrangements">Refresh</button>
         </header>
 
-        <p class="arrangements-intro">
+        <p id="arrangementsIntro" class="arrangements-intro">
             When a manufacturer appoints one of your suppliers to supply a product in a county where you trade,
             you decide here whether to take that product from that supplier. Your decision covers all your branches in that county.
         </p>
@@ -47,7 +48,7 @@
             <section id="arrangementDetail" class="arrangement-detail" hidden aria-live="polite">
                 <dl>
                     <div><dt>Product</dt><dd id="detailProduct"></dd></div>
-                    <div><dt>Supplier</dt><dd id="detailSupplier"></dd></div>
+                    <div><dt id="detailPartyLabel">Supplier</dt><dd id="detailSupplier"></dd></div>
                     <div><dt>County</dt><dd id="detailArea"></dd></div>
                     <div><dt>Period</dt><dd id="detailPeriod"></dd></div>
                     <div><dt>Your decision</dt><dd id="detailDecision"></dd></div>
@@ -65,6 +66,7 @@
     <script src="../../../shared/js/navigation.js"></script>
     <script src="../../../shared/js/shell.js"></script>
     <script src="../../../shared/js/page-router.js"></script>
+    <script src="../../../shared/js/password-dialog.js"></script>
     <script src="arrangements.js"></script>
 </body>
 </html>

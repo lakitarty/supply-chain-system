@@ -14,8 +14,8 @@ require_post();
 try {
     $actor = require_login($pdo);
     if (!in_array($actor['organization_type'], ['SUPPLIER', 'MANUFACTURER_SUPPLIER'], true)
-        || $actor['role'] !== 'ADMIN') {
-        respond_error(403, 'Supplier administrator access is required to create an outgoing LPO.');
+        || !in_array($actor['role'], ['ADMIN', 'STAFF'], true)) {
+        respond_error(403, 'Supplier purchasing access is required to create an outgoing LPO.');
     }
 
     $body = read_json_body();

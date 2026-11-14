@@ -27,12 +27,15 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 }
 
 try {
+    throttle_block($pdo, 'LOGIN', $email, true);
+
     $row = fetch_account($pdo, 'email', $email);
 
     $hashToCheck = $row['password_hash']
         ?? password_hash(bin2hex(random_bytes(8)), PASSWORD_DEFAULT);
 
     if (!password_verify($password, $hashToCheck) || !$row) {
+        throttle_record_failure($pdo, 'LOGIN', $email);
         respond(401, [
             'success' => false,
             'error' => 'Invalid email or password.'
@@ -53,6 +56,7 @@ try {
         $rehash->execute([password_hash($password, PASSWORD_DEFAULT), $row['user_id']]);
     }
 
+    throttle_clear($pdo, 'LOGIN', $email);
     $account = account_payload($row);
     sign_in($account);
 

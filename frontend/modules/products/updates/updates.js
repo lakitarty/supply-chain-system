@@ -10,6 +10,18 @@ const prepareSection = field("prepareSection");
 const prepareForm = field("prepareForm");
 const formMessage = field("formMessage");
 const saveButton = field("saveButton");
+const prepareToggleButton = field("prepareToggleButton");
+const updatesSummary = field("updatesSummary");
+const changeSearch = field("changeSearch");
+const changeStatusFilter = field("changeStatusFilter");
+const changeDirectionFilter = field("changeDirectionFilter");
+const changeList = field("changeList");
+const changeCount = field("changeCount");
+const changeTitle = field("changeTitle");
+const changeSubtitle = field("changeSubtitle");
+const changeStatusBadge = field("changeStatusBadge");
+const changeDetailContent = field("changeDetailContent");
+const changeEmptyState = field("changeEmptyState");
 
 const POLL_MILLISECONDS = 4000;
 
@@ -23,6 +35,7 @@ let changes = [];
 let threadChangeId = null;
 let lastMessageId = 0;
 let permissions = { can_create: false, can_publish: false };
+let productUpdatesPageActive = true; let productUpdatesPollInProgress = false; let productUpdatesPollTimer = null;
 
 const acknowledgementActions = document.createElement("div");
 acknowledgementActions.className = "form-actions acknowledgement-actions";
@@ -219,21 +232,37 @@ function messageLine(message) {
 }
 
 async function pollMessages() {
+    if (!productUpdatesPageActive || productUpdatesPollInProgress) return;
+
     const change = selectedChange();
 
-    if (!change || change.status !== "PUBLISHED") {
-        return;
+    if (!change || change.status !== "PUBLISHED") return;
+
+    productUpdatesPollInProgress = true;
+
+    try {
+        const { ok, data } = await getJson(`messages/list.php?changeId=${change.product_change_id}&after=${lastMessageId}`);
+
+        if (
+            !productUpdatesPageActive ||
+            !ok ||
+            !Array.isArray(data?.messages) ||
+            data.messages.length === 0 ||
+            selectedChange()?.product_change_id !== change.product_change_id
+        ) {
+            return;
+        }
+
+        threadLog.append(...data.messages.map(messageLine));
+        lastMessageId = Number(data.messages.at(-1).message_id);
+        threadLog.scrollTop = threadLog.scrollHeight;
+    } catch (error) {
+        if (productUpdatesPageActive) {
+            console.error("Product update message polling failed:", error);
+        }
+    } finally {
+        productUpdatesPollInProgress = false;
     }
-
-    const { ok, data } = await getJson(`messages/list.php?changeId=${change.product_change_id}&after=${lastMessageId}`);
-
-    if (!ok || data.messages.length === 0 || selectedChange()?.product_change_id !== change.product_change_id) {
-        return;
-    }
-
-    threadLog.append(...data.messages.map(messageLine));
-    lastMessageId = Number(data.messages.at(-1).message_id);
-    threadLog.scrollTop = threadLog.scrollHeight;
 }
 
 function renderThread(change) {
@@ -249,16 +278,173 @@ function renderThread(change) {
     }
 }
 
+function statusClass(value) {
+    return String(value || "unknown")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-");
+}
+
+function renderChangeSummary() {
+    const total = changes.length;
+    const incoming = changes.filter(isIncoming).length;
+    const pending = changes.filter(
+        change => change.status === "PENDING_APPROVAL"
+    ).length;
+    const published = changes.filter(
+        change => change.status === "PUBLISHED"
+    ).length;
+
+    const metrics = [
+        ["Total updates", total, "total"],
+        ["Incoming", incoming, "incoming"],
+        ["Pending approval", pending, "pending"],
+        ["Published", published, "published"]
+    ];
+
+    updatesSummary.replaceChildren(
+        ...metrics.map(([label, value, key]) => {
+            const item = document.createElement("div");
+            item.className = `updates-summary-item is-${key}`;
+
+            item.append(
+                element("span", "updates-summary-label", label),
+                element("strong", "updates-summary-value", value)
+            );
+
+            return item;
+        })
+    );
+}
+
+function renderChangeRegister() {
+    const search = String(changeSearch.value || "").trim().toLowerCase();
+    const status = changeStatusFilter.value;
+    const direction = changeDirectionFilter.value;
+
+    const filtered = changes.filter(change => {
+        const searchable = [
+            change.product_name,
+            change.manufacturer_name,
+            change.old_barcode,
+            change.new_barcode,
+            change.change_type,
+            change.status,
+            change.reason
+        ].filter(Boolean).join(" ").toLowerCase();
+
+        const matchesSearch = !search || searchable.includes(search);
+        const matchesStatus = status === "ALL" || change.status === status;
+        const matchesDirection =
+            direction === "ALL" ||
+            (direction === "INCOMING" && isIncoming(change)) ||
+            (direction === "OUTGOING" && !isIncoming(change));
+
+        return matchesSearch && matchesStatus && matchesDirection;
+    });
+
+    changeCount.textContent = `${filtered.length} of ${changes.length}`;
+
+    if (!filtered.length) {
+        const empty = element(
+            "p",
+            "updates-empty",
+            changes.length
+                ? "No updates match your search or filters."
+                : "No product updates have been recorded."
+        );
+
+        changeList.replaceChildren(empty);
+        renderChangeSummary();
+        return;
+    }
+
+    const items = filtered.map(change => {
+        const id = String(change.product_change_id);
+        const selected = id === changeSelect.value;
+        const incoming = isIncoming(change);
+
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "updates-list-item";
+        button.dataset.changeId = id;
+        button.setAttribute("role", "option");
+        button.setAttribute("aria-selected", selected ? "true" : "false");
+
+        if (selected) button.classList.add("is-selected");
+
+        const top = element("div", "updates-list-item-top");
+        const kind = element(
+            "span",
+            "updates-list-direction",
+            incoming ? "INCOMING" : "FROM YOUR ORGANISATION"
+        );
+
+        const badge = element(
+            "span",
+            `updates-list-status is-${statusClass(change.status)}`,
+            readable(change.status)
+        );
+
+        top.append(kind, badge);
+
+        const name = element(
+            "div",
+            "updates-list-product",
+            change.product_name || "Unnamed product"
+        );
+
+        const details = element(
+            "div",
+            "updates-list-meta",
+            [
+                readable(change.change_type),
+                incoming
+                    ? change.manufacturer_name
+                    : "Prepared by your organisation",
+                change.created_at ? change.created_at.slice(0, 10) : ""
+            ].filter(Boolean).join("  ·  ")
+        );
+
+        button.append(top, name, details);
+
+        return button;
+    });
+
+    changeList.replaceChildren(...items);
+    renderChangeSummary();
+}
+
 function renderSelectedChange() {
     const change = selectedChange();
     const action = change ? actionFor(change) : null;
 
-    renderThread(change);
+    changeEmptyState.hidden = Boolean(change);
+    changeDetailContent.hidden = !change;
 
-    renderDetailList(changeDetail, change ? detailRows(change) : []);
+    if (!change) {
+        threadSection.hidden = true;
+        changeActions.hidden = true;
+        acknowledgementActions.hidden = true;
+        actionNote.textContent = "";
+        return;
+    }
+
+    changeTitle.textContent = change.product_name || "Product update";
+
+    changeSubtitle.textContent = [
+        change.manufacturer_name,
+        readable(change.change_type),
+        `Change ${change.product_change_id}`
+    ].filter(Boolean).join("  ·  ");
+
+    changeStatusBadge.textContent = readable(change.status);
+    changeStatusBadge.className =
+        `updates-status-badge is-${statusClass(change.status)}`;
+
+    renderThread(change);
+    renderDetailList(changeDetail, detailRows(change));
 
     const canViewAcknowledgements = Boolean(
-        change &&
         !isIncoming(change) &&
         change.status === "PUBLISHED" &&
         Array.isArray(change.recipients) &&
@@ -278,24 +464,36 @@ function renderSelectedChange() {
 
     changeActions.hidden = action === null;
     actionButton.textContent = action?.label ?? "";
-    actionNote.textContent = change ? noteFor(change) : "";
+    actionNote.textContent = noteFor(change);
 }
 
 function renderChanges(selectedId) {
+    const previousId = selectedId !== undefined
+        ? String(selectedId)
+        : changeSelect.value;
+
     changeSelect.replaceChildren(
-        ...(changes.length === 0
-            ? [option("", "No product changes yet")]
-            : changes.map(change => option(String(change.product_change_id), describeChange(change))))
+        ...changes.map(change =>
+            option(
+                String(change.product_change_id),
+                describeChange(change)
+            )
+        )
     );
+
     changeSelect.disabled = changes.length === 0;
 
-    if (selectedId !== undefined) {
-        changeSelect.value = String(selectedId);
-    }
+    const target = changes.find(
+        change => String(change.product_change_id) === previousId
+    ) || changes[0];
 
+    changeSelect.value = target
+        ? String(target.product_change_id)
+        : "";
+
+    renderChangeRegister();
     renderSelectedChange();
 }
-
 async function loadChanges(selectedId) {
     const { ok, data } = await getJson("changes/list.php");
 
@@ -304,9 +502,12 @@ async function loadChanges(selectedId) {
         return;
     }
 
-    changes = data.changes;
+    changes = Array.isArray(data.changes) ? data.changes : [];
     permissions = data;
-    prepareSection.hidden = !data.can_create;
+    prepareSection.hidden = true;
+    prepareToggleButton.hidden = !data.can_create;
+    prepareToggleButton.setAttribute("aria-expanded", "false");
+    prepareToggleButton.textContent = "Prepare a change";
     renderChanges(selectedId);
 }
 
@@ -372,12 +573,51 @@ async function submitMessage(event) {
 actionButton.addEventListener("click", runAction);
 messageForm.addEventListener("submit", submitMessage);
 clearErrorOnInput(messageForm);
-setInterval(() => {
-    if (!document.hidden) {
-        pollMessages();
-    }
+const registerProductUpdatesCleanup = window.__nexoraPageRouter?.registerCleanup;
+if (typeof registerProductUpdatesCleanup === "function") {
+    registerProductUpdatesCleanup(() => {
+        productUpdatesPageActive = false;
+        if (productUpdatesPollTimer !== null) {
+            window.clearInterval(productUpdatesPollTimer);
+            productUpdatesPollTimer = null;
+        }
+    });
+}
+
+productUpdatesPollTimer = window.setInterval(() => {
+    if (!productUpdatesPageActive || document.hidden || productUpdatesPollInProgress) return;
+    void pollMessages();
 }, POLL_MILLISECONDS);
-changeSelect.addEventListener("change", renderSelectedChange);
+changeSelect.addEventListener("change", () => {
+    renderChangeRegister();
+    renderSelectedChange();
+});
+
+changeList.addEventListener("click", event => {
+    const item = event.target.closest("[data-change-id]");
+    if (!item || !changeList.contains(item)) return;
+
+    changeSelect.value = item.dataset.changeId;
+    renderChangeRegister();
+    renderSelectedChange();
+});
+
+changeSearch.addEventListener("input", renderChangeRegister);
+changeStatusFilter.addEventListener("change", renderChangeRegister);
+changeDirectionFilter.addEventListener("change", renderChangeRegister);
+
+prepareToggleButton.addEventListener("click", () => {
+    const opening = prepareSection.hidden;
+    prepareSection.hidden = !opening;
+    prepareToggleButton.setAttribute("aria-expanded", String(opening));
+    prepareToggleButton.textContent = opening
+        ? "Close form"
+        : "Prepare a change";
+
+    if (opening) {
+        field("productId").focus();
+    }
+});
 prepareForm.addEventListener("submit", submitChange);
 clearErrorOnInput(prepareForm);
 

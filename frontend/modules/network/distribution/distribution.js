@@ -239,7 +239,10 @@ function renderAreas() {
 }
 
 function appointmentStatus(appointment) {
-    if (String(appointment.status).toUpperCase() !== "ACTIVE") return "Ended";
+    const appointmentState = String(appointment.status).toUpperCase();
+    if (appointmentState === "PENDING") return "Awaiting supplier";
+    if (appointmentState === "DECLINED") return "Declined";
+    if (appointmentState !== "ACTIVE") return "Ended";
     if (appointment.end_date && appointment.end_date < todayString()) return "Ended";
     if (appointment.start_date > todayString()) return "Scheduled";
     return "Running";
@@ -254,7 +257,8 @@ function renderAppointments() {
 
         if (statusFilter.value === "running") return status === "Running";
         if (statusFilter.value === "scheduled") return status === "Scheduled";
-        if (statusFilter.value === "ended") return status === "Ended";
+        if (statusFilter.value === "awaiting") return status === "Awaiting supplier";
+        if (statusFilter.value === "ended") return status === "Ended" || status === "Declined";
         return true;
     });
 
@@ -298,12 +302,12 @@ function renderAppointments() {
 
         const action = makeElement("td", "");
 
-        if (status === "Running" || status === "Scheduled") {
+        if (status === "Running" || status === "Scheduled" || status === "Awaiting supplier") {
             const withdrawing = status === "Running" && Boolean(appointment.end_date);
             const button = makeElement(
                 "button",
                 "distribution-end-button",
-                status === "Scheduled" ? "Cancel" : (withdrawing ? "Withdraw notice" : "End appointment")
+                status === "Scheduled" || status === "Awaiting supplier" ? "Cancel" : (withdrawing ? "Withdraw notice" : "End appointment")
             );
             button.type = "button";
             button.addEventListener("click", () => endAppointment(appointment, withdrawing));
@@ -318,7 +322,7 @@ function renderAppointments() {
 }
 
 async function endAppointment(appointment, withdraw = false) {
-    const scheduled = appointmentStatus(appointment) === "Scheduled";
+    const scheduled = ["Scheduled", "Awaiting supplier"].includes(appointmentStatus(appointment));
     const subject = `${appointment.product_name} with ${appointment.supplier_name} in ${appointment.area_name || "the unassigned county"}`;
     const consequence = withdraw
         ? "The ending notice will be withdrawn and supply will continue."

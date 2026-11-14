@@ -169,35 +169,9 @@ function product_price_problems(PDO $pdo, int $productId, string $date): array
         return $problems;
     }
 
-    $costCents = amount_to_cents($amounts['Production cost']);
     $sellingCents = amount_to_cents($amounts['Manufacturer selling price']);
     $rspCents = amount_to_cents($amounts['RSP (recommended supplier price)']);
     $rrpCents = amount_to_cents($amounts['RRP (recommended retail price)']);
-    $sellingNetCents = $sellingCents;
-
-    if ((int)$selling['price_includes_vat'] === 1 && $tax['tax_category'] === 'STANDARD_RATED') {
-        $rate = price_rule_row(
-            $pdo,
-            "SELECT rate_percent
-             FROM tax_rate_schedule
-             WHERE tax_category = 'STANDARD_RATED'
-               AND effective_from <= ?
-               AND (effective_to IS NULL OR effective_to >= ?)
-             ORDER BY effective_from DESC
-             LIMIT 1",
-            [$date, $date]
-        );
-
-        if ($rate === null) {
-            return ['No VAT rate is recorded for standard-rated products on this date.'];
-        }
-
-        $sellingNetCents = (int)round($sellingCents / (1 + (float)$rate['rate_percent'] / 100));
-    }
-
-    if ($costCents > $sellingNetCents) {
-        $problems[] = 'Production cost is above the manufacturer selling price after removing VAT.';
-    }
 
     if ($sellingCents > $rspCents) {
         $problems[] = 'The manufacturer selling price is above the RSP.';
@@ -374,64 +348,99 @@ function reprice_for_tax_change(
     float $newPercent,
     int $userId
 ): array {
-    $selling = price_rule_row(
-        $pdo,
-        "SELECT *
-         FROM product_prices
-         WHERE organization_id = ?
-           AND product_version_id = ?
-           AND price_type = 'SELLING'
-           AND effective_from <= ?
-           AND (effective_to IS NULL OR effective_to >= ?)
-         ORDER BY effective_from DESC, price_id DESC
-         LIMIT 1
-         FOR UPDATE",
-        [$manufacturerId, $versionId, $effectiveFrom, $effectiveFrom]
+    $convert = static fn(float $amount): float => round(
+        $amount / (1 + $oldPercent / 100) * (1 + $newPercent / 100),
+        2
     );
 
-    if ($selling === null || (int)$selling['price_includes_vat'] !== 1) {
-        return [];
-    }
-
-    $convert = static fn(float $amount): float => round($amount / (1 + $oldPercent / 100) * (1 + $newPercent / 100), 2);
     $dayBefore = (new DateTimeImmutable($effectiveFrom))->modify('-1 day')->format('Y-m-d');
-    $oldSelling = (float)$selling['price_amount'];
-    $newSelling = $convert($oldSelling);
+    $changes = [];
+    $selling = null;
 
-    if ((string)$selling['effective_from'] >= $effectiveFrom) {
-        $pdo->prepare('UPDATE product_prices SET price_amount = ?, tax_category = ? WHERE price_id = ?')
-            ->execute([$newSelling, $category, (int)$selling['price_id']]);
-    } else {
-        $pdo->prepare('UPDATE product_prices SET effective_to = ? WHERE price_id = ?')
-            ->execute([$dayBefore, (int)$selling['price_id']]);
-        $pdo->prepare(
-            "INSERT INTO product_prices
-                (organization_id, product_id, product_version_id, price_type, price_amount,
-                 price_includes_vat, tax_category, effective_from, effective_to)
-             VALUES (?, ?, ?, 'SELLING', ?, 1, ?, ?, ?)"
-        )->execute([
-            $manufacturerId,
-            (int)$selling['product_id'],
-            $versionId,
-            $newSelling,
-            $category,
-            $effectiveFrom,
-            $selling['effective_to']
-        ]);
+    foreach (['COST', 'SELLING'] as $priceType) {
+        $price = price_rule_row(
+            $pdo,
+            "SELECT *
+             FROM product_prices
+             WHERE organization_id = ?
+               AND product_version_id = ?
+               AND price_type = ?
+               AND effective_from <= ?
+               AND (effective_to IS NULL OR effective_to >= ?)
+             ORDER BY effective_from DESC, price_id DESC
+             LIMIT 1
+             FOR UPDATE",
+            [$manufacturerId, $versionId, $priceType, $effectiveFrom, $effectiveFrom]
+        );
+
+        if ($priceType === 'SELLING') {
+            $selling = $price;
+        }
+
+        if ($price === null || (int)$price['price_includes_vat'] !== 1) {
+            continue;
+        }
+
+        $oldAmount = (float)$price['price_amount'];
+        $newAmount = $convert($oldAmount);
+        $newIncludesVat = $priceType === 'COST'
+            ? ($newPercent > 0 ? 1 : 0)
+            : 1;
+
+        if ((string)$price['effective_from'] >= $effectiveFrom) {
+            $pdo->prepare(
+                'UPDATE product_prices
+                 SET price_amount = ?, price_includes_vat = ?, tax_category = ?
+                 WHERE price_id = ?'
+            )->execute([
+                $newAmount,
+                $newIncludesVat,
+                $category,
+                (int)$price['price_id']
+            ]);
+        } else {
+            $pdo->prepare(
+                'UPDATE product_prices SET effective_to = ? WHERE price_id = ?'
+            )->execute([$dayBefore, (int)$price['price_id']]);
+
+            $pdo->prepare(
+                'INSERT INTO product_prices
+                    (organization_id, product_id, product_version_id, price_type,
+                     price_amount, price_includes_vat, tax_category, effective_from, effective_to)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            )->execute([
+                $manufacturerId,
+                (int)$price['product_id'],
+                $versionId,
+                $priceType,
+                $newAmount,
+                $newIncludesVat,
+                $category,
+                $effectiveFrom,
+                $price['effective_to']
+            ]);
+        }
+
+        $label = $priceType === 'COST'
+            ? 'Production cost'
+            : 'Manufacturer selling price';
+
+        $changes[] = sprintf(
+            '%s KSh %s to KSh %s',
+            $label,
+            number_format($oldAmount, 2, '.', ''),
+            number_format($newAmount, 2, '.', '')
+        );
     }
 
-    $changes = [
-        sprintf(
-            'Manufacturer selling price KSh %s to KSh %s',
-            number_format($oldSelling, 2, '.', ''),
-            number_format($newSelling, 2, '.', '')
-        )
-    ];
+    if ($selling === null || (int)$selling['price_includes_vat'] !== 1) {
+        return $changes;
+    }
 
     $insert = $pdo->prepare(
         "INSERT INTO product_price_recommendations
-            (manufacturer_id, product_id, product_version_id, recommendation_type, amount,
-             currency, effective_from, created_by_user_id)
+            (manufacturer_id, product_id, product_version_id, recommendation_type,
+             amount, currency, effective_from, created_by_user_id)
          VALUES (?, ?, ?, ?, ?, 'KES', ?, ?)"
     );
 
@@ -442,10 +451,25 @@ function reprice_for_tax_change(
             continue;
         }
 
-        $old = (float)$recommendation['amount'];
-        $new = $convert($old);
-        $insert->execute([$manufacturerId, (int)$selling['product_id'], $versionId, $type, $new, $effectiveFrom, $userId]);
-        $changes[] = sprintf('%s KSh %s to KSh %s', $type, number_format($old, 2, '.', ''), number_format($new, 2, '.', ''));
+        $oldAmount = (float)$recommendation['amount'];
+        $newAmount = $convert($oldAmount);
+
+        $insert->execute([
+            $manufacturerId,
+            (int)$selling['product_id'],
+            $versionId,
+            $type,
+            $newAmount,
+            $effectiveFrom,
+            $userId
+        ]);
+
+        $changes[] = sprintf(
+            '%s KSh %s to KSh %s',
+            $type,
+            number_format($oldAmount, 2, '.', ''),
+            number_format($newAmount, 2, '.', '')
+        );
     }
 
     return $changes;

@@ -272,6 +272,7 @@ async function submitProduct(event) {
         const endpoint = editing ? "products/update.php" : "products/create.php";
 
         const response = await fetch(apiUrl(endpoint), {
+            headers: await csrfHeaders(),
             method: "POST",
             credentials: "include",
             cache: "no-store",

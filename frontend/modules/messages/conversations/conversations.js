@@ -30,6 +30,15 @@
     let lastMessageId = 0;
     let showingDirectory = false;
     let loadingMessages = false;
+    let messagesLoadPromise = null;
+    let messagesLoadPending = false;
+    let messagesLoadResetPending = false;
+    let unsubscribeRealtimeEvents = null;
+    let unsubscribeRealtimeStatus = null;
+    let conversationRefreshInProgress = false;
+    let conversationRefreshPromise = null;
+    let conversationRefreshPending = false;
+    let conversationPageActive = true;
 
     function setNotice(message, type = "") {
         elements.notice.textContent = message;
@@ -297,33 +306,60 @@
         }
     }
 
-    async function loadMessages(reset = false) {
-        if (!activeConversationId || loadingMessages) return;
+    function loadMessages(reset = false) {
+        if (!activeConversationId) return Promise.resolve();
+
+        if (messagesLoadPromise) {
+            messagesLoadPending = true;
+            messagesLoadResetPending = messagesLoadResetPending || reset;
+            return messagesLoadPromise;
+        }
+
         loadingMessages = true;
 
-        try {
-            if (reset) lastMessageId = 0;
-            const params = new URLSearchParams({
-                action: "messages",
-                conversationId: String(activeConversationId),
-                after: String(lastMessageId),
-                markViewed: reset ? "1" : "0"
-            });
+        messagesLoadPromise = (async () => {
+            let shouldReset = reset;
 
-            const response = await getJson(
-                `messages/direct-conversations.php?${params.toString()}`
-            );
+            do {
+                messagesLoadPending = false;
 
-            if (!response.ok || !response.data?.success) {
-                throw new Error(response.data?.error || "Unable to load messages.");
-            }
+                const conversationId = activeConversationId;
+                if (!conversationId) break;
 
-            renderMessages(response.data.messages || [], !reset);
-        } finally {
+                if (shouldReset) lastMessageId = 0;
+
+                const params = new URLSearchParams({
+                    action: "messages",
+                    conversationId: String(conversationId),
+                    after: String(lastMessageId),
+                    markViewed: shouldReset ? "1" : "0"
+                });
+
+                const response = await getJson(
+                    `messages/direct-conversations.php?${params.toString()}`
+                );
+
+                if (!response.ok || !response.data?.success) {
+                    throw new Error(response.data?.error || "Unable to load messages.");
+                }
+
+                if (activeConversationId === conversationId) {
+                    renderMessages(response.data.messages || [], !shouldReset);
+                }
+
+                shouldReset = messagesLoadResetPending;
+                messagesLoadResetPending = false;
+            } while (messagesLoadPending && activeConversationId);
+
+        })().finally(() => {
             loadingMessages = false;
-        }
-    }
+            messagesLoadPromise = null;
+            messagesLoadPending = false;
+            messagesLoadResetPending = false;
+        });
 
+        return messagesLoadPromise;
+    }
     async function openExistingConversation(conversation) {
         activeConversationId = Number(conversation.conversation_id);
         activeOrganisation = {
@@ -435,6 +471,49 @@
 
     elements.messageForm.addEventListener("submit", sendMessage);
 
+    function refreshConversationsFromRealtime() {
+        if (
+            !conversationPageActive ||
+            document.visibilityState !== "visible" ||
+            showingDirectory
+        ) return Promise.resolve();
+
+        if (conversationRefreshPromise) {
+            conversationRefreshPending = true;
+            return conversationRefreshPromise;
+        }
+
+        conversationRefreshInProgress = true;
+
+        conversationRefreshPromise = (async () => {
+            do {
+                conversationRefreshPending = false;
+
+                await loadConversations();
+
+                if (conversationPageActive && activeConversationId) {
+                    await loadMessages();
+                }
+            } while (
+                conversationRefreshPending &&
+                conversationPageActive &&
+                document.visibilityState === "visible" &&
+                !showingDirectory
+            );
+        })().finally(() => {
+            conversationRefreshInProgress = false;
+            conversationRefreshPromise = null;
+        });
+
+        return conversationRefreshPromise;
+    }
+    function handleConversationVisibilityChange() {
+        if (document.visibilityState === "visible") {
+            void refreshConversationsFromRealtime().catch(error => {
+                console.error("Conversation visibility refresh failed.", error);
+            });
+        }
+    }
     async function initialise() {
         try {
             const account = await shellReady;
@@ -449,21 +528,59 @@
             );
 
             await Promise.all([loadConversations(), loadDirectory()]);
-            window.setInterval(async () => {
-                if (document.visibilityState !== "visible" || showingDirectory) return;
+            if (!conversationPageActive) return;
 
-                try {
-                    await loadConversations();
-                    if (activeConversationId) {
-                        await loadMessages();
-                    }
-                } catch (error) {
-                    console.error("Automatic conversation update failed.", error);
-                }
-            }, 4000);
+            if (window.chainBridgeRealtime) {
+                unsubscribeRealtimeEvents = window.chainBridgeRealtime.subscribe(event => {
+                    if (
+                        !conversationPageActive ||
+                        event?.type !== "notification.created"
+                    ) return;
+
+                    return refreshConversationsFromRealtime();
+                });
+
+                unsubscribeRealtimeStatus = window.chainBridgeRealtime.subscribeStatus(status => {
+                    if (
+                        !conversationPageActive ||
+                        status?.connected !== true
+                    ) return;
+
+                    return refreshConversationsFromRealtime();
+                });
+
+                void refreshConversationsFromRealtime().catch(error => {
+                console.error("Conversation visibility refresh failed.", error);
+            });
+            }
         } catch (error) {
             setNotice(error.message || "Unable to load conversations.", "error");
         }
+    }
+
+    document.addEventListener("visibilitychange", handleConversationVisibilityChange);
+
+    const registerPageCleanup = window.__nexoraPageRouter?.registerCleanup;
+
+    if (typeof registerPageCleanup === "function") {
+        registerPageCleanup(() => {
+            conversationPageActive = false;
+
+            document.removeEventListener(
+                "visibilitychange",
+                handleConversationVisibilityChange
+            );
+
+            if (typeof unsubscribeRealtimeEvents === "function") {
+                unsubscribeRealtimeEvents();
+                unsubscribeRealtimeEvents = null;
+            }
+
+            if (typeof unsubscribeRealtimeStatus === "function") {
+                unsubscribeRealtimeStatus();
+                unsubscribeRealtimeStatus = null;
+            }
+        });
     }
 
     initialise();

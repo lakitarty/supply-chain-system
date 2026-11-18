@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
    require_once __DIR__ . '/../core/validation.php';
+require_once __DIR__ . '/../core/inventory-location-provisioning.php';
    require_once __DIR__ . '/organization-rules.php';
 const ORGANIZATION_TYPES = ['MANUFACTURER', 'SUPPLIER', 'MANUFACTURER_SUPPLIER', 'RETAILER'];
 
@@ -130,6 +131,8 @@ function create_registration(PDO $pdo, array $input): int
         ]);
         $branchId = (int)$pdo->lastInsertId();
 
+        provision_default_inventory_location($pdo, $organizationId, $branchId);
+
         $user = $pdo->prepare(
             "INSERT INTO users
                 (organization_id, branch_id, first_name, last_name, email, password_hash, role, status)
@@ -149,8 +152,11 @@ function create_registration(PDO $pdo, array $input): int
 
         return $userId;
 
-    } catch (PDOException $e) {
-        $pdo->rollBack();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
         throw $e;
     }
 }

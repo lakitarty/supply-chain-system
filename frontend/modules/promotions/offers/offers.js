@@ -8,7 +8,7 @@
         list: byId("retailerOffersList"),
         detail: byId("retailerOfferDetail")
     };
-    const state = { account: null, today: "", role: "", branchId: null, branches: [], offers: [], selectedId: 0, busy: false };
+    const state = { account: null, today: "", role: "", branches: [], offers: [], selectedId: 0, busy: false };
 
     function esc(value) {
         return String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -42,7 +42,6 @@
         const data = apiData(await getJson("promotions/retailer-campaigns-list.php"), "Unable to load manufacturer campaigns.");
         state.today = data.today || state.today;
         state.role = data.role || state.account?.user?.role || "";
-        state.branchId = data.branch_id === null ? null : Number(data.branch_id);
         state.branches = Array.isArray(data.branches) ? data.branches : [];
         state.offers = Array.isArray(data.offers) ? data.offers : [];
         const selected = state.offers.find(o => Number(o.promotion_id) === Number(preserveId)) || state.offers[0] || null;
@@ -80,17 +79,7 @@
         const branches = offer.branches || [];
         if (!branches.length) return '<p class="retailer-offer-empty">No branches selected for this campaign yet.</p>';
         return branches.map(b => {
-            let action = "";
-            if (b.status === "PENDING" && offer.status === "APPROVED" && state.today >= offer.start_date && state.today <= offer.end_date && ["ADMIN", "BRANCH_ADMIN"].includes(state.role)) {
-                if (state.role === "ADMIN" || Number(state.branchId) === Number(b.branch_id)) {
-                    action = `<button type="button" class="primary-button" data-action="start_branch" data-branch-id="${Number(b.branch_id)}">Commence</button>`;
-                }
-            } else if (b.status === "PENDING" && state.today < offer.start_date) {
-                action = `<span>Starts ${esc(dateText(offer.start_date))}</span>`;
-            } else if (b.status === "ACTIVE" && state.today > offer.end_date && ["ADMIN", "BRANCH_ADMIN"].includes(state.role)
-                && (state.role === "ADMIN" || Number(state.branchId) === Number(b.branch_id))) {
-                action = `<button type="button" class="secondary-button" data-action="complete_branch" data-branch-id="${Number(b.branch_id)}">Mark complete</button>`;
-            }
+            const action = b.status === "ACTIVE" ? `<span>Runs ${esc(dateText(offer.start_date))} to ${esc(dateText(offer.end_date))}</span>` : "";
             return `<div class="retailer-offer-branch-line"><div><strong>${esc(b.branch_name)}</strong> &nbsp; ${statusMarkup(b.status)}</div>${action}</div>`;
         }).join("");
     }
@@ -140,9 +129,8 @@
             ${branchSection}`;
     }
 
-    async function runAction(action, branchId = null) {
+    async function runAction(action) {
         const body = { promotionId: Number(state.selectedId), action };
-        if (branchId !== null) body.branchId = Number(branchId);
         if (action === "accept") {
             body.branchIds = Array.from(ui.detail.querySelectorAll('input[name="offerBranch"]:checked')).map(input => Number(input.value));
             if (!body.branchIds.length) throw new Error("Select at least one branch before accepting the campaign.");
@@ -163,7 +151,7 @@
         if (!actionButton) return;
         try {
             setBusy(true); clearNotice();
-            await runAction(actionButton.dataset.action, actionButton.dataset.branchId || null);
+            await runAction(actionButton.dataset.action);
         } catch (error) { notify(error.message, "error"); }
         finally { setBusy(false); }
     }

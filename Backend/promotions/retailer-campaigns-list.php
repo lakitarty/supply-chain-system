@@ -59,13 +59,6 @@ try {
             && $offer['participant_status'] === 'PENDING'
             && $offer['status'] === 'APPROVED'
             && $today <= (string)$offer['end_date'];
-        $offer['can_start'] = in_array((string)$actor['role'], ['ADMIN', 'BRANCH_ADMIN'], true)
-            && $offer['participant_status'] === 'ACCEPTED'
-            && $offer['status'] === 'APPROVED'
-            && $today >= (string)$offer['start_date']
-            && $today <= (string)$offer['end_date'];
-        $offer['can_complete'] = in_array((string)$actor['role'], ['ADMIN', 'BRANCH_ADMIN'], true)
-            && $today > (string)$offer['end_date'];
     }
     unset($offer);
 
@@ -73,7 +66,6 @@ try {
         'success' => true,
         'today' => $today,
         'role' => $actor['role'],
-        'branch_id' => $actor['branch_id'],
         'branches' => retailer_promotion_allowed_branches($pdo, $actor),
         'offers' => $offers
     ]);

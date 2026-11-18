@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../core/bootstrap.php';
+require_once __DIR__ . '/../core/inventory-location-provisioning.php';
 require_once __DIR__ . '/../core/guard.php';
 require_once __DIR__ . '/../core/audit.php';
 require_once __DIR__ . '/branch-rules.php';
@@ -36,6 +37,8 @@ $conflict = find_branch_name_conflict($pdo, $actor, $input);
     $pdo->beginTransaction();
 
     $branchId = insert_branch($pdo, $actor, $input);
+
+    provision_default_inventory_location($pdo, (int)$actor['organization_id'], $branchId);
 
     $adminInput = clean_user_input([
         'firstName' => $body['firstName'] ?? '',
@@ -100,5 +103,13 @@ $conflict = find_branch_name_conflict($pdo, $actor, $input);
     }
 
     log_error('branches create', $e);
+    respond_error(500, 'Unable to create the branch and its administrator.');
+
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+
+    log_error('branches create unexpected', $e);
     respond_error(500, 'Unable to create the branch and its administrator.');
 }
